@@ -103,6 +103,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         throw wrapExceptionIfNeeded(exceptionClass, e);
       }
     }
+
     return jdbcMethodFunc.call();
   }
 
@@ -120,6 +121,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (exceptionClass.isAssignableFrom(exception.getClass())) {
       return exceptionClass.cast(exception);
     }
+
     return exceptionClass.cast(new RuntimeException(exception));
   }
 
@@ -143,11 +145,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (currentConnection == null || currentHost == null) {
       return;
     }
+
     if (isWriter(currentHost)) {
       setWriterConnection(currentConnection, currentHost);
     } else {
       setReaderConnection(currentConnection, currentHost);
     }
+
     if (!currentConnection.isClosed()) {
       liveConnections.put(currentHost.getUrl(), currentConnection);
     }
@@ -193,10 +197,12 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (isConnectionUsable(currentConnection)) {
       this.pluginService.refreshHostList();
     }
+
     final List<HostSpec> hosts = this.pluginService.getHosts();
     if (hosts == null || hosts.isEmpty()) {
       logAndThrowException(Messages.get("ReadWriteSplittingPlugin.emptyHostList"));
     }
+
     if (this.explicitlyReadOnly) {
       if (!pluginService.isInTransaction() && (!isReader(currentHost) || currentConnection.isClosed())) {
         try {
@@ -222,6 +228,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
             Messages.get("ReadWriteSplittingPlugin.setReadOnlyFalseInTransaction"),
             SqlState.ACTIVE_SQL_TRANSACTION);
       }
+
       if (!isWriter(currentHost) || currentConnection.isClosed()) {
         try {
           switchToWriterConnection(hosts);
@@ -251,12 +258,14 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (isWriter(currentHost) && isConnectionUsable(currentConnection)) {
       return;
     }
+
     final HostSpec writerHost = getWriter(hosts);
     if (!isConnectionUsable(this.writerConnection)) {
       getNewWriterConnection(writerHost);
     } else {
       switchCurrentConnectionTo(this.writerConnection, writerHost);
     }
+
     LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.switchedFromReaderToWriter",
         new Object[] {writerHost.getUrl()}));
   }
@@ -303,11 +312,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         && isConnectionUsable(currentConnection)) {
       return;
     }
+
     if (!isConnectionUsable(this.readerConnection)) {
       initializeReaderConnection(hosts);
     } else {
       switchCurrentConnectionTo(this.readerConnection, this.readerHostSpec);
     }
+
     LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.switchedFromWriterToReader",
         new Object[] {this.readerHostSpec.getUrl()}));
   }
@@ -332,9 +343,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         break;
       }
     }
+
     if (writerHost == null) {
       logAndThrowException("ReadWriteSplittingPlugin.noWriterFound");
     }
+
     return writerHost;
   }
 
@@ -351,9 +364,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         readerHosts.add(hostSpec);
       }
     }
+
     if (readerHosts.isEmpty()) {
       logAndThrowException(Messages.get("ReadWriteSplittingPlugin.noReadersFound"));
     }
+
     Collections.shuffle(readerHosts);
     return readerHosts.get(0);
   }
@@ -367,6 +382,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (conn != null && !conn.isClosed()) {
       return conn;
     }
+
     conn = this.pluginService.connect(host, this.properties);
     liveConnections.put(host.getUrl(), conn);
     return conn;
@@ -395,6 +411,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         if (readerConnection == internalConnection) {
           readerConnection = null;
         }
+
         for (Connection connection : liveConnections.values()) {
           closeInternalConnection(connection);
         }
