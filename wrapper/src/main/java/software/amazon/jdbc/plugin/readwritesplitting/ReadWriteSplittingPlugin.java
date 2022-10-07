@@ -286,7 +286,6 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   }
 
   private void getNewWriterConnection(final HostSpec writerHostSpec) throws SQLException {
-    this.inReadWriteSplit = true;
     final Connection conn = getConnectionToHost(writerHostSpec);
     setWriterConnection(conn, writerHostSpec);
     switchCurrentConnectionTo(this.writerConnection, writerHostSpec);
