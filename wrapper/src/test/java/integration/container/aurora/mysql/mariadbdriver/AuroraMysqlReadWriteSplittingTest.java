@@ -16,6 +16,7 @@
 
 package integration.container.aurora.mysql.mariadbdriver;
 
+import static com.mysql.cj.conf.PropertyKey.socketTimeout;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -26,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import eu.rekawek.toxiproxy.Proxy;
-import integration.container.aurora.mysql.AuroraMysqlBaseTest;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.sql.Connection;
@@ -43,12 +43,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.hostlistprovider.AuroraHostListProvider;
-import software.amazon.jdbc.plugin.failover.FailoverConnectionPlugin;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
+import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingSQLException;
 import software.amazon.jdbc.util.SqlState;
 
-@Disabled
-public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
+public class AuroraMysqlReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
 
   private static Stream<Arguments> testParameters() {
     return Stream.of(
@@ -84,8 +83,8 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
       assertEquals(initialWriterId, writerConnectionId);
 
       conn.setReadOnly(true);
-      String newReaderConnectionId = queryInstanceId(conn);
-      assertEquals(readerConnectionId, newReaderConnectionId);
+      String nextReaderConnectionId = queryInstanceId(conn);
+      assertEquals(readerConnectionId, nextReaderConnectionId);
     }
   }
 
@@ -134,8 +133,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
 
   @ParameterizedTest(name = "test_connectToReaderIP_setReadOnlyTrueFalse")
   @MethodSource("testParameters")
-  public void test_connectToReaderIP_setReadOnlyTrueFalse(Properties props) throws SQLException,
-      UnknownHostException {
+  public void test_connectToReaderIP_setReadOnlyTrueFalse(Properties props) throws SQLException, UnknownHostException {
     String instanceHostPattern = "?" + DB_CONN_STR_SUFFIX;
     AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props, instanceHostPattern);
     final String hostIp = hostToIP(MYSQL_RO_CLUSTER_URL);
@@ -220,7 +218,8 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
       conn.setAutoCommit(false);
       stmt2.executeQuery("SELECT count(*) from test_splitting_readonly_transaction");
 
-      final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(false));
+      final ReadWriteSplittingSQLException exception =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
       assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), exception.getSQLState());
 
       stmt2.execute("COMMIT");
@@ -234,6 +233,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     }
   }
 
+  @Disabled("Functionality to detect 'SET AUTOCOMMIT' not implemented yet")
   @ParameterizedTest(name = "test_setReadOnlyFalseInTransaction_setAutocommitZero")
   @MethodSource("testParameters")
   public void test_setReadOnlyFalseInTransaction_setAutocommitZero(Properties props) throws SQLException {
@@ -288,7 +288,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
       stmt1.executeUpdate(
           "CREATE TABLE test_splitting_readonly_transaction "
               + "(id int not null primary key, text_field varchar(255) not null)");
-      stmt1.execute("SET autocommit = 0");
+      conn.setAutoCommit(false);
 
       final Statement stmt2 = conn.createStatement();
       stmt2.executeUpdate("INSERT INTO test_splitting_readonly_transaction VALUES (1, 'test_field value 1')");
@@ -307,6 +307,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     }
   }
 
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_autocommitTrue")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_autocommitTrue(Properties props) throws SQLException {
@@ -347,7 +348,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     }
   }
 
-
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_autocommitFalse")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_autocommitFalse(Properties props) throws SQLException {
@@ -404,6 +405,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     }
   }
 
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_switchAutoCommitInTransaction")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_switchAutoCommitInTransaction(Properties props) throws SQLException {
@@ -439,7 +441,9 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
       nextReaderId = queryInstanceId(conn);
       // Since autocommit is now off, we should be in a transaction; connection should not be switching
       assertEquals(readerId, nextReaderId);
-      assertThrows(SQLException.class, () -> conn.setReadOnly(false));
+      ReadWriteSplittingSQLException e =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
+      assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), e.getSQLState());
 
       conn.setAutoCommit(true); // Switch autocommit value while inside the transaction
       stmt.execute("commit");
@@ -456,6 +460,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     }
   }
 
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_remainingStateTransitions")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_remainingStateTransitions(Properties props) throws SQLException {
@@ -499,16 +504,18 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     }
   }
 
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_lostConnectivity")
   @MethodSource("proxiedTestParameters")
   public void test_readerLoadBalancing_lostConnectivity(Properties props) throws SQLException, IOException {
     String initialWriterId = instanceIDs[0];
 
-    // autocommit on transaction (autocommit implicitly disabled)
+    ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.set(props, "true");
     try (Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
         MYSQL_PROXY_PORT, props)) {
       conn.setReadOnly(true);
       final Statement stmt1 = conn.createStatement();
+      // autocommit on transaction (autocommit implicitly disabled)
       stmt1.execute("BEGIN");
       String readerId = queryInstanceId(conn);
 
@@ -575,6 +582,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
   public void test_setReadOnlyTrue_allReadersDown(Properties props) throws SQLException, IOException {
     String initialWriterId = instanceIDs[0];
 
+    props.setProperty(socketTimeout.getKeyName(), "2000");
     try (Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
         MYSQL_PROXY_PORT, props)) {
       String currentConnectionId = queryInstanceId(conn);
@@ -607,7 +615,9 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
   public void test_setReadOnlyTrue_allInstancesDown(Properties props) throws SQLException, IOException {
     final String initialWriterId = instanceIDs[0];
 
-    FailoverConnectionPlugin.FAILOVER_TIMEOUT_MS.set(props, "10");
+    // Ensure a topology query is sent to the database when conn.setReadOnly is called
+    AuroraHostListProvider.CLUSTER_TOPOLOGY_REFRESH_RATE_MS.set(props, "1");
+    props.setProperty(socketTimeout.getKeyName(), "1000");
     try (Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
         MYSQL_PROXY_PORT, props)) {
       String currentConnectionId = queryInstanceId(conn);
@@ -625,40 +635,9 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
         }
       }
 
-      final SQLException e = assertThrows(SQLException.class, () -> conn.setReadOnly(true));
-      if (pluginChainIncludesFailoverPlugin(props)) {
-        assertEquals(SqlState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState());
-      } else {
-        assertEquals(SqlState.COMMUNICATION_ERROR.getState(), e.getSQLState());
-      }
-    }
-  }
-
-  @ParameterizedTest(name = "test_setReadOnlyTrue_allInstancesDown_writerClosed")
-  @MethodSource("proxiedTestParameters")
-  public void test_setReadOnlyTrue_allInstancesDown_writerClosed(Properties props) throws SQLException, IOException {
-    final String initialWriterId = instanceIDs[0];
-
-    try (Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
-        MYSQL_PROXY_PORT, props)) {
-      String currentConnectionId = queryInstanceId(conn);
-      assertEquals(initialWriterId, currentConnectionId);
-      assertTrue(isDBInstanceWriter(currentConnectionId));
-      conn.close();
-
-      // Kill all instances
-      for (int i = 0; i < clusterSize; i++) {
-        final String instanceId = instanceIDs[i];
-        final Proxy proxyInstance = proxyMap.get(instanceId);
-        if (proxyInstance != null) {
-          containerHelper.disableConnectivity(proxyInstance);
-        } else {
-          fail(String.format("%s does not have a proxy setup.", instanceId));
-        }
-      }
-
-      final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(true));
-      assertEquals(SqlState.CONNECTION_UNABLE_TO_CONNECT.getState(), exception.getSQLState());
+      final ReadWriteSplittingSQLException e =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(true));
+      assertEquals(SqlState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState());
     }
   }
 
@@ -667,6 +646,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
   public void test_setReadOnlyFalse_allInstancesDown(Properties props) throws SQLException, IOException {
     final String initialReaderId = instanceIDs[1];
 
+    props.setProperty(socketTimeout.getKeyName(), "1000");
     try (Connection conn = connectToInstance(initialReaderId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
         MYSQL_PROXY_PORT, props)) {
       String currentConnectionId = queryInstanceId(conn);
@@ -684,7 +664,8 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
         }
       }
 
-      final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(false));
+      final ReadWriteSplittingSQLException exception =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
       assertEquals(SqlState.CONNECTION_UNABLE_TO_CONNECT.getState(), exception.getSQLState());
     }
   }
@@ -693,8 +674,10 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
   public void test_failoverToNewWriter_setReadOnlyTrueFalse() throws SQLException, InterruptedException, IOException {
     final String initialWriterId = instanceIDs[0];
 
+    Properties props = getProxiedProps_allPlugins();
+    props.setProperty(socketTimeout.getKeyName(), "1000");
     try (final Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
-        MYSQL_PROXY_PORT, getProxiedProps_allPlugins())) {
+        MYSQL_PROXY_PORT, props)) {
       // Kill all reader instances
       for (int i = 1; i < clusterSize; i++) {
         final String instanceId = instanceIDs[i];
@@ -739,8 +722,10 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
   public void test_failoverToNewReader_setReadOnlyFalseTrue() throws SQLException, IOException {
     final String initialWriterId = instanceIDs[0];
 
+    Properties props = getProxiedProps_allPlugins();
+    props.setProperty(socketTimeout.getKeyName(), "2000");
     try (final Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
-        MYSQL_PROXY_PORT, getProxiedProps_allPlugins())) {
+        MYSQL_PROXY_PORT, props)) {
       String writerConnectionId = queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
       assertTrue(isDBInstanceWriter(writerConnectionId));
@@ -801,8 +786,10 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
   public void test_failoverReaderToWriter_setReadOnlyTrueFalse() throws SQLException, IOException {
     final String initialWriterId = instanceIDs[0];
 
+    Properties props = getProxiedProps_allPlugins();
+    props.setProperty(socketTimeout.getKeyName(), "2000");
     try (final Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
-        MYSQL_PROXY_PORT, getProxiedProps_allPlugins())) {
+        MYSQL_PROXY_PORT, props)) {
       String writerConnectionId = queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
       assertTrue(isDBInstanceWriter(writerConnectionId));
@@ -861,6 +848,7 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     }
   }
 
+  @Disabled("Reader load balancing not implemented yet")
   @Test
   public void test_transactionResolutionUnknown_readWriteSplittingPluginOnly() throws SQLException, IOException {
     final String initialWriterId = instanceIDs[0];
@@ -916,13 +904,13 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
 
   private static Properties getProps_readWritePlugin() {
     Properties props = initDefaultProps();
-    addReadWritePlugin(props);
+    addReadWritePlugins(props);
     return props;
   }
 
   private static Properties getProxiedProps_readWritePlugin() {
     Properties props = initDefaultProxiedProps();
-    addReadWritePlugin(props);
+    addReadWritePlugins(props);
     return props;
   }
 
@@ -930,8 +918,8 @@ public class AuroraMysqlReadWriteSplittingTest extends AuroraMysqlBaseTest {
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
   }
 
-  private static void addReadWritePlugin(Properties props) {
-    PropertyDefinition.PLUGINS.set(props, "readWriteSplitting");
+  private static void addReadWritePlugins(Properties props) {
+    PropertyDefinition.PLUGINS.set(props, "auroraHostList,readWriteSplitting");
   }
 
   private boolean pluginChainIncludesFailoverPlugin(Properties props) {

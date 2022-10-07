@@ -140,8 +140,9 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       return null;
     }
 
-    HostSpec updatedRoleHostSpec = new HostSpec(currentHost.getHost(), currentHost.getPort(), updatedCurrentHost.getRole(),
-        currentHost.getAvailability());
+    HostSpec updatedRoleHostSpec =
+        new HostSpec(currentHost.getHost(), currentHost.getPort(), updatedCurrentHost.getRole(),
+            currentHost.getAvailability());
 
     this.hostListProviderService.setInitialConnectionHostSpec(updatedRoleHostSpec);
     return currentConnection;

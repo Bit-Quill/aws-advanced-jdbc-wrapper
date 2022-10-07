@@ -180,7 +180,8 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
       stmt2.execute("START TRANSACTION READ ONLY");
       stmt2.executeQuery("SELECT count(*) from test_splitting_readonly_transaction");
 
-      final ReadWriteSplittingSQLException exception = assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
+      final ReadWriteSplittingSQLException exception =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
       assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), exception.getSQLState());
 
       stmt2.execute("COMMIT");
@@ -219,7 +220,8 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
       conn.setAutoCommit(false);
       stmt2.executeQuery("SELECT count(*) from test_splitting_readonly_transaction");
 
-      final ReadWriteSplittingSQLException exception = assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
+      final ReadWriteSplittingSQLException exception =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
       assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), exception.getSQLState());
 
       stmt2.execute("COMMIT");
@@ -269,7 +271,7 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
     }
   }
 
-  @Disabled
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_autocommitTrue")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_autocommitTrue(Properties props) throws SQLException {
@@ -311,7 +313,7 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
   }
 
 
-  @Disabled
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_autocommitFalse")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_autocommitFalse(Properties props) throws SQLException {
@@ -368,7 +370,7 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
     }
   }
 
-  @Disabled
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_switchAutoCommitInTransaction")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_switchAutoCommitInTransaction(Properties props) throws SQLException {
@@ -404,7 +406,9 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
       nextReaderId = queryInstanceId(conn);
       // Since autocommit is now off, we should be in a transaction; connection should not be switching
       assertEquals(readerId, nextReaderId);
-      assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
+      ReadWriteSplittingSQLException e =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(false));
+      assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), e.getSQLState());
 
       conn.setAutoCommit(true); // Switch autocommit value while inside the transaction
       stmt.execute("commit");
@@ -421,7 +425,7 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
     }
   }
 
-  @Disabled
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_remainingStateTransitions")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_remainingStateTransitions(Properties props) throws SQLException {
@@ -465,7 +469,7 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
     }
   }
 
-  @Disabled
+  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_lostConnectivity")
   @MethodSource("proxiedTestParameters")
   public void test_readerLoadBalancing_lostConnectivity(Properties props) throws SQLException, IOException {
@@ -575,6 +579,7 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
   public void test_setReadOnlyTrue_allInstancesDown(Properties props) throws SQLException, IOException {
     final String initialWriterId = instanceIDs[0];
 
+    // Ensure a topology query is sent to the database when conn.setReadOnly is called
     AuroraHostListProvider.CLUSTER_TOPOLOGY_REFRESH_RATE_MS.set(props, "1");
     PGProperty.SOCKET_TIMEOUT.set(props, "1");
     try (Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX + PROXIED_DOMAIN_NAME_SUFFIX,
@@ -594,7 +599,8 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
         }
       }
 
-      final ReadWriteSplittingSQLException e = assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(true));
+      final ReadWriteSplittingSQLException e =
+          assertThrows(ReadWriteSplittingSQLException.class, () -> conn.setReadOnly(true));
       assertEquals(SqlState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState());
     }
   }
@@ -794,7 +800,8 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
     final String initialWriterId = instanceIDs[0];
 
     try (Connection conn = DriverManager.getConnection(
-        DB_CONN_STR_PREFIX + initialWriterId + DB_CONN_STR_SUFFIX + ",non-existent-host/" + AURORA_POSTGRES_DB, getProps_allPlugins())) {
+        DB_CONN_STR_PREFIX + initialWriterId + DB_CONN_STR_SUFFIX + ",non-existent-host/" + AURORA_POSTGRES_DB,
+        getProps_allPlugins())) {
       String currentConnectionId = queryInstanceId(conn);
       assertEquals(initialWriterId, currentConnectionId);
       assertTrue(isDBInstanceWriter(currentConnectionId));
@@ -806,7 +813,7 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
     }
   }
 
-  @Disabled
+  @Disabled("Reader load balancing not implemented yet")
   @Test
   public void test_transactionResolutionUnknown_readWriteSplittingPluginOnly() throws SQLException, IOException {
     final String initialWriterId = instanceIDs[0];
