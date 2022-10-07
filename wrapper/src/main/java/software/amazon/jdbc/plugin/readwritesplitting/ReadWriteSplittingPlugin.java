@@ -21,8 +21,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -43,6 +45,8 @@ import software.amazon.jdbc.util.SubscribedMethodHelper;
 
 public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     implements CanReleaseResources {
+  private final Map<String, Connection> liveConnections = new HashMap<>();
+
 
   private static final Logger LOGGER = Logger.getLogger(ReadWriteSplittingPlugin.class.getName());
   private static final Set<String> subscribedMethods =
@@ -104,7 +108,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   @Override
   public OldConnectionSuggestedAction notifyConnectionChanged(EnumSet<NodeChangeOptions> changes) {
-    updateInternalConnectionInfo();
+    try {
+      updateInternalConnectionInfo();
+    } catch (SQLException e) {
+      // ignore
+    }
     return OldConnectionSuggestedAction.NO_OPINION;
   }
 
@@ -129,7 +137,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     return currentConnection;
   }
 
-  private void updateInternalConnectionInfo() {
+  private void updateInternalConnectionInfo() throws SQLException {
     final Connection currentConnection = this.pluginService.getCurrentConnection();
     final HostSpec currentHost = this.pluginService.getCurrentHostSpec();
     if (currentConnection == null || currentHost == null) {
@@ -139,6 +147,9 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       setWriterConnection(currentConnection, currentHost);
     } else {
       setReaderConnection(currentConnection, currentHost);
+    }
+    if (!currentConnection.isClosed()) {
+      liveConnections.put(currentHost.getUrl(), currentConnection);
     }
   }
 
@@ -151,7 +162,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   }
 
   private void getNewWriterConnection(final HostSpec writerHostSpec) throws SQLException {
-    final Connection conn = this.pluginService.connect(writerHostSpec, this.properties);
+    final Connection conn = getConnectionToHost(writerHostSpec);
     setWriterConnection(conn, writerHostSpec);
     switchCurrentConnectionTo(this.writerConnection, writerHostSpec);
   }
@@ -328,7 +339,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   }
 
   private void getNewReaderConnection(final HostSpec readerHostSpec) throws SQLException {
-    final Connection conn = pluginService.connect(readerHostSpec, this.properties);
+    final Connection conn = getConnectionToHost(readerHostSpec);
     setReaderConnection(conn, readerHostSpec);
     switchCurrentConnectionTo(this.readerConnection, this.readerHostSpec);
   }
@@ -349,6 +360,16 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   private boolean isConnectionUsable(final Connection connection) throws SQLException {
     return connection != null && !connection.isClosed();
+  }
+
+  private Connection getConnectionToHost(HostSpec host) throws SQLException {
+    Connection conn = liveConnections.get(host.getUrl());
+    if (conn != null && !conn.isClosed()) {
+      return conn;
+    }
+    conn = this.pluginService.connect(host, this.properties);
+    liveConnections.put(host.getUrl(), conn);
+    return conn;
   }
 
   @Override
@@ -374,6 +395,10 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         if (readerConnection == internalConnection) {
           readerConnection = null;
         }
+        for (Connection connection : liveConnections.values()) {
+          closeInternalConnection(connection);
+        }
+        liveConnections.clear();
       }
     } catch (final SQLException e) {
       // ignore
