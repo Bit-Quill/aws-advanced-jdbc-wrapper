@@ -23,8 +23,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -48,6 +50,8 @@ import software.amazon.jdbc.util.SubscribedMethodHelper;
 
 public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     implements CanReleaseResources {
+  private final Map<String, Connection> liveConnections = new HashMap<>();
+
 
   private static final Logger LOGGER = Logger.getLogger(ReadWriteSplittingPlugin.class.getName());
   private static final Set<String> subscribedMethods =
@@ -209,7 +213,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   @Override
   public OldConnectionSuggestedAction notifyConnectionChanged(EnumSet<NodeChangeOptions> changes) {
-    updateInternalConnectionInfo();
+    try {
+      updateInternalConnectionInfo();
+    } catch (SQLException e) {
+      // ignore
+    }
 
     if (this.inReadWriteSplit) {
       return OldConnectionSuggestedAction.PRESERVE;
@@ -239,6 +247,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         throw wrapExceptionIfNeeded(exceptionClass, e);
       }
     }
+
     return jdbcMethodFunc.call();
   }
 
@@ -246,7 +255,22 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (exceptionClass.isAssignableFrom(exception.getClass())) {
       return exceptionClass.cast(exception);
     }
+
     return exceptionClass.cast(new RuntimeException(exception));
+  }
+
+  @Override
+  public Connection connect(
+      final String driverProtocol,
+      final HostSpec hostSpec,
+      final Properties props,
+      final boolean isInitialConnection,
+      final @NonNull JdbcCallable<Connection, SQLException> connectFunc)
+      throws SQLException {
+    final Connection currentConnection = connectFunc.call();
+    updateInternalConnectionInfo();
+
+    return currentConnection;
   }
 
   private void updateInternalConnectionInfo() {
@@ -255,10 +279,15 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (currentConnection == null || currentHost == null) {
       return;
     }
+
     if (isWriter(currentHost)) {
       setWriterConnection(currentConnection, currentHost);
     } else {
       setReaderConnection(currentConnection, currentHost);
+    }
+
+    if (!currentConnection.isClosed()) {
+      liveConnections.put(currentHost.getUrl(), currentConnection);
     }
   }
 
@@ -272,7 +301,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   private void getNewWriterConnection(final HostSpec writerHostSpec) throws SQLException {
     this.inReadWriteSplit = true;
-    final Connection conn = this.pluginService.connect(writerHostSpec, this.properties);
+    final Connection conn = getConnectionToHost(writerHostSpec);
     setWriterConnection(conn, writerHostSpec);
     switchCurrentConnectionTo(this.writerConnection, writerHostSpec);
   }
@@ -307,6 +336,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         // ignore
       }
     }
+
     final List<HostSpec> hosts = this.pluginService.getHosts();
     if (hosts == null || hosts.isEmpty()) {
       logAndThrowException(Messages.get("ReadWriteSplittingPlugin.emptyHostList"));
@@ -369,12 +399,14 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (isWriter(currentHost) && isConnectionUsable(currentConnection)) {
       return;
     }
+
     final HostSpec writerHost = getWriter(hosts);
     if (!isConnectionUsable(this.writerConnection)) {
       getNewWriterConnection(writerHost);
     } else {
       switchCurrentConnectionTo(this.writerConnection, writerHost);
     }
+
     LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.switchedFromReaderToWriter",
         new Object[] {writerHost.getUrl()}));
   }
@@ -425,11 +457,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         && isConnectionUsable(currentConnection)) {
       return;
     }
+
     if (!isConnectionUsable(this.readerConnection)) {
       initializeReaderConnection(hosts);
     } else {
       switchCurrentConnectionTo(this.readerConnection, this.readerHostSpec);
     }
+
     LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.switchedFromWriterToReader",
         new Object[] {this.readerHostSpec.getUrl()}));
   }
@@ -454,14 +488,16 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         break;
       }
     }
+
     if (writerHost == null) {
       logAndThrowException("ReadWriteSplittingPlugin.noWriterFound");
     }
+
     return writerHost;
   }
 
   private void getNewReaderConnection(final HostSpec readerHostSpec) throws SQLException {
-    final Connection conn = pluginService.connect(readerHostSpec, this.properties);
+    final Connection conn = getConnectionToHost(readerHostSpec);
     setReaderConnection(conn, readerHostSpec);
     switchCurrentConnectionTo(this.readerConnection, this.readerHostSpec);
   }
@@ -473,15 +509,28 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         readerHosts.add(hostSpec);
       }
     }
+
     if (readerHosts.isEmpty()) {
       logAndThrowException(Messages.get("ReadWriteSplittingPlugin.noReadersFound"));
     }
+
     Collections.shuffle(readerHosts);
     return readerHosts.get(0);
   }
 
   private boolean isConnectionUsable(final Connection connection) throws SQLException {
     return connection != null && !connection.isClosed();
+  }
+
+  private Connection getConnectionToHost(HostSpec host) throws SQLException {
+    Connection conn = liveConnections.get(host.getUrl());
+    if (conn != null && !conn.isClosed()) {
+      return conn;
+    }
+
+    conn = this.pluginService.connect(host, this.properties);
+    liveConnections.put(host.getUrl(), conn);
+    return conn;
   }
 
   @Override
@@ -507,6 +556,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         if (readerConnection == internalConnection) {
           readerConnection = null;
         }
+
+        for (Connection connection : liveConnections.values()) {
+          closeInternalConnection(connection);
+        }
+        liveConnections.clear();
       }
     } catch (final SQLException e) {
       // ignore
