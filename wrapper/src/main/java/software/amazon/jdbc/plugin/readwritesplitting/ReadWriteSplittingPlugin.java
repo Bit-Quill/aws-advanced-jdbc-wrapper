@@ -259,21 +259,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     return exceptionClass.cast(new RuntimeException(exception));
   }
 
-  @Override
-  public Connection connect(
-      final String driverProtocol,
-      final HostSpec hostSpec,
-      final Properties props,
-      final boolean isInitialConnection,
-      final @NonNull JdbcCallable<Connection, SQLException> connectFunc)
-      throws SQLException {
-    final Connection currentConnection = connectFunc.call();
-    updateInternalConnectionInfo();
-
-    return currentConnection;
-  }
-
-  private void updateInternalConnectionInfo() {
+  private void updateInternalConnectionInfo() throws SQLException {
     final Connection currentConnection = this.pluginService.getCurrentConnection();
     final HostSpec currentHost = this.pluginService.getCurrentHostSpec();
     if (currentConnection == null || currentHost == null) {
