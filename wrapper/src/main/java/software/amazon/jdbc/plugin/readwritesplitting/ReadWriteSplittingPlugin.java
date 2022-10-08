@@ -124,7 +124,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       return currentConnection;
     }
 
-    RdsUrlType urlType = rdsUtils.identifyRdsType(hostSpec.getHost());
+    final RdsUrlType urlType = rdsUtils.identifyRdsType(hostSpec.getHost());
     if (RdsUrlType.RDS_WRITER_CLUSTER.equals(urlType) || RdsUrlType.RDS_READER_CLUSTER.equals(urlType)) {
       return currentConnection;
     }
@@ -144,7 +144,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       return null;
     }
 
-    HostSpec updatedRoleHostSpec =
+    final HostSpec updatedRoleHostSpec =
         new HostSpec(currentHost.getHost(), currentHost.getPort(), updatedCurrentHost.getRole(),
             currentHost.getAvailability());
 
@@ -152,13 +152,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     return currentConnection;
   }
 
-  private HostSpec getHostSpecFromUrl(String url) {
+  private HostSpec getHostSpecFromUrl(final String url) {
     if (url == null) {
       return null;
     }
 
     final List<HostSpec> hosts = this.pluginService.getHosts();
-    for (HostSpec host : hosts) {
+    for (final HostSpec host : hosts) {
       if (host.getUrl().equals(url)) {
         return host;
       }
@@ -167,13 +167,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     return null;
   }
 
-  private HostSpec getHostSpecFromInstanceId(String instanceId) {
+  private HostSpec getHostSpecFromInstanceId(final String instanceId) {
     if (instanceId == null) {
       return null;
     }
 
-    List<HostSpec> hosts = this.pluginService.getHosts();
-    for (HostSpec host : hosts) {
+    final List<HostSpec> hosts = this.pluginService.getHosts();
+    for (final HostSpec host : hosts) {
       if (host.getUrl().startsWith(instanceId)) {
         return host;
       }
@@ -182,7 +182,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     return null;
   }
 
-  private String getCurrentInstanceId(Connection conn, String driverProtocol) {
+  private String getCurrentInstanceId(final Connection conn, final String driverProtocol) {
     final String retrieveInstanceQuery;
     final String instanceNameCol;
     if (driverProtocol.startsWith(PG_DRIVER_PROTOCOL)) {
@@ -199,12 +199,12 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
 
     String instanceName = null;
-    try (Statement stmt = conn.createStatement();
-         ResultSet resultSet = stmt.executeQuery(retrieveInstanceQuery)) {
+    try (final Statement stmt = conn.createStatement();
+         final ResultSet resultSet = stmt.executeQuery(retrieveInstanceQuery)) {
       if (resultSet.next()) {
         instanceName = resultSet.getString(instanceNameCol);
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       return null;
     }
 
@@ -212,10 +212,10 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   }
 
   @Override
-  public OldConnectionSuggestedAction notifyConnectionChanged(EnumSet<NodeChangeOptions> changes) {
+  public OldConnectionSuggestedAction notifyConnectionChanged(final EnumSet<NodeChangeOptions> changes) {
     try {
       updateInternalConnectionInfo();
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       // ignore
     }
 
@@ -317,7 +317,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (isConnectionUsable(currentConnection)) {
       try {
         this.pluginService.refreshHostList();
-      } catch (SQLException e) {
+      } catch (final SQLException e) {
         // ignore
       }
     }
@@ -366,12 +366,12 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
   }
 
-  private void logAndThrowException(String logMessage) throws SQLException {
+  private void logAndThrowException(final String logMessage) throws SQLException {
     LOGGER.severe(logMessage);
     throw new ReadWriteSplittingSQLException(logMessage);
   }
 
-  private void logAndThrowException(String logMessage, SqlState sqlState) throws SQLException {
+  private void logAndThrowException(final String logMessage, final SqlState sqlState) throws SQLException {
     LOGGER.severe(logMessage);
     throw new ReadWriteSplittingSQLException(logMessage, sqlState.getState());
   }
@@ -507,7 +507,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     return connection != null && !connection.isClosed();
   }
 
-  private Connection getConnectionToHost(HostSpec host) throws SQLException {
+  private Connection getConnectionToHost(final HostSpec host) throws SQLException {
     Connection conn = liveConnections.get(host.getUrl());
     if (conn != null && !conn.isClosed()) {
       return conn;
@@ -542,7 +542,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
           readerConnection = null;
         }
 
-        for (Connection connection : liveConnections.values()) {
+        for (final Connection connection : liveConnections.values()) {
           closeInternalConnection(connection);
         }
         liveConnections.clear();
