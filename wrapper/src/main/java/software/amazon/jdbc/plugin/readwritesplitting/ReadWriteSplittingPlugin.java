@@ -44,6 +44,7 @@ import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.cleanup.CanReleaseResources;
 import software.amazon.jdbc.plugin.AbstractConnectionPlugin;
 import software.amazon.jdbc.plugin.failover.FailoverSQLException;
+import software.amazon.jdbc.util.ConnectionMethodAnalyzer;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.RdsUrlType;
 import software.amazon.jdbc.util.RdsUtils;
@@ -73,6 +74,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   static final String MYSQL_GET_INSTANCE_NAME_SQL = "SELECT @@aurora_server_id";
   static final String MYSQL_INSTANCE_NAME_COL = "@@aurora_server_id";
 
+  private final ConnectionMethodAnalyzer connectionMethodAnalyzer = new ConnectionMethodAnalyzer();
   private final PluginService pluginService;
   private final Properties properties;
   private final RdsUtils rdsUtils = new RdsUtils();
@@ -250,7 +252,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         LOGGER.finest(() -> Messages.get("ReadWriteSplittingPlugin.exceptionWhileExecutingCommand"));
         throw wrapExceptionIfNeeded(exceptionClass, e);
       }
-    } else if (this.explicitlyReadOnly && this.loadBalanceReadOnlyTraffic) {
+    } else if (this.explicitlyReadOnly && this.loadBalanceReadOnlyTraffic && isTransactionBoundary(methodName, args)) {
       LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.transactionBoundaryDetectedSwitchingToNewReader"));
       pickNewReaderConnection();
     }
@@ -264,6 +266,22 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
 
     return exceptionClass.cast(new RuntimeException(exception));
+  }
+
+  private boolean isTransactionBoundary(String methodName, Object[] args) {
+    if (this.connectionMethodAnalyzer.doesCloseTransaction(methodName, args)) {
+      return true;
+    }
+
+    boolean autocommit;
+    try {
+      Connection currentConnection = this.pluginService.getCurrentConnection();
+      autocommit = currentConnection.getAutoCommit();
+    } catch (SQLException e) {
+      return false;
+    }
+
+    return autocommit && this.connectionMethodAnalyzer.isExecuteDml(methodName, args);
   }
 
   private void updateInternalConnectionInfo() throws SQLException {

@@ -40,6 +40,7 @@ import software.amazon.jdbc.NodeChangeOptions;
 import software.amazon.jdbc.OldConnectionSuggestedAction;
 import software.amazon.jdbc.PluginManagerService;
 import software.amazon.jdbc.PluginService;
+import software.amazon.jdbc.util.ConnectionMethodAnalyzer;
 import software.amazon.jdbc.util.Messages;
 
 /**
@@ -52,6 +53,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
       Logger.getLogger(DefaultConnectionPlugin.class.getName());
   private static final Set<String> subscribedMethods = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("*")));
 
+  private final ConnectionMethodAnalyzer connectionMethodAnalyzer = new ConnectionMethodAnalyzer();
   private final ConnectionProvider connectionProvider;
   private final PluginService pluginService;
   private final PluginManagerService pluginManagerService;
@@ -96,19 +98,24 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
             new Object[] {methodName}));
     final T result = jdbcMethodFunc.call();
 
-    if (!(methodName.contains("execute") && jdbcMethodArgs != null && jdbcMethodArgs.length >= 1)) {
-      return result;
-    }
-
-    final String query = String.valueOf(jdbcMethodArgs[0]);
-    final String statement = parseMultiStatementQueries(query).get(0);
-
-    if (doesOpenTransaction(statement)) {
+    final Connection conn = this.pluginService.getCurrentConnection();
+    if (this.connectionMethodAnalyzer.doesOpenTransaction(conn, methodName, jdbcMethodArgs)) {
       this.pluginManagerService.setInTransaction(true);
     }
 
-    if (doesCloseTransaction(statement)) {
+    if (this.connectionMethodAnalyzer.doesCloseTransaction(methodName, jdbcMethodArgs)) {
       this.pluginManagerService.setInTransaction(false);
+    }
+
+    if (this.connectionMethodAnalyzer.isSetAutoCommit(methodName, jdbcMethodArgs)) {
+      Boolean autocommit = this.connectionMethodAnalyzer.getAutoCommitValueFromSqlStatement(jdbcMethodArgs);
+      if (autocommit != null) {
+        try {
+          conn.setAutoCommit(autocommit);
+        } catch (SQLException e) {
+          // do nothing
+        }
+      }
     }
 
     return result;
@@ -154,20 +161,6 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
   @Override
   public void notifyNodeListChanged(Map<String, EnumSet<NodeChangeOptions>> changes) {
     // do nothing
-  }
-
-  public boolean doesOpenTransaction(String statement) {
-    statement = statement.toUpperCase();
-    statement = statement.replaceAll("\\s*/\\*(.*?)\\*/\\s*", " ").trim();
-    return statement.startsWith("BEGIN") || statement.startsWith("START TRANSACTION");
-  }
-
-  public boolean doesCloseTransaction(String statement) {
-    statement = statement.toUpperCase();
-    return statement.startsWith("COMMIT")
-        || statement.startsWith("ROLLBACK")
-        || statement.startsWith("END")
-        || statement.startsWith("ABORT");
   }
 
   List<String> parseMultiStatementQueries(String query) {

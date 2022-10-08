@@ -36,7 +36,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -233,8 +232,7 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       stmt3.executeUpdate("DROP TABLE IF EXISTS test_splitting_readonly_transaction");
     }
   }
-
-  @Disabled("Functionality to detect 'SET AUTOCOMMIT' not implemented yet")
+  
   @ParameterizedTest(name = "test_setReadOnlyFalseInTransaction_setAutocommitZero")
   @MethodSource("testParameters")
   public void test_setReadOnlyFalseInTransaction_setAutocommitZero(final Properties props) throws SQLException {
@@ -308,7 +306,6 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
-  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_autocommitTrue")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_autocommitTrue(final Properties props) throws SQLException {
@@ -349,7 +346,6 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
-  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_autocommitFalse")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_autocommitFalse(final Properties props) throws SQLException {
@@ -406,7 +402,6 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
-  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_switchAutoCommitInTransaction")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_switchAutoCommitInTransaction(final Properties props) throws SQLException {
@@ -461,7 +456,6 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
-  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_remainingStateTransitions")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_remainingStateTransitions(final Properties props) throws SQLException {
@@ -505,7 +499,6 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
-  @Disabled("Reader load balancing not implemented yet")
   @ParameterizedTest(name = "test_readerLoadBalancing_lostConnectivity")
   @MethodSource("proxiedTestParameters")
   public void test_readerLoadBalancing_lostConnectivity(final Properties props) throws SQLException, IOException {
@@ -849,7 +842,6 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
-  @Disabled("Reader load balancing not implemented yet")
   @Test
   public void test_transactionResolutionUnknown_readWriteSplittingPluginOnly() throws SQLException, IOException {
     final String initialWriterId = instanceIDs[0];
