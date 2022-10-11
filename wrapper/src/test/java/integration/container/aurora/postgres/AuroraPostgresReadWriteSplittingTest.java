@@ -134,7 +134,8 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
 
   @ParameterizedTest(name = "test_connectToReaderIP_setReadOnlyTrueFalse")
   @MethodSource("testParameters")
-  public void test_connectToReaderIP_setReadOnlyTrueFalse(final Properties props) throws SQLException, UnknownHostException {
+  public void test_connectToReaderIP_setReadOnlyTrueFalse(final Properties props)
+      throws SQLException, UnknownHostException {
     final String instanceHostPattern = "?" + DB_CONN_STR_SUFFIX;
     AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props, instanceHostPattern);
     final String hostIp = hostToIP(POSTGRES_RO_CLUSTER_URL);
