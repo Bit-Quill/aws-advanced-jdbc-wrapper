@@ -326,7 +326,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final HostSpec newConnectionHost)
       throws SQLException {
     final Connection currentConnection = this.pluginService.getCurrentConnection();
-    if (currentConnection == newConnection) {
+    if (currentConnection.equals(newConnection)) {
       return;
     }
     syncSessionStateOnReadWriteSplit(newConnection);
@@ -389,7 +389,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private HostSpec getWriter(final @NonNull List<HostSpec> hosts) throws SQLException {
     HostSpec writerHost = null;
     for (final HostSpec hostSpec : hosts) {
-      if (hostSpec.getRole() == HostRole.WRITER) {
+      if (hostSpec.getRole().equals(HostRole.WRITER)) {
         writerHost = hostSpec;
         break;
       }
@@ -411,7 +411,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private HostSpec getRandomReaderHost(final List<HostSpec> hosts) throws SQLException {
     final List<HostSpec> readerHosts = new ArrayList<>();
     for (final HostSpec hostSpec : hosts) {
-      if (hostSpec.getRole() == HostRole.READER) {
+      if (hostSpec.getRole().equals(HostRole.READER)) {
         readerHosts.add(hostSpec);
       }
     }
@@ -455,11 +455,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     try {
       if (internalConnection != null && internalConnection != currentConnection && !internalConnection.isClosed()) {
         internalConnection.close();
-        if (writerConnection == internalConnection) {
+        if (writerConnection.equals(internalConnection)) {
           writerConnection = null;
         }
 
-        if (readerConnection == internalConnection) {
+        if (readerConnection.equals(internalConnection)) {
           readerConnection = null;
         }
 
