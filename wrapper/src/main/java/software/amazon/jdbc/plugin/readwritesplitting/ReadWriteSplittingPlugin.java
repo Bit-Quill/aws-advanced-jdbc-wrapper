@@ -180,7 +180,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
     final ArrayDeque<HostSpec> readerHosts = getRandomReaderHosts();
     while (!readerHosts.isEmpty()) {
-      final HostSpec host  = readerHosts.poll();
+      final HostSpec host = readerHosts.poll();
       try {
         getNewReaderConnection(host);
         final Connection currentConnection = this.pluginService.getCurrentConnection();
@@ -212,8 +212,8 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         readerHosts.add(host);
       }
     }
-    Collections.shuffle(hosts);
-    return new ArrayDeque<>(hosts);
+    Collections.shuffle(readerHosts);
+    return new ArrayDeque<>(readerHosts);
   }
 
   private void getNewWriterConnection(final HostSpec writerHostSpec) throws SQLException {
