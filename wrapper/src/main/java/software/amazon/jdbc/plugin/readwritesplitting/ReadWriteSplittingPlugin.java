@@ -389,7 +389,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private HostSpec getWriter(final @NonNull List<HostSpec> hosts) throws SQLException {
     HostSpec writerHost = null;
     for (final HostSpec hostSpec : hosts) {
-      if (hostSpec.getRole().equals(HostRole.WRITER)) {
+      if (HostRole.WRITER.equals(hostSpec.getRole())) {
         writerHost = hostSpec;
         break;
       }
@@ -411,7 +411,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private HostSpec getRandomReaderHost(final List<HostSpec> hosts) throws SQLException {
     final List<HostSpec> readerHosts = new ArrayList<>();
     for (final HostSpec hostSpec : hosts) {
-      if (hostSpec.getRole().equals(HostRole.READER)) {
+      if (HostRole.READER.equals(hostSpec.getRole())) {
         readerHosts.add(hostSpec);
       }
     }
