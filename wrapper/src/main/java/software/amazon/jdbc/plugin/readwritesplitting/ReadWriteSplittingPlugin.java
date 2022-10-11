@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import software.amazon.jdbc.AwsWrapperProperty;
@@ -75,12 +76,12 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private final PluginService pluginService;
   private final Properties properties;
   private final RdsUtils rdsUtils = new RdsUtils();
+  private final AtomicBoolean inReadWriteSplit = new AtomicBoolean(false);
   private HostListProviderService hostListProviderService;
   private Connection writerConnection;
   private Connection readerConnection;
   private HostSpec readerHostSpec;
   private boolean explicitlyReadOnly = false;
-  private boolean inReadWriteSplit = false;
 
   public static final AwsWrapperProperty LOAD_BALANCE_READ_ONLY_TRAFFIC =
       new AwsWrapperProperty(
@@ -219,7 +220,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       // ignore
     }
 
-    if (this.inReadWriteSplit) {
+    if (this.inReadWriteSplit.get()) {
       return OldConnectionSuggestedAction.PRESERVE;
     }
     return OldConnectionSuggestedAction.NO_OPINION;
@@ -404,7 +405,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (currentConnection == newConnection) {
       return;
     }
-    this.inReadWriteSplit = true;
+    this.inReadWriteSplit.set(true);
     transferSessionStateOnReadWriteSplit(newConnection);
     this.pluginService.setCurrentConnection(newConnection, newConnectionHost);
     LOGGER.finest(() -> Messages.get(
