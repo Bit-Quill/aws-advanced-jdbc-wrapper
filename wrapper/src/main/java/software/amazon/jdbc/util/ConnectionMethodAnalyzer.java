@@ -109,11 +109,7 @@ public class ConnectionMethodAnalyzer {
         || statement.startsWith("ABORT");
   }
 
-  public boolean isSetAutoCommit(String methodName, Object[] args) {
-    if ("Connection.setAutoCommit".equals(methodName)) {
-      return true;
-    }
-
+  public boolean isStatementSettingAutoCommit(String methodName, Object[] args) {
     if (!(methodName.contains("execute") && args != null && args.length >= 1)) {
       return false;
     }

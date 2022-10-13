@@ -79,12 +79,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private final Properties properties;
   private final RdsUtils rdsUtils = new RdsUtils();
   private final AtomicBoolean inReadWriteSplit = new AtomicBoolean(false);
+  private final boolean loadBalanceReadOnlyTraffic;
   private HostListProviderService hostListProviderService;
   private Connection writerConnection;
   private Connection readerConnection;
   private HostSpec readerHostSpec;
+  private boolean isTransactionBoundary = false;
   private boolean explicitlyReadOnly = false;
-  private final boolean loadBalanceReadOnlyTraffic;
 
   public static final AwsWrapperProperty LOAD_BALANCE_READ_ONLY_TRAFFIC =
       new AwsWrapperProperty(
@@ -252,11 +253,12 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
         LOGGER.finest(() -> Messages.get("ReadWriteSplittingPlugin.exceptionWhileExecutingCommand"));
         throw wrapExceptionIfNeeded(exceptionClass, e);
       }
-    } else if (this.explicitlyReadOnly && this.loadBalanceReadOnlyTraffic && isTransactionBoundary(methodName, args)) {
+    } else if (this.explicitlyReadOnly && this.loadBalanceReadOnlyTraffic && this.isTransactionBoundary) {
       LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.transactionBoundaryDetectedSwitchingToNewReader"));
       pickNewReaderConnection();
     }
 
+    this.isTransactionBoundary = isTransactionBoundary(methodName, args);
     return jdbcMethodFunc.call();
   }
 
@@ -271,6 +273,10 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private boolean isTransactionBoundary(String methodName, Object[] args) {
     if (this.connectionMethodAnalyzer.doesCloseTransaction(methodName, args)) {
       return true;
+    }
+
+    if (this.pluginService.isInTransaction()) {
+      return false;
     }
 
     boolean autocommit;
@@ -322,9 +328,6 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final HostSpec host = readerHosts.poll();
       try {
         getNewReaderConnection(host);
-        final Connection currentConnection = this.pluginService.getCurrentConnection();
-        switchCurrentConnectionTo(currentConnection, this.readerHostSpec);
-
         LOGGER.finest(
             () -> Messages.get(
                 "ReadWriteSplittingPlugin.successfullyConnectedToReader",
@@ -455,6 +458,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       return;
     }
 
+    this.inReadWriteSplit.set(true);
     final HostSpec writerHost = getWriter(hosts);
     if (!isConnectionUsable(this.writerConnection)) {
       getNewWriterConnection(writerHost);
@@ -474,7 +478,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (currentConnection.equals(newConnection)) {
       return;
     }
-    this.inReadWriteSplit.set(true);
+
     transferSessionStateOnReadWriteSplit(newConnection);
     this.pluginService.setCurrentConnection(newConnection, newConnectionHost);
     LOGGER.finest(() -> Messages.get(
@@ -513,6 +517,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       return;
     }
 
+    this.inReadWriteSplit.set(true);
     if (!isConnectionUsable(this.readerConnection)) {
       initializeReaderConnection(hosts);
     } else {
@@ -597,6 +602,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     LOGGER.finest(() -> Messages.get("ReadWriteSplittingPlugin.closingInternalConnections"));
     closeInternalConnection(this.readerConnection);
     closeInternalConnection(this.writerConnection);
+
+    for (final Connection connection : liveConnections.values()) {
+      closeInternalConnection(connection);
+    }
+    liveConnections.clear();
   }
 
   private void closeInternalConnection(final Connection internalConnection) {
@@ -604,18 +614,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     try {
       if (internalConnection != null && internalConnection != currentConnection && !internalConnection.isClosed()) {
         internalConnection.close();
-        if (writerConnection.equals(internalConnection)) {
+        if (internalConnection.equals(writerConnection)) {
           writerConnection = null;
         }
 
-        if (readerConnection.equals(internalConnection)) {
+        if (internalConnection.equals(readerConnection)) {
           readerConnection = null;
         }
-
-        for (final Connection connection : liveConnections.values()) {
-          closeInternalConnection(connection);
-        }
-        liveConnections.clear();
       }
     } catch (final SQLException e) {
       // ignore

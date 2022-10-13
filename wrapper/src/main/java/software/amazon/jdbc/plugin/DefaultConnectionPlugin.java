@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import software.amazon.jdbc.ConnectionPlugin;
@@ -107,7 +106,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
       this.pluginManagerService.setInTransaction(false);
     }
 
-    if (this.connectionMethodAnalyzer.isSetAutoCommit(methodName, jdbcMethodArgs)) {
+    if (this.connectionMethodAnalyzer.isStatementSettingAutoCommit(methodName, jdbcMethodArgs)) {
       Boolean autocommit = this.connectionMethodAnalyzer.getAutoCommitValueFromSqlStatement(jdbcMethodArgs);
       if (autocommit != null) {
         try {
