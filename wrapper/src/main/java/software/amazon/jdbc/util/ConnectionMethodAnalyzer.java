@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ConnectionMethodAnalyzer {
+
   public boolean doesOpenTransaction(Connection currentConn, String methodName, Object[] args) {
     if (!(methodName.contains("execute") && args != null && args.length >= 1)) {
       return false;
@@ -119,24 +120,35 @@ public class ConnectionMethodAnalyzer {
   }
 
   public Boolean getAutoCommitValueFromSqlStatement(Object[] args) {
-    String sql = (String) args[0];
-    sql = sql.trim();
-    sql = sql.toLowerCase();
-
-    int equalsCharacterIndex = sql.indexOf("=");
-    if (equalsCharacterIndex == -1) {
+    if (args == null || args.length < 1) {
       return null;
     }
-    sql = sql.substring(equalsCharacterIndex + 1);
 
+    String sql = getFirstSqlStatement(String.valueOf(args[0]));
+
+    int valueIndex;
+    int separatorIndex = sql.indexOf("=");
+
+    if (separatorIndex != -1) {
+      valueIndex = separatorIndex + 1;
+    } else {
+      separatorIndex = sql.indexOf(" TO ");
+      if (separatorIndex == -1) {
+        return null;
+      } else {
+        valueIndex = separatorIndex + 3;
+      }
+    }
+
+    sql = sql.substring(valueIndex);
     if (sql.contains(";")) {
       sql = sql.substring(0, sql.indexOf(";"));
     }
 
     sql = sql.trim();
-    if ("false".equals(sql) || "0".equals(sql)) {
+    if ("FALSE".equals(sql) || "0".equals(sql) || "OFF".equals(sql)) {
       return false;
-    } else if ("true".equals(sql) || "1".equals(sql)) {
+    } else if ("TRUE".equals(sql) || "1".equals(sql) || "ON".equals(sql)) {
       return true;
     } else {
       return null;
