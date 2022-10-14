@@ -57,15 +57,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   private static final Logger LOGGER = Logger.getLogger(ReadWriteSplittingPlugin.class.getName());
   private static final Set<String> subscribedMethods =
-      Collections.unmodifiableSet(new HashSet<String>() {
-        {
-          addAll(SubscribedMethodHelper.NETWORK_BOUND_METHODS);
-          add("connect");
-          add("initHostProvider");
-          add("Connection.setReadOnly");
-          add("notifyConnectionChanged");
-        }
-      });
+      Collections.unmodifiableSet(new HashSet<>(Collections.singletonList("*")));
   static final String METHOD_SET_READ_ONLY = "setReadOnly";
   static final String PG_DRIVER_PROTOCOL = "jdbc:postgresql:";
   static final String PG_GET_INSTANCE_NAME_SQL = "SELECT aurora_db_instance_identifier()";
@@ -242,9 +234,10 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final Object[] args)
       throws E {
     if (methodName.contains(METHOD_SET_READ_ONLY) && args != null && args.length > 0) {
-      this.explicitlyReadOnly = (Boolean) args[0];
       try {
-        switchConnectionIfRequired();
+        boolean readOnly = (Boolean) args[0];
+        switchConnectionIfRequired(readOnly);
+        this.explicitlyReadOnly = readOnly;
       } catch (final FailoverSQLException failoverException) {
         LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.failoverExceptionWhileExecutingCommand"));
         closeAllConnections();
@@ -383,7 +376,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
                 host.getUrl()}));
   }
 
-  void switchConnectionIfRequired() throws SQLException {
+  void switchConnectionIfRequired(boolean readOnly) throws SQLException {
     final Connection currentConnection = this.pluginService.getCurrentConnection();
     final HostSpec currentHost = this.pluginService.getCurrentHostSpec();
 
@@ -400,7 +393,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       logAndThrowException(Messages.get("ReadWriteSplittingPlugin.emptyHostList"));
     }
 
-    if (this.explicitlyReadOnly) {
+    if (readOnly) {
       if (!pluginService.isInTransaction() && (!isReader(currentHost) || currentConnection.isClosed())) {
         try {
           switchToReaderConnection(hosts);
