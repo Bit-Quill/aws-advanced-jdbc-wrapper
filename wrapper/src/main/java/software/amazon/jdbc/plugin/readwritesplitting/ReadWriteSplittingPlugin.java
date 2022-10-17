@@ -81,7 +81,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private Connection writerConnection;
   private Connection readerConnection;
   private HostSpec readerHostSpec;
-  private boolean explicitlyReadOnly = false;
+  boolean explicitlyReadOnly = false;
   private final boolean loadBalanceReadOnlyTraffic;
 
   public static final AwsWrapperProperty LOAD_BALANCE_READ_ONLY_TRAFFIC =
@@ -602,5 +602,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     } catch (final SQLException e) {
       // ignore
     }
+  }
+
+  Connection getWriterConnection() {
+    return this.writerConnection;
+  }
+
+  Connection getReaderConnection() {
+    return this.readerConnection;
   }
 }
