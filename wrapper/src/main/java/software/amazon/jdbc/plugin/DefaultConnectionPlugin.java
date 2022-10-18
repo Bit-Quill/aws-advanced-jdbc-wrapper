@@ -59,9 +59,9 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
   private final PluginManagerService pluginManagerService;
 
   public DefaultConnectionPlugin(
-      PluginService pluginService,
-      ConnectionProvider connectionProvider,
-      PluginManagerService pluginManagerService) {
+      final PluginService pluginService,
+      final ConnectionProvider connectionProvider,
+      final PluginManagerService pluginManagerService) {
     if (pluginService == null) {
       throw new IllegalArgumentException("pluginService");
     }
@@ -84,12 +84,12 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
   @Override
   public <T, E extends Exception> T execute(
-      Class<T> resultClass,
-      Class<E> exceptionClass,
-      Object methodInvokeOn,
-      String methodName,
-      JdbcCallable<T, E> jdbcMethodFunc,
-      Object[] jdbcMethodArgs)
+      final Class<T> resultClass,
+      final Class<E> exceptionClass,
+      final Object methodInvokeOn,
+      final String methodName,
+      final JdbcCallable<T, E> jdbcMethodFunc,
+      final Object[] jdbcMethodArgs)
       throws E {
 
     LOGGER.finest(
@@ -100,12 +100,12 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
     final Connection currentConn = this.pluginService.getCurrentConnection();
     if (methodInvokeOn instanceof Statement) {
-      Statement stmt = (Statement) methodInvokeOn;
+      final Statement stmt = (Statement) methodInvokeOn;
       Connection conn = null;
 
       try {
         conn = stmt.getConnection();
-      } catch (SQLException e) {
+      } catch (final SQLException e) {
         // do nothing
       }
 
@@ -125,11 +125,11 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
     }
 
     if (this.connectionMethodAnalyzer.isStatementSettingAutoCommit(methodName, jdbcMethodArgs)) {
-      Boolean autocommit = this.connectionMethodAnalyzer.getAutoCommitValueFromSqlStatement(jdbcMethodArgs);
+      final Boolean autocommit = this.connectionMethodAnalyzer.getAutoCommitValueFromSqlStatement(jdbcMethodArgs);
       if (autocommit != null) {
         try {
           currentConn.setAutoCommit(autocommit);
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
           // do nothing
         }
       }
@@ -140,14 +140,14 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
   @Override
   public Connection connect(
-      String driverProtocol,
-      HostSpec hostSpec,
-      Properties props,
-      boolean isInitialConnection,
-      JdbcCallable<Connection, SQLException> connectFunc)
+      final String driverProtocol,
+      final HostSpec hostSpec,
+      final Properties props,
+      final boolean isInitialConnection,
+      final JdbcCallable<Connection, SQLException> connectFunc)
       throws SQLException {
 
-    Connection conn = this.connectionProvider.connect(driverProtocol, hostSpec, props);
+    final Connection conn = this.connectionProvider.connect(driverProtocol, hostSpec, props);
 
     // It's guaranteed that this plugin is always the last in plugin chain so connectFunc can be
     // omitted.
@@ -171,12 +171,12 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
   }
 
   @Override
-  public OldConnectionSuggestedAction notifyConnectionChanged(EnumSet<NodeChangeOptions> changes) {
+  public OldConnectionSuggestedAction notifyConnectionChanged(final EnumSet<NodeChangeOptions> changes) {
     return OldConnectionSuggestedAction.NO_OPINION;
   }
 
   @Override
-  public void notifyNodeListChanged(Map<String, EnumSet<NodeChangeOptions>> changes) {
+  public void notifyNodeListChanged(final Map<String, EnumSet<NodeChangeOptions>> changes) {
     // do nothing
   }
 

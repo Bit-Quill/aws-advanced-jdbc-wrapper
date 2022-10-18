@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 public class ConnectionMethodAnalyzer {
 
-  public boolean doesOpenTransaction(Connection currentConn, String methodName, Object[] args) {
+  public boolean doesOpenTransaction(final Connection currentConn, final String methodName, final Object[] args) {
     if (!(methodName.contains("execute") && args != null && args.length >= 1)) {
       return false;
     }
@@ -35,17 +35,17 @@ public class ConnectionMethodAnalyzer {
       return true;
     }
 
-    boolean autocommit;
+    final boolean autocommit;
     try {
       autocommit = currentConn.getAutoCommit();
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       return false;
     }
 
     return !autocommit && isStatementDml(statement);
   }
 
-  private String getFirstSqlStatement(String sql) {
+  private String getFirstSqlStatement(final String sql) {
     String statement = parseMultiStatementQueries(sql).get(0);
     statement = statement.toUpperCase();
     statement = statement.replaceAll("\\s*/\\*(.*?)\\*/\\s*", " ").trim();
@@ -67,7 +67,7 @@ public class ConnectionMethodAnalyzer {
     return Arrays.stream(query.split(";")).collect(Collectors.toList());
   }
 
-  public boolean doesCloseTransaction(String methodName, Object[] args) {
+  public boolean doesCloseTransaction(final String methodName, final Object[] args) {
     if (methodName.equals("Connection.commit") || methodName.equals("Connection.rollback")) {
       return true;
     }
@@ -76,41 +76,41 @@ public class ConnectionMethodAnalyzer {
       return false;
     }
 
-    String statement = getFirstSqlStatement(String.valueOf(args[0]));
+    final String statement = getFirstSqlStatement(String.valueOf(args[0]));
     return isStatementClosingTransaction(statement);
   }
 
-  public boolean isExecuteDml(String methodName, Object[] args) {
+  public boolean isExecuteDml(final String methodName, final Object[] args) {
     if (!(methodName.contains("execute") && args != null && args.length >= 1)) {
       return false;
     }
 
-    String statement = getFirstSqlStatement(String.valueOf(args[0]));
+    final String statement = getFirstSqlStatement(String.valueOf(args[0]));
     return isStatementDml(statement);
   }
 
-  public boolean isStatementDml(String statement) {
-       return !isStatementStartingTransaction(statement)
+  public boolean isStatementDml(final String statement) {
+    return !isStatementStartingTransaction(statement)
         && !isStatementClosingTransaction(statement)
         && !isStatementSettingState(statement);
   }
 
-  public boolean isStatementSettingState(String statement) {
+  public boolean isStatementSettingState(final String statement) {
     return statement.startsWith("SET ");
   }
 
-  public boolean isStatementStartingTransaction(String statement) {
+  public boolean isStatementStartingTransaction(final String statement) {
     return statement.startsWith("BEGIN") || statement.startsWith("START TRANSACTION");
   }
 
-  public boolean isStatementClosingTransaction(String statement) {
+  public boolean isStatementClosingTransaction(final String statement) {
     return statement.startsWith("COMMIT")
         || statement.startsWith("ROLLBACK")
         || statement.startsWith("END")
         || statement.startsWith("ABORT");
   }
 
-  public boolean isStatementSettingAutoCommit(String methodName, Object[] args) {
+  public boolean isStatementSettingAutoCommit(final String methodName, final Object[] args) {
     if (!(methodName.contains("execute") && args != null && args.length >= 1)) {
       return false;
     }
@@ -119,14 +119,14 @@ public class ConnectionMethodAnalyzer {
     return statement.startsWith("SET AUTOCOMMIT");
   }
 
-  public Boolean getAutoCommitValueFromSqlStatement(Object[] args) {
+  public Boolean getAutoCommitValueFromSqlStatement(final Object[] args) {
     if (args == null || args.length < 1) {
       return null;
     }
 
     String sql = getFirstSqlStatement(String.valueOf(args[0]));
 
-    int valueIndex;
+    final int valueIndex;
     int separatorIndex = sql.indexOf("=");
 
     if (separatorIndex != -1) {

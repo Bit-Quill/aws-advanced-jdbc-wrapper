@@ -32,7 +32,8 @@ import org.mockito.MockitoAnnotations;
 
 class ConnectionMethodAnalyzerTest {
 
-  @Mock Connection conn;
+  @Mock
+  Connection conn;
 
   private ConnectionMethodAnalyzer connectionMethodAnalyzer = new ConnectionMethodAnalyzer();
   private AutoCloseable closeable;
@@ -49,8 +50,9 @@ class ConnectionMethodAnalyzerTest {
 
   @ParameterizedTest
   @MethodSource("openTransactionQueries")
-  void testOpenTransaction(final String methodName, final String sql, boolean autocommit, boolean expected) throws SQLException {
-    Object[] args;
+  void testOpenTransaction(final String methodName, final String sql, final boolean autocommit, final boolean expected)
+      throws SQLException {
+    final Object[] args;
     if (sql != null) {
       args = new Object[] {sql};
     } else {
@@ -64,8 +66,8 @@ class ConnectionMethodAnalyzerTest {
 
   @ParameterizedTest
   @MethodSource("closeTransactionQueries")
-  void testCloseTransaction(final String methodName, final String sql, boolean expected) {
-    Object[] args;
+  void testCloseTransaction(final String methodName, final String sql, final boolean expected) {
+    final Object[] args;
     if (sql != null) {
       args = new Object[] {sql};
     } else {
@@ -78,8 +80,8 @@ class ConnectionMethodAnalyzerTest {
 
   @ParameterizedTest
   @MethodSource("isExecuteDmlQueries")
-  void testIsExecuteDml(final String methodName, final String sql, boolean expected) {
-    Object[] args;
+  void testIsExecuteDml(final String methodName, final String sql, final boolean expected) {
+    final Object[] args;
     if (sql != null) {
       args = new Object[] {sql};
     } else {
@@ -92,8 +94,8 @@ class ConnectionMethodAnalyzerTest {
 
   @ParameterizedTest
   @MethodSource("isSettingAutoCommitQueries")
-  void testIsStatementSettingAutoCommit(final String methodName, final String sql, boolean expected) {
-    Object[] args;
+  void testIsStatementSettingAutoCommit(final String methodName, final String sql, final boolean expected) {
+    final Object[] args;
     if (sql != null) {
       args = new Object[] {sql};
     } else {
@@ -106,8 +108,8 @@ class ConnectionMethodAnalyzerTest {
 
   @ParameterizedTest
   @MethodSource("getAutoCommitQueries")
-  void testGetAutoCommit(final String sql, Boolean expected) {
-    Object[] args;
+  void testGetAutoCommit(final String sql, final Boolean expected) {
+    final Object[] args;
     if (sql != null) {
       args = new Object[] {sql};
     } else {

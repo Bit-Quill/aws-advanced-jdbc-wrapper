@@ -38,9 +38,12 @@ class DefaultConnectionPluginTest {
 
   private DefaultConnectionPlugin plugin;
 
-  @Mock PluginService pluginService;
-  @Mock ConnectionProvider connectionProvider;
-  @Mock PluginManagerService pluginManagerService;
+  @Mock
+  PluginService pluginService;
+  @Mock
+  ConnectionProvider connectionProvider;
+  @Mock
+  PluginManagerService pluginManagerService;
 
   private AutoCloseable closeable;
 
@@ -57,7 +60,7 @@ class DefaultConnectionPluginTest {
 
   @ParameterizedTest
   @MethodSource("multiStatementQueries")
-  void testParseMultiStatementQueries(final String sql, List<String> expected) {
+  void testParseMultiStatementQueries(final String sql, final List<String> expected) {
     final List<String> actual = plugin.parseMultiStatementQueries(sql);
     assertEquals(expected, actual);
   }

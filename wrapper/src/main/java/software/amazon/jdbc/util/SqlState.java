@@ -18,7 +18,6 @@ package software.amazon.jdbc.util;
 
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -49,7 +48,7 @@ public class SqlState {
 
   private final String sqlState;
 
-  SqlState(String sqlState) {
+  SqlState(final String sqlState) {
     this.sqlState = sqlState;
   }
 
@@ -57,11 +56,11 @@ public class SqlState {
     return this.sqlState;
   }
 
-  public static boolean isConnectionError(SQLException sqlException) {
+  public static boolean isConnectionError(final SQLException sqlException) {
     return isConnectionError(sqlException.getSQLState());
   }
 
-  public static boolean isConnectionError(@Nullable String sqlState) {
+  public static boolean isConnectionError(@Nullable final String sqlState) {
     // TODO: should be user configurable
 
     if (sqlState == null) {
