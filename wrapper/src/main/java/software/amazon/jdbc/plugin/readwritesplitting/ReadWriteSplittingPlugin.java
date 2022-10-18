@@ -232,18 +232,10 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final JdbcCallable<T, E> jdbcMethodFunc,
       final Object[] args)
       throws E {
-    if (methodInvokeOn instanceof Statement) {
-      final Statement stmt = (Statement) methodInvokeOn;
-      Connection conn = null;
-
-      try {
-        conn = stmt.getConnection();
-      } catch (final SQLException e) {
-        // do nothing
-      }
-
-      if (conn != null && conn != this.pluginService.getCurrentConnection()) {
-        // Statement is executed against an old connection - this call should not affect this.isTransactionBoundary or
+    if (!(methodInvokeOn instanceof Connection)) {
+      Connection parentConnection = getConnectionFromChildObject(methodInvokeOn);
+      if (parentConnection != null && parentConnection != this.pluginService.getCurrentConnection()) {
+        // method is executed against an old connection - this call should not affect this.isTransactionBoundary or
         // trigger a switch to a new reader
         return jdbcMethodFunc.call();
       }
@@ -269,6 +261,26 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
     this.isTransactionBoundary = isTransactionBoundary(methodName, args);
     return jdbcMethodFunc.call();
+  }
+
+  private Connection getConnectionFromChildObject(Object methodInvokeOn) {
+    if (methodInvokeOn instanceof Statement) {
+      final Statement stmt = (Statement) methodInvokeOn;
+      try {
+        return stmt.getConnection();
+      } catch (final SQLException e) {
+        // do nothing
+      }
+    } else if (methodInvokeOn instanceof ResultSet) {
+      final ResultSet rs = (ResultSet) methodInvokeOn;
+      try {
+        return rs.getStatement().getConnection();
+      } catch (SQLException e) {
+        // do nothing
+      }
+    }
+
+    return null;
   }
 
   private <E extends Exception> E wrapExceptionIfNeeded(final Class<E> exceptionClass, final Throwable exception) {
