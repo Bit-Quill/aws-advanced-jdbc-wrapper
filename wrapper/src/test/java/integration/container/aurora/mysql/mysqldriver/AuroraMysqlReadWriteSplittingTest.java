@@ -363,7 +363,7 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       // Connection should not be switched while inside a transaction
       String readerId;
       String nextReaderId;
-      final Statement stmt = conn.createStatement();
+
       for (int i = 0; i < 5; i++) {
         readerId = queryInstanceId(conn);
         nextReaderId = queryInstanceId(conn);
@@ -377,6 +377,7 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
         readerId = queryInstanceId(conn);
         nextReaderId = queryInstanceId(conn);
         assertEquals(readerId, nextReaderId);
+        final Statement stmt = conn.createStatement();
         stmt.execute("commit");
         nextReaderId = queryInstanceId(conn);
         assertNotEquals(readerId, nextReaderId);
@@ -395,6 +396,7 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
         readerId = queryInstanceId(conn);
         nextReaderId = queryInstanceId(conn);
         assertEquals(readerId, nextReaderId);
+        final Statement stmt = conn.createStatement();
         stmt.execute(" roLLback ; ");
         nextReaderId = queryInstanceId(conn);
         assertNotEquals(readerId, nextReaderId);
