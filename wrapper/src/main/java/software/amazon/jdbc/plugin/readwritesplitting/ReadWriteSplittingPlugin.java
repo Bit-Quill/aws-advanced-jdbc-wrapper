@@ -233,6 +233,23 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final JdbcCallable<T, E> jdbcMethodFunc,
       final Object[] args)
       throws E {
+    if (methodInvokeOn instanceof Statement) {
+      Statement stmt = (Statement) methodInvokeOn;
+      Connection conn = null;
+
+      try {
+        conn = stmt.getConnection();
+      } catch (SQLException e) {
+        // do nothing
+      }
+
+      if (conn != null && conn != this.pluginService.getCurrentConnection()) {
+        // Statement is executed against an old connection - this call should not affect this.isTransactionBoundary or
+        // trigger a switch to a new reader
+        return jdbcMethodFunc.call();
+      }
+    }
+
     if (methodName.contains(METHOD_SET_READ_ONLY) && args != null && args.length > 0) {
       try {
         boolean readOnly = (Boolean) args[0];
@@ -468,7 +485,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final HostSpec newConnectionHost)
       throws SQLException {
     final Connection currentConnection = this.pluginService.getCurrentConnection();
-    if (currentConnection.equals(newConnection)) {
+    if (currentConnection == newConnection) {
       return;
     }
 
@@ -607,11 +624,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     try {
       if (internalConnection != null && internalConnection != currentConnection && !internalConnection.isClosed()) {
         internalConnection.close();
-        if (internalConnection.equals(writerConnection)) {
+        if (internalConnection == writerConnection) {
           writerConnection = null;
         }
 
-        if (internalConnection.equals(readerConnection)) {
+        if (internalConnection == readerConnection) {
           readerConnection = null;
         }
       }

@@ -232,7 +232,7 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       stmt3.executeUpdate("DROP TABLE IF EXISTS test_splitting_readonly_transaction");
     }
   }
-  
+
   @ParameterizedTest(name = "test_setReadOnlyFalseInTransaction_setAutocommitZero")
   @MethodSource("testParameters")
   public void test_setReadOnlyFalseInTransaction_setAutocommitZero(final Properties props) throws SQLException {
@@ -333,8 +333,8 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
 
       // Verify behavior for transactions started while autocommit is on (autocommit is implicitly disabled)
       // Connection should not be switched while inside a transaction
-      final Statement stmt = conn.createStatement();
       for (int i = 0; i < 5; i++) {
+        final Statement stmt = conn.createStatement();
         stmt.execute("  bEgiN ");
         readerId = queryInstanceId(conn);
         nextReaderId = queryInstanceId(conn);
@@ -404,6 +404,42 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
+  @ParameterizedTest(name = "test_readerLoadBalancing_statementFromOldConnection")
+  @MethodSource("testParameters")
+  public void test_readerLoadBalancing_statementFromOldConnection(final Properties props) throws SQLException {
+    final String initialWriterId = instanceIDs[0];
+
+    ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.set(props, "true");
+    try (final Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX, AURORA_MYSQL_PORT, props)) {
+      final String writerConnectionId = queryInstanceId(conn);
+      assertEquals(initialWriterId, writerConnectionId);
+      assertTrue(isDBInstanceWriter(writerConnectionId));
+
+      conn.setAutoCommit(false);
+      conn.setReadOnly(true);
+
+      // Connection should not be switched while inside a transaction
+      String readerId;
+      String nextReaderId;
+      final Statement stmt = conn.createStatement();
+
+      readerId = queryInstanceId(conn);
+      nextReaderId = queryInstanceId(conn);
+      assertEquals(readerId, nextReaderId);
+      conn.commit();
+      nextReaderId = queryInstanceId(conn);
+      assertNotEquals(readerId, nextReaderId);
+      readerId = nextReaderId;
+
+      stmt.execute("commit");
+
+      // Should not switch because the above statement was executed against an old connection that is not the current
+      // connection
+      nextReaderId = queryInstanceId(conn);
+      assertEquals(readerId, nextReaderId);
+    }
+  }
+
   @ParameterizedTest(name = "test_readerLoadBalancing_switchAutoCommitInTransaction")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_switchAutoCommitInTransaction(final Properties props) throws SQLException {
@@ -416,12 +452,12 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       assertTrue(isDBInstanceWriter(writerConnectionId));
 
       conn.setReadOnly(true);
-      final Statement stmt = conn.createStatement();
       String readerId;
       String nextReaderId;
 
       // Start transaction while autocommit is on (autocommit is implicitly disabled)
       // Connection should not be switched while inside a transaction
+      Statement stmt = conn.createStatement();
       stmt.execute("  StarT   TRanSACtion  REad onLy  ; ");
       readerId = queryInstanceId(conn);
       nextReaderId = queryInstanceId(conn);
@@ -444,6 +480,7 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), e.getSQLState());
 
       conn.setAutoCommit(true); // Switch autocommit value while inside the transaction
+      stmt = conn.createStatement();
       stmt.execute("commit");
 
       assertTrue(conn.getAutoCommit());
@@ -476,14 +513,17 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       conn.setReadOnly(true);
       conn.setAutoCommit(false);
       conn.setAutoCommit(true);
-      final Statement stmt = conn.createStatement();
+      Statement stmt = conn.createStatement();
       stmt.execute("commit");
+      stmt = conn.createStatement();
       stmt.execute("commit");
+      stmt = conn.createStatement();
       stmt.execute("begin");
       stmt.execute("commit");
       conn.setAutoCommit(false);
       conn.commit();
       conn.commit();
+      stmt = conn.createStatement();
       stmt.execute("begin");
       stmt.execute("SELECT 1");
       conn.commit();
@@ -492,6 +532,7 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       conn.setReadOnly(false);
       conn.setAutoCommit(true);
       conn.setReadOnly(false);
+      stmt = conn.createStatement();
       stmt.execute("commit");
       conn.setReadOnly(false);
       conn.setReadOnly(true);

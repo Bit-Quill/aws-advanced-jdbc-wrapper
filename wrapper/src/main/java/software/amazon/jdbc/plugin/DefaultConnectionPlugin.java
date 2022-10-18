@@ -18,6 +18,7 @@ package software.amazon.jdbc.plugin;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -97,8 +98,25 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
             new Object[] {methodName}));
     final T result = jdbcMethodFunc.call();
 
-    final Connection conn = this.pluginService.getCurrentConnection();
-    if (this.connectionMethodAnalyzer.doesOpenTransaction(conn, methodName, jdbcMethodArgs)) {
+    final Connection currentConn = this.pluginService.getCurrentConnection();
+    if (methodInvokeOn instanceof Statement) {
+      Statement stmt = (Statement) methodInvokeOn;
+      Connection conn = null;
+
+      try {
+        conn = stmt.getConnection();
+      } catch (SQLException e) {
+        // do nothing
+      }
+
+      if (conn != null && conn != currentConn) {
+        // Statement is executed against an old connection - this call should not affect current inTransaction or
+        // autocommit status
+        return result;
+      }
+    }
+
+    if (this.connectionMethodAnalyzer.doesOpenTransaction(currentConn, methodName, jdbcMethodArgs)) {
       this.pluginManagerService.setInTransaction(true);
     }
 
@@ -110,7 +128,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
       Boolean autocommit = this.connectionMethodAnalyzer.getAutoCommitValueFromSqlStatement(jdbcMethodArgs);
       if (autocommit != null) {
         try {
-          conn.setAutoCommit(autocommit);
+          currentConn.setAutoCommit(autocommit);
         } catch (SQLException e) {
           // do nothing
         }
