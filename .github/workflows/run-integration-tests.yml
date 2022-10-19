@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  aurora-postgres-6integration-tests:
+  aurora-postgres-integration-tests:
     name: 'Run Aurora Postgres container integration tests'
     runs-on: ubuntu-latest
     strategy:
