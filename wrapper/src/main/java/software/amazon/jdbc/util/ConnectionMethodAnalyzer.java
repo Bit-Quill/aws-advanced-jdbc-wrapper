@@ -53,7 +53,7 @@ public class ConnectionMethodAnalyzer {
   }
 
   private List<String> parseMultiStatementQueries(String query) {
-    if (query == null || query.isEmpty()) {
+    if (StringUtils.isNullOrEmpty(query)) {
       return new ArrayList<>();
     }
 

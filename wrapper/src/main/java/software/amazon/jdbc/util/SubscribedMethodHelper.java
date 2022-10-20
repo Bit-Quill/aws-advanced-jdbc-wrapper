@@ -49,5 +49,5 @@ public class SubscribedMethodHelper {
       "CallableStatement.executeQuery",
       "CallableStatement.executeUpdate",
       "CallableStatement.executeWithFlags"
-      );
+  );
 }
