@@ -325,7 +325,8 @@ public class ConnectionPluginManager implements CanReleaseResources {
         conn = rs.getStatement().getConnection();
       }
     } catch (SQLException | UnsupportedOperationException e) {
-      // do nothing
+      // Do nothing. The UnsupportedOperationException comes from ResultSets returned by DataCacheConnectionPlugin and
+      // will be triggered when getStatement is called.
     }
 
     if (conn != null && conn != this.pluginService.getCurrentConnection()) {
