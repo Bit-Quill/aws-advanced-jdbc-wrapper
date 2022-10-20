@@ -122,7 +122,7 @@ public class HikariCPReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest {
       if (pluginChainIncludesFailoverPlugin(targetDataSourceProps)) {
         assertTrue(e instanceof FailoverFailedSQLException);
       } else {
-        assertEquals(SqlState.CONNECTION_FAILURE.getState(), e.getSQLState());
+        assertEquals(SqlState.COMMUNICATION_ERROR.getState(), e.getSQLState());
       }
       assertFalse(conn.isValid(5));
     }
@@ -162,7 +162,7 @@ public class HikariCPReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest {
       if (pluginChainIncludesFailoverPlugin(targetDataSourceProps)) {
         assertTrue(e instanceof FailoverSuccessSQLException);
       } else {
-        assertEquals(SqlState.CONNECTION_FAILURE.getState(), e.getSQLState());
+        assertEquals(SqlState.COMMUNICATION_ERROR.getState(), e.getSQLState());
         return;
       }
 
@@ -210,7 +210,7 @@ public class HikariCPReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest {
       if (pluginChainIncludesFailoverPlugin(targetDataSourceProps)) {
         assertTrue(e instanceof FailoverSuccessSQLException);
       } else {
-        assertEquals(SqlState.CONNECTION_FAILURE.getState(), e.getSQLState());
+        assertEquals(SqlState.COMMUNICATION_ERROR.getState(), e.getSQLState());
         return;
       }
 
@@ -417,22 +417,20 @@ public class HikariCPReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest {
 
     config.setDataSourceClassName(AwsWrapperDataSource.class.getName());
     config.addDataSourceProperty("targetDataSourceClassName", "com.mysql.cj.jdbc.MysqlDataSource");
-    config.addDataSourceProperty("jdbcProtocol", "jdbc:mysql://");
-    config.addDataSourceProperty("portPropertyName", "portNumber");
+    config.addDataSourceProperty("jdbcProtocol", "jdbc:mysql:");
+    config.addDataSourceProperty("portPropertyName", "port");
     config.addDataSourceProperty("serverPropertyName", "serverName");
-    config.addDataSourceProperty("databasePropertyName", "databaseName");
 
     return config;
   }
 
   private static Properties getDefaultDataSourceProps() {
     Properties targetDataSourceProps = new Properties();
-    targetDataSourceProps.setProperty("portNumber", String.valueOf(MYSQL_PROXY_PORT));
-    targetDataSourceProps.setProperty("databaseName", AURORA_MYSQL_DB);
-    targetDataSourceProps.setProperty("socketTimeout", "5");
-    targetDataSourceProps.setProperty("connectTimeout", "5");
-    targetDataSourceProps.setProperty("monitoring-connectTimeout", "3");
-    targetDataSourceProps.setProperty("monitoring-socketTimeout", "3");
+    targetDataSourceProps.setProperty("port", String.valueOf(MYSQL_PROXY_PORT));
+    targetDataSourceProps.setProperty("socketTimeout", "3000");
+    targetDataSourceProps.setProperty("connectTimeout", "3000");
+    targetDataSourceProps.setProperty("monitoring-connectTimeout", "1000");
+    targetDataSourceProps.setProperty("monitoring-socketTimeout", "1000");
     targetDataSourceProps.setProperty(
         AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.name,
         PROXIED_CLUSTER_TEMPLATE);
