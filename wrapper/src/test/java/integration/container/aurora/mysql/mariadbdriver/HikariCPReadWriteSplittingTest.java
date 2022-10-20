@@ -53,7 +53,7 @@ import software.amazon.jdbc.util.HikariCPSQLException;
 import software.amazon.jdbc.util.SqlState;
 
 @Disabled
-public class HikariCPReadWriteSplittingTest extends AuroraMysqlBaseTest {
+public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
 
   private static final Logger logger = Logger.getLogger(HikariCPReadWriteSplittingTest.class.getName());
   private static HikariDataSource dataSource = null;
