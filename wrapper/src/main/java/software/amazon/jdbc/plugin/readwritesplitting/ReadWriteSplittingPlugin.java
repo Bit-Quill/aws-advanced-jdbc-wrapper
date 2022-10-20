@@ -49,6 +49,7 @@ import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.RdsUrlType;
 import software.amazon.jdbc.util.RdsUtils;
 import software.amazon.jdbc.util.SqlState;
+import software.amazon.jdbc.util.WrapperUtils;
 
 public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     implements CanReleaseResources {
@@ -56,7 +57,27 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   private static final Logger LOGGER = Logger.getLogger(ReadWriteSplittingPlugin.class.getName());
   private static final Set<String> subscribedMethods =
-      Collections.unmodifiableSet(new HashSet<>(Collections.singletonList("*")));
+      Collections.unmodifiableSet(new HashSet<String>() {
+        {
+          add("initHostProvider");
+          add("connect");
+          add("notifyConnectionChanged");
+          add("Connection.commit");
+          add("Connection.rollback");
+          add("Connection.createStatement");
+          add("Connection.setReadOnly");
+          add("Statement.execute");
+          add("Statement.executeQuery");
+          add("Statement.executeWithFlags");
+          add("PreparedStatement.execute");
+          add("PreparedStatement.executeQuery");
+          add("PreparedStatement.executeWithFlags");
+          add("CallableStatement.execute");
+          add("CallableStatement.executeQuery");
+          add("CallableStatement.executeWithFlags");
+          // executeUpdate and executeBatch do not need to be added since they cannot be executed in read-only mode
+        }
+      });
   static final String METHOD_SET_READ_ONLY = "setReadOnly";
   static final String PG_DRIVER_PROTOCOL = "jdbc:postgresql:";
   static final String PG_GET_INSTANCE_NAME_SQL = "SELECT aurora_db_instance_identifier()";
@@ -232,27 +253,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final JdbcCallable<T, E> jdbcMethodFunc,
       final Object[] args)
       throws E {
-    if (!(methodInvokeOn instanceof Connection)) {
-      Connection parentConnection = getConnectionFromChildObject(methodInvokeOn);
-      if (parentConnection != null && parentConnection != this.pluginService.getCurrentConnection()) {
-        // method is executed against an old connection - this call should not affect this.isTransactionBoundary or
-        // trigger a switch to a new reader
-        return jdbcMethodFunc.call();
-      }
-    }
-
     if (methodName.contains(METHOD_SET_READ_ONLY) && args != null && args.length > 0) {
       try {
         final boolean readOnly = (Boolean) args[0];
         switchConnectionIfRequired(readOnly);
         this.explicitlyReadOnly = readOnly;
-      } catch (final FailoverSQLException failoverException) {
-        LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.failoverExceptionWhileExecutingCommand"));
-        closeAllConnections();
-        throw wrapExceptionIfNeeded(exceptionClass, failoverException);
       } catch (final SQLException e) {
-        LOGGER.finest(() -> Messages.get("ReadWriteSplittingPlugin.exceptionWhileExecutingCommand"));
-        throw wrapExceptionIfNeeded(exceptionClass, e);
+        throw WrapperUtils.wrapExceptionIfNeeded(exceptionClass, e);
       }
     } else if (this.explicitlyReadOnly && this.loadBalanceReadOnlyTraffic && this.isTransactionBoundary) {
       LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.transactionBoundaryDetectedSwitchingToNewReader"));
@@ -260,35 +267,18 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
 
     this.isTransactionBoundary = isTransactionBoundary(methodName, args);
-    return jdbcMethodFunc.call();
-  }
 
-  private Connection getConnectionFromChildObject(Object methodInvokeOn) {
-    if (methodInvokeOn instanceof Statement) {
-      final Statement stmt = (Statement) methodInvokeOn;
-      try {
-        return stmt.getConnection();
-      } catch (final SQLException e) {
-        // do nothing
+    try {
+      return jdbcMethodFunc.call();
+    } catch (Exception e) {
+      if (e instanceof FailoverSQLException) {
+        LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.failoverExceptionWhileExecutingCommand"));
+        closeAllConnections();
+      } else {
+        LOGGER.finest(() -> Messages.get("ReadWriteSplittingPlugin.exceptionWhileExecutingCommand"));
       }
-    } else if (methodInvokeOn instanceof ResultSet) {
-      final ResultSet rs = (ResultSet) methodInvokeOn;
-      try {
-        return rs.getStatement().getConnection();
-      } catch (SQLException e) {
-        // do nothing
-      }
+      throw e;
     }
-
-    return null;
-  }
-
-  private <E extends Exception> E wrapExceptionIfNeeded(final Class<E> exceptionClass, final Throwable exception) {
-    if (exceptionClass.isAssignableFrom(exception.getClass())) {
-      return exceptionClass.cast(exception);
-    }
-
-    return exceptionClass.cast(new RuntimeException(exception));
   }
 
   private boolean isTransactionBoundary(final String methodName, final Object[] args) {

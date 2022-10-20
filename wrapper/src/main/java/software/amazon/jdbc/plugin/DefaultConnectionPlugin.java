@@ -18,7 +18,6 @@ package software.amazon.jdbc.plugin;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,7 +50,8 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
   private static final Logger LOGGER =
       Logger.getLogger(DefaultConnectionPlugin.class.getName());
-  private static final Set<String> subscribedMethods = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("*")));
+  private static final Set<String> subscribedMethods = Collections.unmodifiableSet(new HashSet<>(
+      Collections.singletonList("*")));
 
   private final ConnectionMethodAnalyzer connectionMethodAnalyzer = new ConnectionMethodAnalyzer();
   private final ConnectionProvider connectionProvider;
@@ -98,24 +98,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
             new Object[] {methodName}));
     final T result = jdbcMethodFunc.call();
 
-    final Connection currentConn = this.pluginService.getCurrentConnection();
-    if (methodInvokeOn instanceof Statement) {
-      final Statement stmt = (Statement) methodInvokeOn;
-      Connection conn = null;
-
-      try {
-        conn = stmt.getConnection();
-      } catch (final SQLException e) {
-        // do nothing
-      }
-
-      if (conn != null && conn != currentConn) {
-        // Statement is executed against an old connection - this call should not affect current inTransaction or
-        // autocommit status
-        return result;
-      }
-    }
-
+    Connection currentConn = this.pluginService.getCurrentConnection();
     if (this.connectionMethodAnalyzer.doesOpenTransaction(currentConn, methodName, jdbcMethodArgs)) {
       this.pluginManagerService.setInTransaction(true);
     }

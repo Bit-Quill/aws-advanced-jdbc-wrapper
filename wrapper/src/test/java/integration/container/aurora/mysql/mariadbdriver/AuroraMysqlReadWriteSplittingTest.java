@@ -404,42 +404,6 @@ public class AuroraMysqlReadWriteSplittingTest extends MariadbAuroraMysqlBaseTes
     }
   }
 
-  @ParameterizedTest(name = "test_readerLoadBalancing_statementFromOldConnection")
-  @MethodSource("testParameters")
-  public void test_readerLoadBalancing_statementFromOldConnection(final Properties props) throws SQLException {
-    final String initialWriterId = instanceIDs[0];
-
-    ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.set(props, "true");
-    try (final Connection conn = connectToInstance(initialWriterId + DB_CONN_STR_SUFFIX, AURORA_MYSQL_PORT, props)) {
-      final String writerConnectionId = queryInstanceId(conn);
-      assertEquals(initialWriterId, writerConnectionId);
-      assertTrue(isDBInstanceWriter(writerConnectionId));
-
-      conn.setAutoCommit(false);
-      conn.setReadOnly(true);
-
-      // Connection should not be switched while inside a transaction
-      String readerId;
-      String nextReaderId;
-      final Statement stmt = conn.createStatement();
-
-      readerId = queryInstanceId(conn);
-      nextReaderId = queryInstanceId(conn);
-      assertEquals(readerId, nextReaderId);
-      conn.commit();
-      nextReaderId = queryInstanceId(conn);
-      assertNotEquals(readerId, nextReaderId);
-      readerId = nextReaderId;
-
-      stmt.execute("commit");
-
-      // Should not switch because the above statement was executed against an old connection that is not the current
-      // connection
-      nextReaderId = queryInstanceId(conn);
-      assertEquals(readerId, nextReaderId);
-    }
-  }
-
   @ParameterizedTest(name = "test_readerLoadBalancing_switchAutoCommitInTransaction")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_switchAutoCommitInTransaction(final Properties props) throws SQLException {
