@@ -324,7 +324,7 @@ public class ConnectionPluginManager implements CanReleaseResources {
         ResultSet rs = (ResultSet) methodInvokeOn;
         conn = rs.getStatement().getConnection();
       }
-    } catch (SQLException e) {
+    } catch (SQLException | UnsupportedOperationException e) {
       // do nothing
     }
 
