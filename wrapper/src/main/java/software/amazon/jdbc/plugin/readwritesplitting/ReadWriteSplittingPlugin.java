@@ -110,7 +110,6 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     this.properties = properties;
 
     this.loadBalanceReadOnlyTraffic = LOAD_BALANCE_READ_ONLY_TRAFFIC.getBoolean(this.properties);
-    LOGGER.finest("Logger successfully initialized");
   }
 
   @Override
