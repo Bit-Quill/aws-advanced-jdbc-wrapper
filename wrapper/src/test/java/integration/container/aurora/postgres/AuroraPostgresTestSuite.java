@@ -16,12 +16,14 @@
 
 package integration.container.aurora.postgres;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
 // Tests will run in order of top to bottom.
 // To add additional tests, append it inside SelectClasses, comma-separated
 @Suite
+@Disabled
 @SelectClasses({
   AuroraPostgresIntegrationTest.class,
   AuroraPostgresFailoverTest.class,

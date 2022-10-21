@@ -35,7 +35,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -50,8 +52,8 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
 
   private static Stream<Arguments> testParameters() {
     return Stream.of(
-        Arguments.of(getProps_allPlugins()),
-        Arguments.of(getProps_readWritePlugin())
+        Arguments.of(getProps_allPlugins())
+//        Arguments.of(getProps_readWritePlugin())
     );
   }
 
@@ -404,14 +406,20 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
     }
   }
 
+  @Tag("abc")
   @ParameterizedTest(name = "test_readerLoadBalancing_switchAutoCommitInTransaction")
   @MethodSource("testParameters")
   public void test_readerLoadBalancing_switchAutoCommitInTransaction(final Properties props) throws SQLException {
+    final Logger LOGGER = Logger.getLogger(ReadWriteSplittingPlugin.class.getName());
     final String initialWriterId = instanceIDs[0];
+    LOGGER.finest("Initial writer ID: " + initialWriterId);
 
     ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.set(props, "true");
+    LOGGER.finest("Connecting to cluster URL");
     try (final Connection conn = connectToInstance(MYSQL_CLUSTER_URL, AURORA_MYSQL_PORT, props)) {
+      LOGGER.finest("Successfully connected to cluster URL");
       final String writerConnectionId = queryInstanceId(conn);
+      LOGGER.finest("Instance ID after connecting to cluster: " + writerConnectionId);
       assertEquals(initialWriterId, writerConnectionId);
       assertTrue(isDBInstanceWriter(writerConnectionId));
 
