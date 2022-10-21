@@ -31,7 +31,7 @@ public class StandardPostgresBaseTest extends StandardBaseTest {
   @BeforeAll
   public static void setUpPostgres() throws SQLException, IOException, ClassNotFoundException {
     DB_CONN_STR_PREFIX = "jdbc:aws-wrapper:postgresql://";
-    STANDARD_HOST = System.getenv("STANDARD_POSTGRES_HOST");
+    STANDARD_WRITER = System.getenv("STANDARD_POSTGRES_HOST");
     STANDARD_PORT = Integer.parseInt(System.getenv("STANDARD_POSTGRES_PORT"));
     STANDARD_DB = System.getenv("STANDARD_POSTGRES_DB");
     STANDARD_USERNAME = System.getenv("STANDARD_POSTGRES_USERNAME");
