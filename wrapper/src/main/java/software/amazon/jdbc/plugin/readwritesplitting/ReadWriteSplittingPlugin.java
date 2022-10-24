@@ -255,7 +255,17 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       pickNewReaderConnection();
     }
 
-    return jdbcMethodFunc.call();
+    try {
+      return jdbcMethodFunc.call();
+    } catch (Exception e) {
+      if (e instanceof FailoverSQLException) {
+        LOGGER.finer(() -> Messages.get("ReadWriteSplittingPlugin.failoverExceptionWhileExecutingCommand"));
+        closeAllConnections();
+      } else {
+        LOGGER.finest(() -> Messages.get("ReadWriteSplittingPlugin.exceptionWhileExecutingCommand"));
+      }
+      throw e;
+    }
   }
 
   private <E extends Exception> E wrapExceptionIfNeeded(final Class<E> exceptionClass, final Throwable exception) {
@@ -586,11 +596,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     try {
       if (internalConnection != null && internalConnection != currentConnection && !internalConnection.isClosed()) {
         internalConnection.close();
-        if (writerConnection.equals(internalConnection)) {
+        if (internalConnection.equals(writerConnection)) {
           writerConnection = null;
         }
 
-        if (readerConnection.equals(internalConnection)) {
+        if (internalConnection.equals(readerConnection)) {
           readerConnection = null;
         }
 
@@ -604,11 +614,24 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
   }
 
+  // methods for testing purposes
+  void setWriterConnection(Connection writerConnection) {
+    this.writerConnection = writerConnection;
+  }
+
+  void setReaderConnection(Connection readerConnection) {
+    this.readerConnection = readerConnection;
+  }
+
   Connection getWriterConnection() {
     return this.writerConnection;
   }
 
   Connection getReaderConnection() {
     return this.readerConnection;
+  }
+
+  List<HostSpec> getHosts() {
+    return new ArrayList<>(this.pluginService.getHosts());
   }
 }
