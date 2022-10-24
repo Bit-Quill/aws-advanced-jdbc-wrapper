@@ -154,8 +154,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     final HostSpec updatedCurrentHost;
     if (RdsUrlType.RDS_INSTANCE.equals(urlType)) {
       updatedCurrentHost = getHostSpecFromUrl(currentHost.getUrl());
-    } else {
-      updatedCurrentHost = getHostSpecFromInstanceId(getCurrentInstanceId(currentConnection, driverProtocol));
+    } else {updatedCurrentHost = getHostSpecFromInstanceId(getCurrentInstanceId(currentConnection, driverProtocol));
     }
 
     if (updatedCurrentHost == null) {
