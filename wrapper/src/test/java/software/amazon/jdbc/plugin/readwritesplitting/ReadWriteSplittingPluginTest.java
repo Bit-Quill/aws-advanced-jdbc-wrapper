@@ -151,7 +151,7 @@ public class ReadWriteSplittingPluginTest {
     plugin.switchConnectionIfRequired();
 
     verify(mockPluginService, times(1)).setCurrentConnection(eq(mockReaderConn1), not(eq(writerHostSpec)));
-    //verify(mockPluginService, times(1)).setCurrentConnection(eq(mockWriterConn), eq(writerHostSpec));
+    // verify(mockPluginService, times(1)).setCurrentConnection(eq(mockWriterConn), eq(writerHostSpec));
     assertEquals(mockReaderConn1, plugin.getReaderConnection());
     assertEquals(mockWriterConn, plugin.getWriterConnection());
   }
@@ -227,10 +227,11 @@ public class ReadWriteSplittingPluginTest {
 
   @Test
   public void testSetReadOnly_false() throws SQLException {
+    // passed
     when(this.mockPluginService.getCurrentConnection()).thenReturn(mockReaderConn1);
     when(this.mockPluginService.getCurrentHostSpec()).thenReturn(readerHostSpec1);
 
-    this.plugin = new ReadWriteSplittingPlugin(mockPluginService, TEST_PROPS);
+    this.plugin = new ReadWriteSplittingPlugin(mockPluginService, TEST_PROPS, mockHostListProviderService, mockWriterConn, null);
     plugin.switchConnectionIfRequired();
     // verify we established a new writer connection
     // verify that connection plugin is what we expect it to be
@@ -348,7 +349,7 @@ public class ReadWriteSplittingPluginTest {
     when(this.mockPluginService.getHosts()).thenReturn(oneReaderTopology);
     when(mockPluginService.getCurrentConnection()).thenReturn(mockClosedWriterConn);
 
-    this.plugin = new ReadWriteSplittingPlugin(mockPluginService, TEST_PROPS);
+    this.plugin = new ReadWriteSplittingPlugin(mockPluginService, TEST_PROPS, mockHostListProviderService, mockWriterConn, null);
     plugin.explicitlyReadOnly = true;
     plugin.switchConnectionIfRequired();
 
