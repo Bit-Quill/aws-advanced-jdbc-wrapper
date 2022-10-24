@@ -110,12 +110,10 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     this.readerConnection = readerConnection;
   }
 
-    @Override
+  @Override
   public Set<String> getSubscribedMethods() {
     return subscribedMethods;
   }
-
-
 
   @Override
   public void initHostProvider(
@@ -154,7 +152,8 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     final HostSpec updatedCurrentHost;
     if (RdsUrlType.RDS_INSTANCE.equals(urlType)) {
       updatedCurrentHost = getHostSpecFromUrl(currentHost.getUrl());
-    } else {updatedCurrentHost = getHostSpecFromInstanceId(getCurrentInstanceId(currentConnection, driverProtocol));
+    } else {
+      updatedCurrentHost = getHostSpecFromInstanceId(getCurrentInstanceId(currentConnection, driverProtocol));
     }
 
     if (updatedCurrentHost == null) {
