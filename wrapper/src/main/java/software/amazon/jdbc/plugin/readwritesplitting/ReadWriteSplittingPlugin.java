@@ -97,10 +97,25 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     this.loadBalanceReadOnlyTraffic = LOAD_BALANCE_READ_ONLY_TRAFFIC.getBoolean(this.properties);
   }
 
-  @Override
+  // Javadocs testing purposes only
+  ReadWriteSplittingPlugin(
+      final PluginService pluginService,
+      final Properties properties,
+      HostListProviderService hostListProviderService,
+      Connection writerConnection,
+      Connection readerConnection) {
+    this(pluginService, properties);
+    this.hostListProviderService = hostListProviderService;
+    this.writerConnection = writerConnection;
+    this.readerConnection = readerConnection;
+  }
+
+    @Override
   public Set<String> getSubscribedMethods() {
     return subscribedMethods;
   }
+
+
 
   @Override
   public void initHostProvider(
@@ -614,15 +629,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
   }
 
-  // methods for testing purposes
-  void setWriterConnection(Connection writerConnection) {
-    this.writerConnection = writerConnection;
-  }
-
-  void setReaderConnection(Connection readerConnection) {
-    this.readerConnection = readerConnection;
-  }
-
+  // methods for testing purposes only
   Connection getWriterConnection() {
     return this.writerConnection;
   }
