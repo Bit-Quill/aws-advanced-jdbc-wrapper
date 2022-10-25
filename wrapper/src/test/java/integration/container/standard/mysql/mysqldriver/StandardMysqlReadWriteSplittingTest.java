@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.exceptions.MysqlErrorNumbers;
 import eu.rekawek.toxiproxy.Proxy;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.jdbc.PropertyDefinition;
+import software.amazon.jdbc.plugin.efm.HostMonitoringConnectionPlugin;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
 import software.amazon.jdbc.util.SqlState;
 
@@ -230,7 +232,11 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
       }
 
       final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(true));
-      assertEquals(SqlState.CONNECTION_UNABLE_TO_CONNECT.getState(), exception.getSQLState());
+      if (pluginChainIncludesFailoverPlugin(props)) {
+        assertEquals(SqlState.CONNECTION_UNABLE_TO_CONNECT.getState(), exception.getSQLState());
+      } else {
+        assertEquals(SqlState.COMMUNICATION_ERROR.getState(), exception.getSQLState());
+      }
     }
   }
 
@@ -360,7 +366,7 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
       }
 
       SQLException e = assertThrows(SQLException.class, conn::rollback);
-      assertEquals(SqlState.CONNECTION_FAILURE_DURING_TRANSACTION, e.getSQLState());
+      assertEquals(SqlState.CONNECTION_FAILURE_DURING_TRANSACTION.getState(), e.getSQLState());
 
       try (final Connection newConn = connectToProxy(props)) {
         newConn.setReadOnly(true);
@@ -374,12 +380,14 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
 
   private Properties getProps_allPlugins() {
     final Properties props = initDefaultProps();
+    setFailureDetectionProps(props);
     addAllTestPlugins(props);
     return props;
   }
 
   private Properties getProps_readWritePlugin() {
     final Properties props = initDefaultProps();
+    setFailureDetectionProps(props);
     addReadWritePlugins(props);
     return props;
   }
@@ -399,5 +407,12 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
     }
 
     return plugins.contains("failover");
+  }
+
+  private static void setFailureDetectionProps(Properties props) {
+    props.setProperty(PropertyKey.socketTimeout.getKeyName(), "500");
+    HostMonitoringConnectionPlugin.FAILURE_DETECTION_TIME.set(props, "500");
+    HostMonitoringConnectionPlugin.FAILURE_DETECTION_INTERVAL.set(props, "50");
+    HostMonitoringConnectionPlugin.FAILURE_DETECTION_COUNT.set(props, "1");
   }
 }
