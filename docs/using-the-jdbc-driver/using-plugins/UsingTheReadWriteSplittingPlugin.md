@@ -7,9 +7,7 @@ The read-write splitting plugin adds functionality to switch between writer/read
 There are many session state attributes that can change during a session, and many ways to change them. Consequently, the read-write splitting plugin has limited support for transferring session state between connections. The following attributes will be automatically transferred when switching connections:
 
 - autocommit value
-- current selected database
 - transaction isolation level
-- SQL SELECT max-rows limit
 
 All other session state attributes will be lost when switching connections. There are two scenarios when the plugin may switch a connection:
 1. You have loaded the plugin but have kept reader load balancing disabled. In this case, the connection will switch between the writer/reader when calling `setReadOnly`.
@@ -25,8 +23,11 @@ The read-write splitting plugin is not loaded by default. To load the plugin, se
 final Properties properties = new Properties();
 properties.setProperty("connectionPluginFactories", ReadWriteSplittingPluginFactory.class.getName());
 ```
+// code is different//
 
 If you would like to load the read-write splitting plugin alongside the failover and enhanced failure monitoring plugins, the read-write splitting plugin must be the first plugin in the connection chain, otherwise failover exceptions will not be properly processed by the plugin:
+// this is how you configure it if using failover plugin. if configuring without fialover plugin you need to include the AuroraHostListConnectionPlugin. need to be before ReadWriteSpltting plugin
+Only if using Aurora
 
 ```
 final Properties properties = new Properties();
@@ -41,7 +42,7 @@ properties.setProperty(
 ### Reader Load Balancing
 
 The plugin can also load balance queries among available reader instances by enabling the `loadBalanceReadOnlyTraffic` connection parameter. This parameter is disabled by default. To enable it, set the following connection parameter:
-
+// this is different, same as in unit tests//
 ```
 final Properties properties = new Properties();
 properties.setProperty("loadBalanceReadOnlyTraffic", "true");
@@ -58,6 +59,7 @@ Once this parameter is enabled and `setReadOnly(true)` has been called on the Co
 
 When reader load balancing is enabled, the read-write splitting plugin will analyze methods and statements executed against the Connection object to determine when the connection is at a transaction boundary. This analysis does not support SQL strings containing multiple statements. If your SQL strings contain multiple statements, we recommend that you do not enable reader load balancing as the resulting behavior is not defined.
 
+// it does support  sql strings with multiple statements but only analyzes first statement - ask karen
 ### Using the Read-Write Splitting Plugin against RDS/Aurora Clusters
 
 When using the read-write splitting plugin against RDS or Aurora clusters, the plugin automatically acquires the cluster topology by querying the cluster. Because of this functionality, you do not have to supply multiple instance URLs in the connection string. Instead, supply just the URL for the initial instance to which you're connecting.
@@ -66,6 +68,7 @@ When using the read-write splitting plugin against RDS or Aurora clusters, the p
 
 If you are using the read-write splitting plugin against a cluster that is not hosted on RDS or Aurora, the plugin will not be able to automatically acquire the cluster topology. Instead, you must supply the topology information in the connection string as a comma-delimited list of multiple instance URLs. The first instance in the list must be the writer instance:
 
+// change this protocol to jdbc:aws-wrapper:mysql (check unit tests)
 ```
 String connectionUrl = "jdbc:mysql:aws://writer-instance-1.com,reader-instance-1.com,reader-instance-2.com/database-name"
 ```
@@ -74,5 +77,5 @@ String connectionUrl = "jdbc:mysql:aws://writer-instance-1.com,reader-instance-1
 
 | Parameter | Value | Required | Description | Default Value |
 | --- | --- | --- | --- | --- |
-| `loadBalanceReadOnlyTraffic` | Boolean | No  | Set to `true` to load balance queries among available reader instances. Once enabled, load balancing will automatically be performed for reader instances when the connection has been set to read-only mode via `JdbcConnection#setReadOnly` | `false` |
+| `loadBalanceReadOnlyTraffic` | Boolean | No  | Set to `true` to load balance queries among available reader instances. Once enabled, load balancing will automatically be performed for reader instances when the connection has been set to read-only mode via `Connection#setReadOnly` | `false` |
 
