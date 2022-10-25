@@ -91,7 +91,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private final Properties properties;
   private final RdsUtils rdsUtils = new RdsUtils();
   private final AtomicBoolean inReadWriteSplit = new AtomicBoolean(false);
-  private final boolean loadBalanceReadOnlyTraffic;
+  private boolean loadBalanceReadOnlyTraffic;
   private HostListProviderService hostListProviderService;
   private Connection writerConnection;
   private Connection readerConnection;
@@ -657,5 +657,13 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   Connection getReaderConnection() {
     return this.readerConnection;
+  }
+
+  void setExplicitlyReadOnly(boolean readOnly) {
+    this.explicitlyReadOnly = readOnly;
+  }
+
+  void setIsTransactionBoundary(boolean transactionBoundary) {
+    this.isTransactionBoundary = transactionBoundary;
   }
 }
