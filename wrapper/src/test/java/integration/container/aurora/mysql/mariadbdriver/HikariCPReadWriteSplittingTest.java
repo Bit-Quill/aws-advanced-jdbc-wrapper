@@ -28,7 +28,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import eu.rekawek.toxiproxy.Proxy;
-import integration.container.aurora.mysql.AuroraMysqlBaseTest;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -59,19 +58,19 @@ import software.amazon.jdbc.util.SqlState;
 public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
 
   private static final Logger logger = Logger.getLogger(
-      integration.container.aurora.mysql.mysqldriver.HikariCPReadWriteSplittingTest.class.getName());
+      integration.container.aurora.mysql.mariadbdriver.HikariCPReadWriteSplittingTest.class.getName());
   private static HikariDataSource dataSource = null;
   private final List<String> clusterTopology = fetchTopology();
 
   private List<String> fetchTopology() {
     try {
-      List<String> topology = getTopologyEndpoints();
+      final List<String> topology = getTopologyEndpoints();
       // topology should contain a writer and at least one reader
       if (topology == null || topology.size() < 2) {
         fail("Topology does not contain the required instances");
       }
       return topology;
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       fail("Couldn't fetch cluster topology");
     }
 
@@ -96,13 +95,13 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
   }
 
   private static Properties getTargetProps_readWritePlugin() {
-    Properties props = getDefaultDataSourceProps();
+    final Properties props = getDefaultDataSourceProps();
     props.setProperty(PropertyDefinition.PLUGINS.name, "auroraHostList,readWriteSplitting");
     return props;
   }
 
   private static Properties getTargetProps_allPlugins() {
-    Properties props = getDefaultDataSourceProps();
+    final Properties props = getDefaultDataSourceProps();
     props.setProperty(PropertyDefinition.PLUGINS.name, "readWriteSplitting,failover,efm");
     return props;
   }
@@ -112,16 +111,16 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
    */
   @ParameterizedTest(name = "test_1_1_hikariCP_lost_connection")
   @MethodSource("testParameters")
-  public void test_1_1_hikariCP_lost_connection(Properties targetDataSourceProps) throws SQLException {
+  public void test_1_1_hikariCP_lost_connection(final Properties targetDataSourceProps) throws SQLException {
     FailoverConnectionPlugin.FAILOVER_TIMEOUT_MS.set(targetDataSourceProps, "1");
     targetDataSourceProps.setProperty(PropertyKey.socketTimeout.getKeyName(), "500");
     createDataSource(targetDataSourceProps);
-    try (Connection conn = dataSource.getConnection()) {
+    try (final Connection conn = dataSource.getConnection()) {
       assertTrue(conn.isValid(5));
 
       putDownAllInstances(true);
 
-      SQLException e = assertThrows(SQLException.class, () -> queryInstanceId(conn));
+      final SQLException e = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       if (pluginChainIncludesFailoverPlugin(targetDataSourceProps)) {
         assertTrue(e instanceof FailoverFailedSQLException);
       } else {
@@ -140,13 +139,13 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
    */
   @ParameterizedTest(name = "test_1_2_hikariCP_get_dead_connection")
   @MethodSource("testParameters")
-  public void test_1_2_hikariCP_get_dead_connection(Properties targetDataSourceProps) throws SQLException {
+  public void test_1_2_hikariCP_get_dead_connection(final Properties targetDataSourceProps) throws SQLException {
     putDownAllInstances(false);
 
-    String writer = clusterTopology.get(0);
-    String reader = clusterTopology.get(1);
-    String writerIdentifier = writer.split("\\.")[0];
-    String readerIdentifier = reader.split("\\.")[0];
+    final String writer = clusterTopology.get(0);
+    final String reader = clusterTopology.get(1);
+    final String writerIdentifier = writer.split("\\.")[0];
+    final String readerIdentifier = reader.split("\\.")[0];
     logger.fine("Instance to connect to: " + writerIdentifier);
     logger.fine("Instance to fail over to: " + readerIdentifier);
 
@@ -154,14 +153,14 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
     createDataSource(targetDataSourceProps);
 
     // Get a valid connection, then make it fail over to a different instance
-    try (Connection conn = dataSource.getConnection()) {
+    try (final Connection conn = dataSource.getConnection()) {
       assertTrue(conn.isValid(5));
       String currentInstance = queryInstanceId(conn);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
       bringUpInstance(readerIdentifier);
       putDownInstance(currentInstance);
 
-      SQLException e = assertThrows(SQLException.class, () -> queryInstanceId(conn));
+      final SQLException e = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       if (pluginChainIncludesFailoverPlugin(targetDataSourceProps)) {
         assertTrue(e instanceof FailoverSuccessSQLException);
       } else {
@@ -186,13 +185,13 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
    */
   @ParameterizedTest(name = "test_2_1_hikariCP_efm_failover")
   @MethodSource("testParameters")
-  public void test_2_1_hikariCP_efm_failover(Properties targetDataSourceProps) throws SQLException {
+  public void test_2_1_hikariCP_efm_failover(final Properties targetDataSourceProps) throws SQLException {
     putDownAllInstances(false);
 
-    String writer = clusterTopology.get(0);
-    String reader = clusterTopology.get(1);
-    String writerIdentifier = writer.split("\\.")[0];
-    String readerIdentifier = reader.split("\\.")[0];
+    final String writer = clusterTopology.get(0);
+    final String reader = clusterTopology.get(1);
+    final String writerIdentifier = writer.split("\\.")[0];
+    final String readerIdentifier = reader.split("\\.")[0];
     logger.fine("Instance to connect to: " + writerIdentifier);
     logger.fine("Instance to fail over to: " + readerIdentifier);
 
@@ -200,7 +199,7 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
     createDataSource(targetDataSourceProps);
 
     // Get a valid connection, then make it fail over to a different instance
-    try (Connection conn = dataSource.getConnection()) {
+    try (final Connection conn = dataSource.getConnection()) {
       assertTrue(conn.isValid(5));
       String currentInstance = queryInstanceId(conn);
       assertTrue(currentInstance.equalsIgnoreCase(writerIdentifier));
@@ -209,7 +208,7 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
       bringUpInstance(readerIdentifier);
       putDownInstance(writerIdentifier);
 
-      SQLException e = assertThrows(SQLException.class, () -> queryInstanceId(conn));
+      final SQLException e = assertThrows(SQLException.class, () -> queryInstanceId(conn));
       if (pluginChainIncludesFailoverPlugin(targetDataSourceProps)) {
         assertTrue(e instanceof FailoverSuccessSQLException);
       } else {
@@ -227,13 +226,13 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
 
   @ParameterizedTest(name = "test_3_1_readerLoadBalancing_autocommitTrue")
   @MethodSource("testParameters")
-  public void test_3_1_readerLoadBalancing_autocommitTrue(Properties targetDataSourceProps) throws SQLException {
+  public void test_3_1_readerLoadBalancing_autocommitTrue(final Properties targetDataSourceProps) throws SQLException {
     createDataSourceWithReaderLoadBalancing(targetDataSourceProps);
     final String initialWriterId = instanceIDs[0];
 
     try (final Connection conn = dataSource.getConnection()) {
       conn.setReadOnly(false);
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
       assertTrue(isDBInstanceWriter(writerConnectionId));
 
@@ -254,7 +253,7 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
       // Verify behavior for transactions started while autocommit is on (autocommit is implicitly disabled)
       // Connection should not be switched while inside a transaction
       for (int i = 0; i < 5; i++) {
-        Statement stmt = conn.createStatement();
+        final Statement stmt = conn.createStatement();
         stmt.execute("  bEgiN ");
         readerId = queryInstanceId(conn);
         nextReaderId = queryInstanceId(conn);
@@ -269,13 +268,13 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
 
   @ParameterizedTest(name = "test_3_2_readerLoadBalancing_autocommitFalse")
   @MethodSource("testParameters")
-  public void test_3_2_readerLoadBalancing_autocommitFalse(Properties targetDataSourceProps) throws SQLException {
+  public void test_3_2_readerLoadBalancing_autocommitFalse(final Properties targetDataSourceProps) throws SQLException {
     createDataSourceWithReaderLoadBalancing(targetDataSourceProps);
     final String initialWriterId = instanceIDs[0];
 
     try (final Connection conn = dataSource.getConnection()) {
       conn.setReadOnly(false);
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
       assertTrue(isDBInstanceWriter(writerConnectionId));
 
@@ -327,13 +326,14 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
 
   @ParameterizedTest(name = "test_3_3_readerLoadBalancing_switchAutoCommitInTransaction")
   @MethodSource("testParameters")
-  public void test_3_3_readerLoadBalancing_switchAutoCommitInTransaction(Properties targetDataSourceProps) throws SQLException {
+  public void test_3_3_readerLoadBalancing_switchAutoCommitInTransaction(final Properties targetDataSourceProps)
+      throws SQLException {
     createDataSourceWithReaderLoadBalancing(targetDataSourceProps);
     final String initialWriterId = instanceIDs[0];
 
     try (final Connection conn = dataSource.getConnection()) {
       conn.setReadOnly(false);
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
       assertTrue(isDBInstanceWriter(writerConnectionId));
 
@@ -379,13 +379,13 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
     }
   }
 
-  private void putDownInstance(String targetInstance) {
-    Proxy toPutDown = proxyMap.get(targetInstance);
+  private void putDownInstance(final String targetInstance) {
+    final Proxy toPutDown = proxyMap.get(targetInstance);
     disableInstanceConnection(toPutDown);
     logger.fine("Took down " + targetInstance);
   }
 
-  private void putDownAllInstances(Boolean putDownClusters) {
+  private void putDownAllInstances(final Boolean putDownClusters) {
     logger.fine("Putting down all instances");
     proxyMap.forEach((instance, proxy) -> {
       if (putDownClusters || (proxy != proxyCluster && proxy != proxyReadOnlyCluster)) {
@@ -394,16 +394,16 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
     });
   }
 
-  private void disableInstanceConnection(Proxy proxy) {
+  private void disableInstanceConnection(final Proxy proxy) {
     try {
       containerHelper.disableConnectivity(proxy);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       fail("Couldn't disable proxy connectivity");
     }
   }
 
-  private void bringUpInstance(String targetInstance) {
-    Proxy toBringUp = proxyMap.get(targetInstance);
+  private void bringUpInstance(final String targetInstance) {
+    final Proxy toBringUp = proxyMap.get(targetInstance);
     containerHelper.enableConnectivity(toBringUp);
     logger.fine("Brought up " + targetInstance);
   }
@@ -419,8 +419,8 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
     config.setConnectionTimeout(1000);
 
     config.setDataSourceClassName(AwsWrapperDataSource.class.getName());
-    config.addDataSourceProperty("targetDataSourceClassName", "com.mysql.cj.jdbc.MysqlDataSource");
-    config.addDataSourceProperty("jdbcProtocol", "jdbc:mysql:");
+    config.addDataSourceProperty("targetDataSourceClassName", "org.mariadb.jdbc.MariaDbDataSource");
+    config.addDataSourceProperty("jdbcProtocol", "jdbc:mariadb:");
     config.addDataSourceProperty("portPropertyName", "port");
     config.addDataSourceProperty("serverPropertyName", "serverName");
 
@@ -428,7 +428,7 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
   }
 
   private static Properties getDefaultDataSourceProps() {
-    Properties targetDataSourceProps = new Properties();
+    final Properties targetDataSourceProps = new Properties();
     targetDataSourceProps.setProperty("port", String.valueOf(MYSQL_PROXY_PORT));
     targetDataSourceProps.setProperty("socketTimeout", "3000");
     targetDataSourceProps.setProperty("connectTimeout", "3000");
@@ -443,10 +443,10 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
     return targetDataSourceProps;
   }
 
-  private void createDataSource(Properties targetDataSourceProps) {
+  private void createDataSource(final Properties targetDataSourceProps) {
     targetDataSourceProps.setProperty("serverName", clusterTopology.get(0) + PROXIED_DOMAIN_NAME_SUFFIX);
 
-    HikariConfig config = getDefaultConfig();
+    final HikariConfig config = getDefaultConfig();
     config.addDataSourceProperty("targetDataSourceProperties", targetDataSourceProps);
 
     dataSource = new HikariDataSource(config);
@@ -458,13 +458,13 @@ public class HikariCPReadWriteSplittingTest extends MariadbAuroraMysqlBaseTest {
     logger.fine("Starting total connections: " + hikariPoolMXBean.getTotalConnections());
   }
 
-  private void createDataSourceWithReaderLoadBalancing(Properties targetDataSourceProps) {
+  private void createDataSourceWithReaderLoadBalancing(final Properties targetDataSourceProps) {
     targetDataSourceProps.setProperty(ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.name, "true");
     createDataSource(targetDataSourceProps);
   }
 
-  private boolean pluginChainIncludesFailoverPlugin(Properties targetDataSourceProps) {
-    String plugins = targetDataSourceProps.getProperty(PropertyDefinition.PLUGINS.name);
+  private boolean pluginChainIncludesFailoverPlugin(final Properties targetDataSourceProps) {
+    final String plugins = targetDataSourceProps.getProperty(PropertyDefinition.PLUGINS.name);
     return plugins.contains("failover");
   }
 }
