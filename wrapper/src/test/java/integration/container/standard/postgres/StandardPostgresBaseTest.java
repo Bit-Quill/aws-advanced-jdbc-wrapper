@@ -37,6 +37,7 @@ public class StandardPostgresBaseTest extends StandardBaseTest {
     STANDARD_DB = System.getenv("STANDARD_POSTGRES_DB");
     STANDARD_USERNAME = System.getenv("STANDARD_POSTGRES_USERNAME");
     STANDARD_PASSWORD = System.getenv("STANDARD_POSTGRES_PASSWORD");
+    QUERY_FOR_HOSTNAME = "SELECT inet_server_addr()";
     instanceIDs = new String[]{STANDARD_WRITER, STANDARD_READER};
 
     setUp();

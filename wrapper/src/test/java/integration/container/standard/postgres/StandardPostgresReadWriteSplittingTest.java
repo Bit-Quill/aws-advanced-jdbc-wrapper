@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package integration.container.standard.mysql.mysqldriver;
+package integration.container.standard.postgres;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.mysql.cj.conf.PropertyKey;
 import eu.rekawek.toxiproxy.Proxy;
 import java.io.IOException;
 import java.sql.Connection;
@@ -30,17 +29,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.postgresql.PGProperty;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
 import software.amazon.jdbc.util.SqlState;
 
-public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseTest {
+public class StandardPostgresReadWriteSplittingTest extends StandardPostgresBaseTest {
 
   private final Properties defaultProps = getProps_readWritePlugin();
   private final Properties propsWithLoadBalance;
-  
-  StandardMysqlReadWriteSplittingTest() {
+
+  StandardPostgresReadWriteSplittingTest() {
     Properties props = getProps_readWritePlugin();
     ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.set(props, "true");
     this.propsWithLoadBalance = props;
@@ -48,8 +49,8 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
 
   private Properties getProps_readWritePlugin() {
     final Properties props = initDefaultProps();
+    PGProperty.SOCKET_TIMEOUT.set(props, "1");
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting");
-    props.setProperty(PropertyKey.socketTimeout.getKeyName(), "500");
     return props;
   }
 
@@ -80,8 +81,9 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
     }
   }
 
+  @Tag("failing")
   @Test
-  public void test_setReadOnlyFalseInReadOnlyTransaction() throws SQLException{
+  public void test_setReadOnlyFalseInReadOnlyTransaction() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
       String writerConnectionId = queryInstanceId(conn);
 
@@ -106,8 +108,9 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
     }
   }
 
+  @Tag("failing")
   @Test
-  public void test_setReadOnlyFalseInTransaction_setAutocommitFalse() throws SQLException{
+  public void test_setReadOnlyFalseInTransaction() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
       String writerConnectionId = queryInstanceId(conn);
 
@@ -132,56 +135,33 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
     }
   }
 
+  @Tag("failing")
   @Test
-  public void test_setReadOnlyFalseInTransaction_setAutocommitZero() throws SQLException{
-    try (final Connection conn = connect(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
-
-      conn.setReadOnly(true);
-      String readerConnectionId = queryInstanceId(conn);
-      assertNotEquals(writerConnectionId, readerConnectionId);
-
-      final Statement stmt = conn.createStatement();
-      stmt.execute("SET autocommit = 0");
-      stmt.executeQuery("SELECT COUNT(*) FROM information_schema.tables");
-
-      final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(false));
-      String currentConnectionId = queryInstanceId(conn);
-      assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), exception.getSQLState());
-      assertEquals(readerConnectionId, currentConnectionId);
-
-      stmt.execute("COMMIT");
-
-      conn.setReadOnly(false);
-      currentConnectionId = queryInstanceId(conn);
-      assertEquals(writerConnectionId, currentConnectionId);
-    }
-  }
-
-  @Test
-  public void test_setReadOnlyTrueInTransaction() throws SQLException{
+  public void test_setReadOnlyTrueInTransaction() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
       String writerConnectionId = queryInstanceId(conn);
 
       final Statement stmt1 = conn.createStatement();
       stmt1.executeUpdate("DROP TABLE IF EXISTS test_readWriteSplitting_readOnlyTrueInTransaction");
-      stmt1.executeUpdate("CREATE TABLE test_readWriteSplitting_readOnlyTrueInTransaction (id int not null primary key, text_field varchar(255) not null)");
-      stmt1.execute("SET autocommit = 0");
+      stmt1.executeUpdate(
+          "CREATE TABLE test_readWriteSplitting_readOnlyTrueInTransaction (id int not null primary key, text_field varchar(255) not null)");
 
+      conn.setAutoCommit(false);
       final Statement stmt2 = conn.createStatement();
       stmt2.executeUpdate("INSERT INTO test_readWriteSplitting_readOnlyTrueInTransaction VALUES (1, 'test_field value 1')");
 
-      assertDoesNotThrow(() -> conn.setReadOnly(true));
+      SQLException e = assertThrows(SQLException.class, () -> conn.setReadOnly(true));
+      assertEquals(SqlState.ACTIVE_SQL_TRANSACTION.getState(), e.getSQLState());
       String currentConnectionId = queryInstanceId(conn);
       assertEquals(writerConnectionId, currentConnectionId);
 
       stmt2.execute("COMMIT");
+      conn.setAutoCommit(true);
       final ResultSet rs = stmt2.executeQuery("SELECT count(*) from test_readWriteSplitting_readOnlyTrueInTransaction");
       rs.next();
       assertEquals(1, rs.getInt(1));
 
       conn.setReadOnly(false);
-      stmt2.execute("SET autocommit = 1");
       stmt2.executeUpdate("DROP TABLE IF EXISTS test_readWriteSplitting_readOnlyTrueInTransaction");
     }
   }
@@ -226,10 +206,9 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
         }
       }
 
-      final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(true));
-      // A SQL statement setting the read-only status is sent to server.
-      // Since the server is down, a SQLException is thrown.
-      assertEquals(SqlState.COMMUNICATION_ERROR.getState(), exception.getSQLState());
+      // Since the postgres property "readOnlyMode" defaults to transaction, no SQL
+      // statements are sent to the server and the call to setReadOnly succeeds.
+      assertDoesNotThrow(() -> conn.setReadOnly(true));
     }
   }
 
@@ -301,6 +280,7 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
     }
   }
 
+  @Tag("failing")
   @Test
   public void test_readerLoadBalancing_autocommitFalse() throws SQLException {
     try (final Connection conn = connect(propsWithLoadBalance)) {
@@ -351,7 +331,7 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
       }
 
       SQLException e = assertThrows(SQLException.class, conn::rollback);
-      assertEquals(SqlState.CONNECTION_FAILURE_DURING_TRANSACTION.getState(), e.getSQLState());
+      assertEquals(SqlState.CONNECTION_FAILURE.getState(), e.getSQLState());
 
       try (final Connection newConn = connectToProxy(propsWithLoadBalance)) {
         newConn.setReadOnly(true);

@@ -53,7 +53,7 @@ public abstract class StandardBaseTest {
 
   protected final ContainerHelper containerHelper = new ContainerHelper();
 
-  protected static final String QUERY_FOR_HOSTNAME = "SELECT @@hostname";
+  protected static String QUERY_FOR_HOSTNAME;
   protected static final int clusterSize = 2;
   protected static String[] instanceIDs;
 
