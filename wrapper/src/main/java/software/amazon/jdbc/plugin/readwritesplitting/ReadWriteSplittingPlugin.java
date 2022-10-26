@@ -91,7 +91,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   private final Properties properties;
   private final RdsUtils rdsUtils = new RdsUtils();
   private final AtomicBoolean inReadWriteSplit = new AtomicBoolean(false);
-  private boolean loadBalanceReadOnlyTraffic;
+  private final boolean loadBalanceReadOnlyTraffic;
   private HostListProviderService hostListProviderService;
   private Connection writerConnection;
   private Connection readerConnection;
@@ -112,7 +112,9 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     this.loadBalanceReadOnlyTraffic = LOAD_BALANCE_READ_ONLY_TRAFFIC.getBoolean(this.properties);
   }
 
-  // Javadocs testing purposes only
+  /**
+   * For testing purposes only
+   */
   ReadWriteSplittingPlugin(
       final PluginService pluginService,
       final Properties properties,
@@ -637,11 +639,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     try {
       if (internalConnection != null && internalConnection != currentConnection && !internalConnection.isClosed()) {
         internalConnection.close();
-        if (internalConnection.equals(writerConnection)) {
+        if (internalConnection == writerConnection) {
           writerConnection = null;
         }
 
-        if (internalConnection.equals(readerConnection)) {
+        if (internalConnection == readerConnection) {
           readerConnection = null;
         }
       }
