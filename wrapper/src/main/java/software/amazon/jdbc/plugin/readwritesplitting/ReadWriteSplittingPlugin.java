@@ -113,7 +113,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   }
 
   /**
-   * For testing purposes only
+   * For testing purposes only.
    */
   ReadWriteSplittingPlugin(
       final PluginService pluginService,
@@ -653,7 +653,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
   }
 
   /**
-   * Methods for testing purposes only
+   * Methods for testing purposes only.
    */
   Connection getWriterConnection() {
     return this.writerConnection;
