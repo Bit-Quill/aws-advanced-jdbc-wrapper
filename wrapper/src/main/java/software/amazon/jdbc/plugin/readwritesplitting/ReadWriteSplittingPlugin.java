@@ -652,8 +652,9 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
   }
 
-  // methods for testing purposes only
-  Connection getWriterConnection() {
+  /**
+   * Methods for testing purposes only
+   */  Connection getWriterConnection() {
     return this.writerConnection;
   }
 
