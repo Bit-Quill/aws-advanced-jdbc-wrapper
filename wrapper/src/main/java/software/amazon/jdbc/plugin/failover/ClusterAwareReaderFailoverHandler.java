@@ -87,8 +87,8 @@ public class ClusterAwareReaderFailoverHandler implements ReaderFailoverHandler 
    * @param pluginService              A provider for creating new connections.
    * @param initialConnectionProps     The initial connection properties to copy over to the new reader.
    * @param maxFailoverTimeoutMs       Maximum allowed time for the entire reader failover process.
-   * @param timeoutMs                  Maximum allowed time in milliseconds for each reader connection attempt during the
-   *                                   reader failover process.
+   * @param timeoutMs                  Maximum allowed time in milliseconds for each reader connection attempt during
+   *                                   the reader failover process.
    * @param enableFailoverStrictReader When true, it disables adding a writer to a list of nodes to connect
    */
   public ClusterAwareReaderFailoverHandler(
