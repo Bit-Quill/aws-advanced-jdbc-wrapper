@@ -62,7 +62,7 @@ Once this parameter is enabled and `setReadOnly(true)` has been called on the Co
 
 ### Limitations with Reader Load Balancing
 
-When reader load balancing is enabled, the read-write splitting plugin will analyze methods and statements executed against the Connection object to determine when the connection is at a transaction boundary. This analysis does not support SQL strings containing multiple statements. If your SQL strings contain multiple statements, we recommend that you do not enable reader load balancing as the resulting behavior is not defined.
+When reader load balancing is enabled, the read-write splitting plugin will analyze methods and statements executed against the Connection object to determine when the connection is at a transaction boundary. This analysis does not support SQL strings containing multiple statements. If your SQL strings contain multiple statements, we recommend that you do not enable reader load balancing as the resulting behavior is not defined. If a SQL string with multiple statements is provided, the plugin will only analyze the first statement.
 
 ### Using the Read-Write Splitting Plugin against RDS/Aurora Clusters
 
