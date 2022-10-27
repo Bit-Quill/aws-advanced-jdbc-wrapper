@@ -17,45 +17,31 @@ If your SQL workflow depends on session state attributes that are not mentioned 
 
 ### Loading the Read-Write Splitting Plugin
 
-The read-write splitting plugin is not loaded by default. To load the plugin, set the `connectionPluginFactories` connection parameter:
+The read-write splitting plugin is not loaded by default. To load the plugin, set the `wrapperPlugins` connection parameter:
 
 ```
 final Properties properties = new Properties();
-properties.setProperty("wrapperPlugins", "readWriteSplitting");
+properties.setProperty(PropertyDefinition.PLUGINS.name, "readWriteSplitting,failover,efm");
 ```
-// code is different//
 
-If you would like to load the read-write splitting plugin alongside the failover and enhanced failure monitoring plugins, the read-write splitting plugin must be the first plugin in the connection chain, otherwise failover exceptions will not be properly processed by the plugin:
-// this is how you configure it if using failover plugin. if configuring without fialover plugin you need to include the AuroraHostListConnectionPlugin. need to be before ReadWriteSpltting plugin
-Only if using Aurora
+If you would like to load the read-write splitting plugin alongside the failover and enhanced failure monitoring plugins, the read-write splitting plugin must be the first plugin in the connection chain, otherwise failover exceptions will not be properly processed by the plugin. See the example above to properly load the read-write splitting plugin with the failover and host monitor plugins.
 
+If you would like to use the read-write splitting plugin without the failover plugin against an Aurora cluster, you will need to include the Aurora host list plugin before the read-write splitting plugin. This informs the driver that it should query for Aurora's topology.
 ```
 final Properties properties = new Properties();
-properties.setProperty("wrapperPlugins", "readWriteSplitting,failover");
-```
-
-If you would like to configure without the failover plugin while using Aurora, you need to include the AuroraHostList plugin before the ReadWriteSplitting plugin:
-
-```
-final Properties properties = new Properties();
-properties.setProperty("wrapperPlugins", "auroraHostList,readWriteSplitting");
+properties.setProperty(PropertyDefinition.PLUGINS.name, "auroraHostList,readWriteSplitting");
 ```
 ### Reader Load Balancing
 
 The plugin can also load balance queries among available reader instances by enabling the `loadBalanceReadOnlyTraffic` connection parameter. This parameter is disabled by default. To enable it, set the following connection parameter:
 ```
 final Properties properties = new Properties();
-ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.set(properties, "true");
-```
-This can also be set by calling setProperties() directly:
-```
-final Properties properties = new Properties();
-properties.setProperty("loadBalanceReadOnlyTraffic", "true");
+properties.setProperty(ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.name, "true");
 ```
 
 Once this parameter is enabled and `setReadOnly(true)` has been called on the Connection object, the plugin will switch to a new randomly selected reader instance at each transaction boundary. The following scenarios are considered transaction boundaries:
 - After calling `commit()` or `rollback()`
-- After executing `COMMIT` or `ROLLBACK` as a SQL statement
+- After executing `COMMIT`, `ROLLBACK` or `ABORT` as a SQL statement
 - After executing any SQL statement while autocommit is on, with the following exceptions:
     - The statement started a transaction via `BEGIN` or `START TRANSACTION`
     - The statement began with `SET` (eg `SET time_zone = "+00:00"`)
@@ -66,8 +52,7 @@ When reader load balancing is enabled, the read-write splitting plugin will anal
 
 ### Using the Read-Write Splitting Plugin against RDS/Aurora Clusters
 
-When using the read-write splitting plugin against RDS or Aurora clusters, the plugin automatically acquires the cluster topology by querying the cluster. Because of this functionality, you do not have to supply multiple instance URLs in the connection string. Instead, supply just the URL for the initial instance to which you're connecting.
-
+When using the read-write splitting plugin against RDS or Aurora clusters, you do not have to supply multiple instance URLs in the connection string. Instead, supply just the URL for the initial instance to which you're connecting. You must also include either the failover plugin or the Aurora host list in your plugin chain so that the driver knows to query Aurora for its topology. See the section on [loading the read-write splitting plugin](#loading-the-read-write-splitting-plugin) for more info.
 ### Using the Read-Write Splitting Plugin against Non-RDS Clusters
 
 If you are using the read-write splitting plugin against a cluster that is not hosted on RDS or Aurora, the plugin will not be able to automatically acquire the cluster topology. Instead, you must supply the topology information in the connection string as a comma-delimited list of multiple instance URLs. The first instance in the list must be the writer instance:
