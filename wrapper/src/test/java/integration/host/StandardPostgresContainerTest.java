@@ -35,8 +35,10 @@ import software.amazon.jdbc.Driver;
 public class StandardPostgresContainerTest {
 
   private static final String STANDARD_POSTGRES_TEST_RUNNER_NAME = "test-container";
-  private static final String STANDARD_POSTGRES_WRITER = "standard-postgres-writer.cluster-XYZ.us-east-2.rds.amazonaws.com";
-  private static final String STANDARD_POSTGRES_READER = "standard-postgres-reader.cluster-ro-XYZ.us-east-2.rds.amazonaws.com";
+  private static final String STANDARD_POSTGRES_WRITER =
+      "standard-postgres-writer.cluster-XYZ.us-east-2.rds.amazonaws.com";
+  private static final String STANDARD_POSTGRES_READER =
+      "standard-postgres-reader.cluster-ro-XYZ.us-east-2.rds.amazonaws.com";
   private static final List<String>
       postgresInstances = Arrays.asList(STANDARD_POSTGRES_WRITER, STANDARD_POSTGRES_READER);
   private static final String PROXIED_DOMAIN_NAME_SUFFIX = ".proxied";

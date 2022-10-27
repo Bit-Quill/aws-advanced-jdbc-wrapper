@@ -209,7 +209,8 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       stmt1.executeUpdate(
           "CREATE TABLE test_readWriteSplitting_readOnlyFalse_autocommitFalse "
               + "(id int not null primary key, text_field varchar(255) not null)");
-      stmt1.executeUpdate("INSERT INTO test_readWriteSplitting_readOnlyFalse_autocommitFalse VALUES (1, 'test_field value 1')");
+      stmt1.executeUpdate(
+          "INSERT INTO test_readWriteSplitting_readOnlyFalse_autocommitFalse VALUES (1, 'test_field value 1')");
 
       conn.setReadOnly(true);
       final String readerConnectionId = queryInstanceId(conn);
@@ -251,7 +252,8 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       stmt1.executeUpdate(
           "CREATE TABLE test_readWriteSplitting_readOnlyFalse_autocommitZero "
               + "(id int not null primary key, text_field varchar(255) not null)");
-      stmt1.executeUpdate("INSERT INTO test_readWriteSplitting_readOnlyFalse_autocommitZero VALUES (1, 'test_field value 1')");
+      stmt1.executeUpdate(
+          "INSERT INTO test_readWriteSplitting_readOnlyFalse_autocommitZero VALUES (1, 'test_field value 1')");
 
       conn.setReadOnly(true);
       final String readerConnectionId = queryInstanceId(conn);
@@ -294,7 +296,8 @@ public class AuroraMysqlReadWriteSplittingTest extends MysqlAuroraMysqlBaseTest 
       conn.setAutoCommit(false);
 
       final Statement stmt2 = conn.createStatement();
-      stmt2.executeUpdate("INSERT INTO test_readWriteSplitting_readOnlyTrueInTransaction VALUES (1, 'test_field value 1')");
+      stmt2.executeUpdate(
+          "INSERT INTO test_readWriteSplitting_readOnlyTrueInTransaction VALUES (1, 'test_field value 1')");
 
       assertDoesNotThrow(() -> conn.setReadOnly(true));
       writerConnectionId = queryInstanceId(conn);

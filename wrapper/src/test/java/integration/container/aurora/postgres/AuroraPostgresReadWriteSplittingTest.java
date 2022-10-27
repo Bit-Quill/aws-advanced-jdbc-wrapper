@@ -209,7 +209,8 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
       stmt1.executeUpdate(
           "CREATE TABLE test_readWriteSplitting_readOnlyFalseInTransaction "
               + "(id int not null primary key, text_field varchar(255) not null)");
-      stmt1.executeUpdate("INSERT INTO test_readWriteSplitting_readOnlyFalseInTransaction VALUES (1, 'test_field value 1')");
+      stmt1.executeUpdate(
+          "INSERT INTO test_readWriteSplitting_readOnlyFalseInTransaction VALUES (1, 'test_field value 1')");
 
       conn.setReadOnly(true);
       final String readerConnectionId = queryInstanceId(conn);
@@ -253,7 +254,8 @@ public class AuroraPostgresReadWriteSplittingTest extends AuroraPostgresBaseTest
       conn.setAutoCommit(false);
 
       final Statement stmt2 = conn.createStatement();
-      stmt2.executeUpdate("INSERT INTO test_readWriteSplitting_readOnlyTrueInTransaction VALUES (1, 'test_field value 1')");
+      stmt2.executeUpdate(
+          "INSERT INTO test_readWriteSplitting_readOnlyTrueInTransaction VALUES (1, 'test_field value 1')");
 
       // Postgres does not allow changing the read-only property inside a transaction
       final SQLException e = assertThrows(SQLException.class, () -> conn.setReadOnly(true));

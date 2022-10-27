@@ -29,5 +29,4 @@ import org.junit.platform.suite.api.Suite;
     LogQueryPluginTests.class,
     StandardPostgresReadWriteSplittingTest.class
 })
-public class StandardPostgresTestSuite {
-}
+public class StandardPostgresTestSuite {}

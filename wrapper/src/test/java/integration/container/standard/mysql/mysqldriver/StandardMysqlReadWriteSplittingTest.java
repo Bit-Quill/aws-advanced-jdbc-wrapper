@@ -39,9 +39,9 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
 
   private final Properties defaultProps = getProps_readWritePlugin();
   private final Properties propsWithLoadBalance;
-  
+
   StandardMysqlReadWriteSplittingTest() {
-    Properties props = getProps_readWritePlugin();
+    final Properties props = getProps_readWritePlugin();
     ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.set(props, "true");
     this.propsWithLoadBalance = props;
   }
@@ -56,10 +56,10 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   @Test
   public void test_connectToWriter_setReadOnlyTrueTrueFalseFalseTrue() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
-      String readerConnectionId = queryInstanceId(conn);
+      final String readerConnectionId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerConnectionId);
 
       conn.setReadOnly(true);
@@ -81,12 +81,12 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   }
 
   @Test
-  public void test_setReadOnlyFalseInReadOnlyTransaction() throws SQLException{
+  public void test_setReadOnlyFalseInReadOnlyTransaction() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
-      String readerConnectionId = queryInstanceId(conn);
+      final String readerConnectionId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerConnectionId);
 
       final Statement stmt = conn.createStatement();
@@ -107,12 +107,12 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   }
 
   @Test
-  public void test_setReadOnlyFalseInTransaction_setAutocommitFalse() throws SQLException{
+  public void test_setReadOnlyFalseInTransaction_setAutocommitFalse() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
-      String readerConnectionId = queryInstanceId(conn);
+      final String readerConnectionId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerConnectionId);
 
       final Statement stmt = conn.createStatement();
@@ -133,12 +133,12 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   }
 
   @Test
-  public void test_setReadOnlyFalseInTransaction_setAutocommitZero() throws SQLException{
+  public void test_setReadOnlyFalseInTransaction_setAutocommitZero() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
-      String readerConnectionId = queryInstanceId(conn);
+      final String readerConnectionId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerConnectionId);
 
       final Statement stmt = conn.createStatement();
@@ -159,20 +159,23 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   }
 
   @Test
-  public void test_setReadOnlyTrueInTransaction() throws SQLException{
+  public void test_setReadOnlyTrueInTransaction() throws SQLException {
     try (final Connection conn = connect(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       final Statement stmt1 = conn.createStatement();
       stmt1.executeUpdate("DROP TABLE IF EXISTS test_readWriteSplitting_readOnlyTrueInTransaction");
-      stmt1.executeUpdate("CREATE TABLE test_readWriteSplitting_readOnlyTrueInTransaction (id int not null primary key, text_field varchar(255) not null)");
+      stmt1.executeUpdate(
+          "CREATE TABLE test_readWriteSplitting_readOnlyTrueInTransaction "
+              + "(id int not null primary key, text_field varchar(255) not null)");
       stmt1.execute("SET autocommit = 0");
 
       final Statement stmt2 = conn.createStatement();
-      stmt2.executeUpdate("INSERT INTO test_readWriteSplitting_readOnlyTrueInTransaction VALUES (1, 'test_field value 1')");
+      stmt2.executeUpdate(
+          "INSERT INTO test_readWriteSplitting_readOnlyTrueInTransaction VALUES (1, 'test_field value 1')");
 
       assertDoesNotThrow(() -> conn.setReadOnly(true));
-      String currentConnectionId = queryInstanceId(conn);
+      final String currentConnectionId = queryInstanceId(conn);
       assertEquals(writerConnectionId, currentConnectionId);
 
       stmt2.execute("COMMIT");
@@ -188,8 +191,8 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
 
   @Test
   public void test_setReadOnlyTrue_allReadersDown() throws SQLException, IOException {
-    try (Connection conn = connectToProxy(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
+    try (final Connection conn = connectToProxy(defaultProps)) {
+      final String writerConnectionId = queryInstanceId(conn);
 
       // Kill all reader instances
       for (int i = 1; i < clusterSize; i++) {
@@ -214,7 +217,7 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
 
   @Test
   public void test_setReadOnlyTrue_allInstancesDown() throws SQLException, IOException {
-    try (Connection conn = connectToProxy(defaultProps)) {
+    try (final Connection conn = connectToProxy(defaultProps)) {
       // Kill all instances
       for (int i = 0; i < clusterSize; i++) {
         final String instanceId = instanceIDs[i];
@@ -235,7 +238,7 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
 
   @Test
   public void test_setReadOnlyTrue_allInstancesDown_writerClosed() throws SQLException, IOException {
-    try (Connection conn = connectToProxy(defaultProps)) {
+    try (final Connection conn = connectToProxy(defaultProps)) {
       conn.close();
 
       // Kill all instances
@@ -256,11 +259,11 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
 
   @Test
   public void test_setReadOnlyFalse_allInstancesDown() throws SQLException, IOException {
-    try (Connection conn = connectToProxy(defaultProps)) {
-      String writerConnectionId = queryInstanceId(conn);
+    try (final Connection conn = connectToProxy(defaultProps)) {
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
-      String readerConnectionId = queryInstanceId(conn);
+      final String readerConnectionId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerConnectionId);
 
       // Kill all instances
@@ -282,19 +285,19 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   @Test
   public void test_readerLoadBalancing_autocommitTrue() throws SQLException {
     try (final Connection conn = connect(propsWithLoadBalance)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
       String readerConnectionId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerConnectionId);
 
       for (int i = 0; i < 10; i++) {
-        Statement stmt = conn.createStatement();
+        final Statement stmt = conn.createStatement();
         stmt.executeQuery("SELECT " + i);
         readerConnectionId = queryInstanceId(conn);
         assertNotEquals(writerConnectionId, readerConnectionId);
 
-        ResultSet rs = stmt.getResultSet();
+        final ResultSet rs = stmt.getResultSet();
         rs.next();
         assertEquals(i, rs.getInt(1));
       }
@@ -304,14 +307,14 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   @Test
   public void test_readerLoadBalancing_autocommitFalse() throws SQLException {
     try (final Connection conn = connect(propsWithLoadBalance)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
       String readerConnectionId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerConnectionId);
 
       conn.setAutoCommit(false);
-      Statement stmt = conn.createStatement();
+      final Statement stmt = conn.createStatement();
 
       for (int i = 0; i < 5; i++) {
         stmt.executeQuery("SELECT " + i);
@@ -319,7 +322,7 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
         readerConnectionId = queryInstanceId(conn);
         assertNotEquals(writerConnectionId, readerConnectionId);
 
-        ResultSet rs = stmt.getResultSet();
+        final ResultSet rs = stmt.getResultSet();
         rs.next();
         assertEquals(i, rs.getInt(1));
 
@@ -334,11 +337,11 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   @Test
   public void test_transactionResolutionUnknown() throws SQLException, IOException {
     try (final Connection conn = connectToProxy(propsWithLoadBalance)) {
-      String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = queryInstanceId(conn);
 
       conn.setReadOnly(true);
       conn.setAutoCommit(false);
-      String readerId = queryInstanceId(conn);
+      final String readerId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, readerId);
 
       final Statement stmt = conn.createStatement();
@@ -350,13 +353,13 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
         fail(String.format("%s does not have a proxy setup.", readerId));
       }
 
-      SQLException e = assertThrows(SQLException.class, conn::rollback);
+      final SQLException e = assertThrows(SQLException.class, conn::rollback);
       assertEquals(SqlState.CONNECTION_FAILURE_DURING_TRANSACTION.getState(), e.getSQLState());
 
       try (final Connection newConn = connectToProxy(propsWithLoadBalance)) {
         newConn.setReadOnly(true);
-        Statement newStmt = newConn.createStatement();
-        ResultSet rs = newStmt.executeQuery("SELECT 1");
+        final Statement newStmt = newConn.createStatement();
+        final ResultSet rs = newStmt.executeQuery("SELECT 1");
         rs.next();
         assertEquals(1, rs.getInt(1));
       }
