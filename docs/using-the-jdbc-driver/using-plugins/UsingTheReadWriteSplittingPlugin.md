@@ -17,8 +17,7 @@ If your SQL workflow depends on session state attributes that are not mentioned 
 
 ### Loading the Read-Write Splitting Plugin
 
-The read-write splitting plugin is not loaded by default. To load the plugin, set the `wrapperPlugins` connection parameter:
-
+The read-write splitting plugin is not loaded by default. To load the plugin, include it in the wrapperPlugins connection parameter:
 ```
 final Properties properties = new Properties();
 properties.setProperty(PropertyDefinition.PLUGINS.name, "readWriteSplitting,failover,efm");
