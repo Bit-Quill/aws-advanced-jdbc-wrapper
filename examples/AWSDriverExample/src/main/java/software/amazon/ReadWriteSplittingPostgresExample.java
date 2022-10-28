@@ -46,14 +46,13 @@ public class ReadWriteSplittingPostgresExample {
     props.setProperty(PropertyDefinition.USER.name, USERNAME);
     props.setProperty(PropertyDefinition.PASSWORD.name, PASSWORD);
 
-   //  Setup Step: Open connection and create tables - uncomment this section to create table and test values
-//     try (final Connection connection = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
-//       setInitialSessionSettings(connection);
-//       executeWithFailoverHandling(connection,
-//           "CREATE TABLE bank_test (PRIMARY_KEY id int, name varchar(40), account_balance int)");
-//       executeWithFailoverHandling(connection,
-//           "INSERT INTO bank_test VALUES (0, 'Jane Doe', 200), (1, 'John Smith', 200), (2, 'Sally Smith', 200), (3, 'Joe Smith', 200)");
-//     }
+    // Setup Step: Open connection and create tables - uncomment this section to create table and test values//   try (final Connection connection = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
+    // setInitialSessionSettings(connection);
+    // executeWithFailoverHandling(connection,
+    // "CREATE TABLE bank_test (PRIMARY_KEY id int, name varchar(40), account_balance int)");
+    // executeWithFailoverHandling(connection,
+    // "INSERT INTO bank_test VALUES (0, 'Jane Doe', 200), (1, 'John Smith', 200), (2, 'Sally Smith', 200), (3, 'Joe Smith', 200)");
+    // }
 
     // Transaction Step: Open connection and perform transaction
     // Uncomment to enable reader load balancing
