@@ -32,6 +32,7 @@ import java.sql.Statement;
 import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import software.amazon.jdbc.PropertyDefinition;
+import software.amazon.jdbc.hostlistprovider.ConnectionStringHostListProvider;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
 import software.amazon.jdbc.util.SqlState;
 
@@ -49,6 +50,7 @@ public class StandardMysqlReadWriteSplittingTest extends MysqlStandardMysqlBaseT
   private Properties getProps_readWritePlugin() {
     final Properties props = initDefaultProps();
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting");
+    ConnectionStringHostListProvider.SINGLE_WRITER_CONNECTION_STRING.set(props, "true");
     props.setProperty(PropertyKey.socketTimeout.getKeyName(), "500");
     return props;
   }

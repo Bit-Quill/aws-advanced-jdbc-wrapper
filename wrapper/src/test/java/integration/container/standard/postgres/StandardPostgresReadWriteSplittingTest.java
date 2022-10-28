@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.postgresql.PGProperty;
 import software.amazon.jdbc.PropertyDefinition;
+import software.amazon.jdbc.hostlistprovider.ConnectionStringHostListProvider;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
 import software.amazon.jdbc.util.SqlState;
 
@@ -49,8 +50,9 @@ public class StandardPostgresReadWriteSplittingTest extends StandardPostgresBase
 
   private Properties getProps_readWritePlugin() {
     final Properties props = initDefaultProps();
-    PGProperty.SOCKET_TIMEOUT.set(props, "1");
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting");
+    ConnectionStringHostListProvider.SINGLE_WRITER_CONNECTION_STRING.set(props, "true");
+    PGProperty.SOCKET_TIMEOUT.set(props, "1");
     return props;
   }
 

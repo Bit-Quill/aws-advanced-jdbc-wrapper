@@ -35,9 +35,8 @@ import software.amazon.jdbc.Driver;
 public class StandardMysqlContainerTest {
 
   private static final String STANDARD_TEST_RUNNER_NAME = "test-container";
-  private static final String STANDARD_MYSQL_WRITER = "standard-mysql-writer.cluster-XYZ.us-east-2.rds.amazonaws.com";
-  private static final String STANDARD_MYSQL_READER =
-      "standard-mysql-reader.cluster-ro-XYZ.us-east-2.rds.amazonaws.com";
+  private static final String STANDARD_MYSQL_WRITER = "standard-mysql-writer";
+  private static final String STANDARD_MYSQL_READER = "standard-mysql-reader";
   private static final List<String>
       mySqlInstances = Arrays.asList(STANDARD_MYSQL_WRITER, STANDARD_MYSQL_READER);
   private static final String PROXIED_DOMAIN_NAME_SUFFIX = ".proxied";
