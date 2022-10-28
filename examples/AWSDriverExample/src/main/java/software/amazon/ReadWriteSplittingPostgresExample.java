@@ -33,7 +33,7 @@ public class ReadWriteSplittingPostgresExample {
 
   // User configures connection properties here
   public static final String POSTGRESQL_CONNECTION_STRING =
-      "jdbc:aws-wrapper:postgresql://database-pg-name.cluster-XYZ.us-east-2.rds.amazonaws.com:5432/failoverSample";
+      "jdbc:aws-wrapper:postgresql://test-db.cluster-XYZ.us-east-2.rds.amazonaws.com:5432/failoverSample";
   private static final String USERNAME = "username";
   private static final String PASSWORD = "password";
 
@@ -41,23 +41,24 @@ public class ReadWriteSplittingPostgresExample {
 
     final Properties props = new Properties();
 
-    // Enable readWriteSplitting and failover plugins and set properties
-    props.setProperty(PropertyDefinition.PLUGINS.name, "readWriteSplitting,failover");
+    // Enable readWriteSplitting, failover, and efm plugins and set properties
+    props.setProperty(PropertyDefinition.PLUGINS.name, "readWriteSplitting,failover,efm");
     props.setProperty(PropertyDefinition.USER.name, USERNAME);
     props.setProperty(PropertyDefinition.PASSWORD.name, PASSWORD);
 
-    // Setup Step: Open connection and create tables - uncomment this section to create table and test values//   try (final Connection connection = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
+    // Setup Step: Open connection and create tables - uncomment this section to create table and test values
+    // try (final Connection connection = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
     // setInitialSessionSettings(connection);
     // executeWithFailoverHandling(connection,
-    // "CREATE TABLE bank_test (PRIMARY_KEY id int, name varchar(40), account_balance int)");
+    //    "CREATE TABLE bank_test (id int primary key, name varchar(40), account_balance int)");
     // executeWithFailoverHandling(connection,
-    // "INSERT INTO bank_test VALUES (0, 'Jane Doe', 200), (1, 'John Smith', 200), (2, 'Sally Smith', 200), (3, 'Joe Smith', 200)");
+    //    "INSERT INTO bank_test VALUES (0, 'Jane Doe', 200), (1, 'John Smith', 200), (2, 'Sally Smith', 200), (3, 'Joe Smith', 200)");
     // }
 
-    // Transaction Step: Open connection and perform transaction
     // Uncomment to enable reader load balancing
     // props.setProperty("loadBalanceReadOnlyTraffic", "true");
 
+    // Example Step: Open connection and perform transaction
     try (final Connection conn = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
       setInitialSessionSettings(conn);
       // Begin business transaction
@@ -110,7 +111,8 @@ public class ReadWriteSplittingPostgresExample {
 
   public static ResultSet executeWithFailoverHandling(Connection conn, String query) throws SQLException {
     try (Statement stmt = conn.createStatement()) {
-      stmt.execute(query);
+      boolean hasResults = stmt.execute(query);
+      return hasResults ? stmt.getResultSet() : null;
     } catch (FailoverFailedSQLException e) {
       // Connection failed, and JDBC wrapper failed to reconnect to a new instance.
       throw e;
@@ -128,7 +130,6 @@ public class ReadWriteSplittingPostgresExample {
       // Transaction status is unknown. The driver has successfully reconnected to a new writer.
       throw e;
     }
-    return null;
   }
 }
 
