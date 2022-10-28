@@ -57,7 +57,10 @@ public class ConnectionUrlParser {
         } else {
           host = parseHostPortPair(hostArray[i]);
         }
-        hostsList.add(host);
+
+        if (!StringUtils.isNullOrEmpty(host.getHost())) {
+          hostsList.add(host);
+        }
       }
     }
 
