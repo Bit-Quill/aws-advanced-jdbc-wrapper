@@ -58,7 +58,6 @@ public class ReadWriteSplittingPostgresExample {
     // Transaction Step: Open connection and perform transaction
     // Uncomment to enable reader load balancing
     // props.setProperty(ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.name, "true");
-    props.setProperty("loadBalanceReadOnlyTraffic", "true");
 
     try (final Connection conn = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
       setInitialSessionSettings(conn);
@@ -78,8 +77,9 @@ public class ReadWriteSplittingPostgresExample {
       // Change connection to the reader connection internally
       conn.setReadOnly(true);
 
+      // If reader load-balancing was enabled, each execute will be performed against a new reader.
       for (int i = 0; i < 4; i++) {
-        ResultSet rs = executeWithFailoverHandling(conn, "SELECT bank_test id = " + i);
+        ResultSet rs = executeWithFailoverHandling(conn, "SELECT * FROM bank_test WHERE id = " + i);
         processResults(rs);
       }
 
@@ -98,7 +98,7 @@ public class ReadWriteSplittingPostgresExample {
     }
   }
 
-  static void processResults(ResultSet results) {
+  public static void processResults(ResultSet results) {
     // User can process results as needed
   }
 
