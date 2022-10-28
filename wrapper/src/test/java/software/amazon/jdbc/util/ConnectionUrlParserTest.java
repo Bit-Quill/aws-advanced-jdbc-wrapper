@@ -47,8 +47,9 @@ class ConnectionUrlParserTest {
   void testGetHostsFromConnectionUrl_singleWriterConnectionString() {
     final ConnectionUrlParser parser = new ConnectionUrlParser();
     final String testUrl = "jdbc:driver:test://instance-1,instance-2:3303,instance-3/test";
-    final List<HostSpec> expected = Arrays.asList(new HostSpec("instance-1"), new HostSpec("instance-2", 3303, HostRole.READER),
-        new HostSpec("instance-3", HostSpec.NO_PORT, HostRole.READER));
+    final List<HostSpec> expected =
+        Arrays.asList(new HostSpec("instance-1"), new HostSpec("instance-2", 3303, HostRole.READER),
+            new HostSpec("instance-3", HostSpec.NO_PORT, HostRole.READER));
     final List<HostSpec> results = parser.getHostsFromConnectionUrl(testUrl, true);
 
     assertEquals(expected.size(), results.size());
