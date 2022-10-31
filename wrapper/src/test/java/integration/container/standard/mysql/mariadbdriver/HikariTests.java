@@ -71,7 +71,7 @@ public class HikariTests extends MariadbStandardMysqlBaseTest {
 
     // Configuring MysqlDataSource:
     Properties targetDataSourceProps = new Properties();
-    targetDataSourceProps.setProperty("serverName", STANDARD_HOST);
+    targetDataSourceProps.setProperty("serverName", STANDARD_WRITER);
     targetDataSourceProps.setProperty("databaseName", STANDARD_DB);
     targetDataSourceProps.setProperty(
         "url", "jdbc:mysql://" + STANDARD_HOST + ":" + STANDARD_PORT + "/" + STANDARD_DB + "?permitMysqlScheme");
