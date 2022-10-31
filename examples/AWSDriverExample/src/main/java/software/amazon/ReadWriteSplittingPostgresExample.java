@@ -33,7 +33,7 @@ public class ReadWriteSplittingPostgresExample {
 
   // User configures connection properties here
   public static final String POSTGRESQL_CONNECTION_STRING =
-      "jdbc:aws-wrapper:postgresql://test-db.cluster-XYZ.us-east-2.rds.amazonaws.com:5432/failoverSample";
+      "jdbc:aws-wrapper:postgresql://test-db.cluster-XYZ.us-east-2.rds.amazonaws.com:5432/readWriteSplittingExample";
   private static final String USERNAME = "username";
   private static final String PASSWORD = "password";
 
