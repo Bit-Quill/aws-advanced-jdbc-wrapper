@@ -52,7 +52,7 @@ public class StandardMysqlIntegrationTest extends MariadbStandardMysqlBaseTest {
     }
 
     try (Connection conn = DriverManager.getConnection(
-        DB_CONN_STR_PREFIX + STANDARD_HOST + PROXIED_DOMAIN_NAME_SUFFIX + ":"
+        DB_CONN_STR_PREFIX + STANDARD_WRITER + PROXIED_DOMAIN_NAME_SUFFIX + ":"
             + PROXY_PORT + "/" + STANDARD_DB + "?permitMysqlScheme", initDefaultProps())) {
       assertTrue(conn.isValid(5));
       containerHelper.disableConnectivity(proxyWriter);
