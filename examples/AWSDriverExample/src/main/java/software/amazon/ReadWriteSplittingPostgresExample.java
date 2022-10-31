@@ -28,6 +28,8 @@ import java.util.Properties;
 import software.amazon.jdbc.plugin.failover.FailoverFailedSQLException;
 import software.amazon.jdbc.plugin.failover.FailoverSuccessSQLException;
 import software.amazon.jdbc.plugin.failover.TransactionStateUnknownSQLException;
+import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
+
 
 public class ReadWriteSplittingPostgresExample {
 
@@ -56,7 +58,7 @@ public class ReadWriteSplittingPostgresExample {
     // }
 
     // Uncomment to enable reader load balancing
-    // props.setProperty("loadBalanceReadOnlyTraffic", "true");
+    // props.setProperty(ReadWriteSplittingPlugin.LOAD_BALANCE_READ_ONLY_TRAFFIC.name, "true");
 
     // Example Step: Open connection and perform transaction
     try (final Connection conn = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
