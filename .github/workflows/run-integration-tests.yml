@@ -98,7 +98,6 @@ jobs:
       matrix:
         vm:
           [
-            openjdk,
             graalvm
           ]
     steps:
@@ -191,28 +190,28 @@ jobs:
             --skip-final-snapshot \
           2>&1 > /dev/null;
 
-  clean-up-postgres:
-    name: 'Clean up AWS Aurora Postgres clusters'
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [ aurora-postgres-integration-tests ]
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-    steps:
-      - name: 'Delete Instances'
-        run: |
-          for i in {1..5}; \
-            do \
-            aws rds delete-db-instance \
-              --db-instance-identifier ${{ secrets.AURORA_POSTGRES_CLUSTER_IDENTIFIER }}-${{ github.run_id }}-$i \
-              --skip-final-snapshot \
-            2>&1 > /dev/null; \
-          done;
-      - name: 'Delete Cluster'
-        run: |
-          aws rds delete-db-cluster \
-            --db-cluster-identifier ${{ secrets.AURORA_POSTGRES_CLUSTER_IDENTIFIER }}-${{ github.run_id }} \
-            --skip-final-snapshot \
-          2>&1 > /dev/null;
+#  clean-up-postgres:
+#    name: 'Clean up AWS Aurora Postgres clusters'
+#    runs-on: ubuntu-latest
+#    if: always()
+#    needs: [ aurora-postgres-integration-tests ]
+#    env:
+#      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+#    steps:
+#      - name: 'Delete Instances'
+#        run: |
+#          for i in {1..5}; \
+#            do \
+#            aws rds delete-db-instance \
+#              --db-instance-identifier ${{ secrets.AURORA_POSTGRES_CLUSTER_IDENTIFIER }}-${{ github.run_id }}-$i \
+#              --skip-final-snapshot \
+#            2>&1 > /dev/null; \
+#          done;
+#      - name: 'Delete Cluster'
+#        run: |
+#          aws rds delete-db-cluster \
+#            --db-cluster-identifier ${{ secrets.AURORA_POSTGRES_CLUSTER_IDENTIFIER }}-${{ github.run_id }} \
+#            --skip-final-snapshot \
+#          2>&1 > /dev/null;
