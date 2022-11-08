@@ -69,7 +69,7 @@ public class SqlMethodAnalyzer {
 
   public boolean doesCloseTransaction(final String methodName, final Object[] args) {
     if (methodName.equals("Connection.commit") || methodName.equals("Connection.rollback")
-        || isMethodClosingSqlObject(methodName)) {
+        || methodName.equals("Connection.close")) {
       return true;
     }
 
