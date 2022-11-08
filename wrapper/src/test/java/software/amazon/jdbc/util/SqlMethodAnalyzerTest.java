@@ -147,7 +147,7 @@ class SqlMethodAnalyzerTest {
         Arguments.of("Statement.executeUpdate", "end", true),
         Arguments.of("Statement.executeUpdate", "abort;", true),
         Arguments.of("Statement.execute", "select 1", false),
-        Arguments.of("Statement.close", null, true),
+        Arguments.of("Statement.close", null, false),
         Arguments.of("Statement.isClosed", null, false),
         Arguments.of("Connection.commit", null, true),
         Arguments.of("Connection.rollback", null, true),
