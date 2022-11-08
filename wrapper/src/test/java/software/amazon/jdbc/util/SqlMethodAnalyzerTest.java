@@ -30,12 +30,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-class ConnectionMethodAnalyzerTest {
+class SqlMethodAnalyzerTest {
 
   @Mock
   Connection conn;
 
-  private ConnectionMethodAnalyzer connectionMethodAnalyzer = new ConnectionMethodAnalyzer();
+  private SqlMethodAnalyzer sqlMethodAnalyzer = new SqlMethodAnalyzer();
   private AutoCloseable closeable;
 
   @BeforeEach
@@ -60,7 +60,7 @@ class ConnectionMethodAnalyzerTest {
     }
 
     when(conn.getAutoCommit()).thenReturn(autocommit);
-    final boolean actual = connectionMethodAnalyzer.doesOpenTransaction(conn, methodName, args);
+    final boolean actual = sqlMethodAnalyzer.doesOpenTransaction(conn, methodName, args);
     assertEquals(expected, actual);
   }
 
@@ -74,7 +74,7 @@ class ConnectionMethodAnalyzerTest {
       args = new Object[] {};
     }
 
-    final boolean actual = connectionMethodAnalyzer.doesCloseTransaction(methodName, args);
+    final boolean actual = sqlMethodAnalyzer.doesCloseTransaction(methodName, args);
     assertEquals(expected, actual);
   }
 
@@ -88,7 +88,7 @@ class ConnectionMethodAnalyzerTest {
       args = new Object[] {};
     }
 
-    final boolean actual = connectionMethodAnalyzer.isExecuteDml(methodName, args);
+    final boolean actual = sqlMethodAnalyzer.isExecuteDml(methodName, args);
     assertEquals(expected, actual);
   }
 
@@ -102,7 +102,7 @@ class ConnectionMethodAnalyzerTest {
       args = new Object[] {};
     }
 
-    final boolean actual = connectionMethodAnalyzer.isStatementSettingAutoCommit(methodName, args);
+    final boolean actual = sqlMethodAnalyzer.isStatementSettingAutoCommit(methodName, args);
     assertEquals(expected, actual);
   }
 
@@ -116,7 +116,7 @@ class ConnectionMethodAnalyzerTest {
       args = new Object[] {};
     }
 
-    final Boolean actual = connectionMethodAnalyzer.getAutoCommitValueFromSqlStatement(args);
+    final Boolean actual = sqlMethodAnalyzer.getAutoCommitValueFromSqlStatement(args);
     assertEquals(expected, actual);
   }
 
@@ -147,8 +147,12 @@ class ConnectionMethodAnalyzerTest {
         Arguments.of("Statement.executeUpdate", "end", true),
         Arguments.of("Statement.executeUpdate", "abort;", true),
         Arguments.of("Statement.execute", "select 1", false),
+        Arguments.of("Statement.close", null, true),
+        Arguments.of("Statement.isClosed", null, false),
         Arguments.of("Connection.commit", null, true),
-        Arguments.of("Connection.rollback", null, true)
+        Arguments.of("Connection.rollback", null, true),
+        Arguments.of("Connection.close", null, true),
+        Arguments.of("Connection.abort", null, true)
     );
   }
 
