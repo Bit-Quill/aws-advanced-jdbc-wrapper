@@ -36,9 +36,9 @@ pluginManagement {
 
         id("com.github.spotbugs") version "5.0.+"
         id("com.diffplug.spotless") version "6.11.+"
-        id("com.github.vlsi.gradle-extensions") version "1.84"
-        id("com.github.vlsi.stage-vote-release") version "1.84"
-        id("com.github.vlsi.ide") version "1.84"
+        id("com.github.vlsi.gradle-extensions") version "1.+"
+        id("com.github.vlsi.stage-vote-release") version "1.+"
+        id("com.github.vlsi.ide") version "1.+"
         id("me.champeau.jmh") version "0.+"
         id("org.checkerframework") version "0.+"
     }
