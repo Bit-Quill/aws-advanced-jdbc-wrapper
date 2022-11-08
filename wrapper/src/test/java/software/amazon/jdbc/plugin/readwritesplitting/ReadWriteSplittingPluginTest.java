@@ -422,8 +422,8 @@ public class ReadWriteSplittingPluginTest {
     plugin.execute(
         Void.class,
         SQLException.class,
-        mockStatement,
-        "Statement.close",
+        mockReaderConn1,
+        "Connection.close",
         mockVoidFunction,
         new Object[] {});
 
