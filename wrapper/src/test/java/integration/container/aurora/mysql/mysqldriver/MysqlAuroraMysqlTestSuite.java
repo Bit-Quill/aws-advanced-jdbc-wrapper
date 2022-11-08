@@ -16,12 +16,13 @@
 
 package integration.container.aurora.mysql.mysqldriver;
 
+import org.junit.platform.suite.api.IncludeTags;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
 // Tests will run in order of top to bottom.
-// To add additional tests, append it inside SelectClasses, comma-separated
 @Suite
+@IncludeTags("graalvm")
 @SelectClasses({
     AuroraMysqlDataSourceTest.class,
     AuroraMysqlFailoverTest.class,
@@ -32,3 +33,5 @@ import org.junit.platform.suite.api.Suite;
     HikariCPReadWriteSplittingTest.class
 })
 public class MysqlAuroraMysqlTestSuite {}
+
+// To add additional tests, append it inside SelectClasses, comma-separated

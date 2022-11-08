@@ -90,7 +90,7 @@ tasks.register<Test>("in-container-standard-postgres") {
 // and integration.container.aurora.mysql.mariadbdriver.MariadbAuroraMysqlTestSuite.java
 tasks.register<Test>("in-container-aurora-mysql") {
     filter.includeTestsMatching("integration.container.aurora.mysql.mysqldriver.MysqlAuroraMysqlTestSuite")
-    filter.includeTestsMatching("integration.container.aurora.mysql.mariadbdriver.MariadbAuroraMysqlTestSuite")
+//    filter.includeTestsMatching("integration.container.aurora.mysql.mariadbdriver.MariadbAuroraMysqlTestSuite")
 }
 
 // Integration tests are run in a specific order.
