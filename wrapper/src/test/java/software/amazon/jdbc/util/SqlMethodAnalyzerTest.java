@@ -108,7 +108,7 @@ class SqlMethodAnalyzerTest {
 
   @ParameterizedTest
   @MethodSource("getAutoCommitQueries")
-  void testGetAutoCommit(final String sql, final boolean expected) {
+  void testGetAutoCommit(final String sql, final Boolean expected) {
     final Object[] args;
     if (sql != null) {
       args = new Object[] {sql};
@@ -116,7 +116,7 @@ class SqlMethodAnalyzerTest {
       args = new Object[] {};
     }
 
-    final boolean actual = sqlMethodAnalyzer.getAutoCommitValueFromSqlStatement(args);
+    final Boolean actual = sqlMethodAnalyzer.getAutoCommitValueFromSqlStatement(args);
     assertEquals(expected, actual);
   }
 
