@@ -35,7 +35,7 @@ class SqlMethodAnalyzerTest {
   @Mock
   Connection conn;
 
-  private SqlMethodAnalyzer sqlMethodAnalyzer = new SqlMethodAnalyzer();
+  private final SqlMethodAnalyzer sqlMethodAnalyzer = new SqlMethodAnalyzer();
   private AutoCloseable closeable;
 
   @BeforeEach
@@ -108,7 +108,7 @@ class SqlMethodAnalyzerTest {
 
   @ParameterizedTest
   @MethodSource("getAutoCommitQueries")
-  void testGetAutoCommit(final String sql, final Boolean expected) {
+  void testGetAutoCommit(final String sql, final boolean expected) {
     final Object[] args;
     if (sql != null) {
       args = new Object[] {sql};
@@ -116,7 +116,14 @@ class SqlMethodAnalyzerTest {
       args = new Object[] {};
     }
 
-    final Boolean actual = sqlMethodAnalyzer.getAutoCommitValueFromSqlStatement(args);
+    final boolean actual = sqlMethodAnalyzer.getAutoCommitValueFromSqlStatement(args);
+    assertEquals(expected, actual);
+  }
+
+  @ParameterizedTest
+  @MethodSource("getIsMethodClosingSqlObjectMethods")
+  void testIsMethodClosingSqlObject(final String methodName, final boolean expected) {
+    final boolean actual = sqlMethodAnalyzer.isMethodClosingSqlObject(methodName);
     assertEquals(expected, actual);
   }
 
@@ -187,6 +194,18 @@ class SqlMethodAnalyzerTest {
         Arguments.of("set autoCOMMIT = on", true),
         Arguments.of("set autoCOMMIT TO trUE", true),
         Arguments.of("  SeT  aUtOcommIT  = 1", true)
+    );
+  }
+
+  private static Stream<Arguments> getIsMethodClosingSqlObjectMethods() {
+    return Stream.of(
+        Arguments.of("Statement.close", true),
+        Arguments.of("Statement.closeOnCompletion", false),
+        Arguments.of("Statement.isClosed", false),
+        Arguments.of("Connection.commit", false),
+        Arguments.of("Connection.rollback", false),
+        Arguments.of("Connection.close", true),
+        Arguments.of("Connection.abort", true)
     );
   }
 }

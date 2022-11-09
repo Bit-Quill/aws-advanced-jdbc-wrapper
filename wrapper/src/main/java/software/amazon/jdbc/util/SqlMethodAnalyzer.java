@@ -157,10 +157,6 @@ public class SqlMethodAnalyzer {
   }
 
   public boolean isMethodClosingSqlObject(String methodName) {
-    if (methodName.contains(".")) {
-      methodName = methodName.substring(methodName.indexOf(".") + 1);
-    }
-
-    return methodName.equals("close") || methodName.equals("abort");
+    return methodName.endsWith(".close") || methodName.endsWith(".abort");
   }
 }
