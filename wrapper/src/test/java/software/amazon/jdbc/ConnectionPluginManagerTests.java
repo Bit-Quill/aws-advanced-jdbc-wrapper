@@ -439,12 +439,16 @@ public class ConnectionPluginManagerTests {
         () -> target.execute(String.class, Exception.class, mockOldResultSet, "testJdbcCall_A", () -> "result", null));
 
     assertDoesNotThrow(
-        () -> target.execute(Void.class, SQLException.class, mockOldConnection, "Connection.close", mockSqlFunction, null));
+        () -> target.execute(Void.class, SQLException.class, mockOldConnection, "Connection.close", mockSqlFunction,
+            null));
     assertDoesNotThrow(
-        () -> target.execute(Void.class, SQLException.class, mockOldConnection, "Connection.abort", mockSqlFunction, null));
+        () -> target.execute(Void.class, SQLException.class, mockOldConnection, "Connection.abort", mockSqlFunction,
+            null));
     assertDoesNotThrow(
-        () -> target.execute(Void.class, SQLException.class, mockOldStatement, "Statement.close", mockSqlFunction, null));
+        () -> target.execute(Void.class, SQLException.class, mockOldStatement, "Statement.close", mockSqlFunction,
+            null));
     assertDoesNotThrow(
-        () -> target.execute(Void.class, SQLException.class, mockOldResultSet, "ResultSet.close", mockSqlFunction, null));
+        () -> target.execute(Void.class, SQLException.class, mockOldResultSet, "ResultSet.close", mockSqlFunction,
+            null));
   }
 }
