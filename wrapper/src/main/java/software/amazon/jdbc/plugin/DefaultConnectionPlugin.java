@@ -41,6 +41,7 @@ import software.amazon.jdbc.PluginManagerService;
 import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.SqlMethodAnalyzer;
+import software.amazon.jdbc.util.WrapperUtils;
 
 /**
  * This connection plugin will always be the last plugin in the connection plugin chain, and will
@@ -99,6 +100,11 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
     final T result = jdbcMethodFunc.call();
 
     Connection currentConn = this.pluginService.getCurrentConnection();
+    final Connection methodInvokeOnConn = WrapperUtils.getConnectionFromSqlObject(methodInvokeOn);
+    if (methodInvokeOnConn != null && methodInvokeOnConn != currentConn) {
+      return result;
+    }
+
     if (sqlMethodAnalyzer.doesOpenTransaction(currentConn, methodName, jdbcMethodArgs)) {
       this.pluginManagerService.setInTransaction(true);
     } else if (sqlMethodAnalyzer.doesCloseTransaction(methodName, jdbcMethodArgs)) {
