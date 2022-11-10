@@ -100,8 +100,8 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
     final T result = jdbcMethodFunc.call();
 
     Connection currentConn = this.pluginService.getCurrentConnection();
-    final Connection methodInvokeOnConn = WrapperUtils.getConnectionFromSqlObject(methodInvokeOn);
-    if (methodInvokeOnConn != null && methodInvokeOnConn != currentConn) {
+    final Connection boundConnection = WrapperUtils.getConnectionFromSqlObject(methodInvokeOn);
+    if (boundConnection != null && boundConnection != currentConn) {
       return result;
     }
 
