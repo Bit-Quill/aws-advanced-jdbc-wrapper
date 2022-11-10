@@ -349,10 +349,25 @@ public class ContainerHelper {
          final Statement stmt = conn.createStatement()) {
       // Get instances
       try (final ResultSet resultSet = stmt.executeQuery(retrieveTopologySql)) {
+        int i = 0;
+        boolean failure = false;
+        List<String> roles = new ArrayList<>();
         while (resultSet.next()) {
           // Get Instance endpoints
           final String hostEndpoint = resultSet.getString(SERVER_ID);
+          final String role = resultSet.getString("SESSION_ID");
+          roles.add(role);
+          if (i == 0 && !role.equals("MASTER_SESSION_ID")) {
+            failure = true;
+          }
+          i++;
           auroraInstances.add(hostEndpoint);
+        }
+        if (failure) {
+          System.out.println("Failure fetching instance IDs - the first node was not the writer");
+          for (int j = 0; j < auroraInstances.size(); j++) {
+            System.out.println("Detected instance - host: " + auroraInstances.get(i) + ", role: " + roles.get(i));
+          }
         }
       }
     }
