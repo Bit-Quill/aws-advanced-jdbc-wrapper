@@ -102,6 +102,8 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
     Connection currentConn = this.pluginService.getCurrentConnection();
     final Connection boundConnection = WrapperUtils.getConnectionFromSqlObject(methodInvokeOn);
     if (boundConnection != null && boundConnection != currentConn) {
+      // The method being invoked is using an old connection, so transaction/autocommit analysis should be skipped.
+      // ConnectionPluginManager#execute blocks all methods invoked using old connections except for close/abort.
       return result;
     }
 
