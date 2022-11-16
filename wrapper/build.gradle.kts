@@ -36,6 +36,10 @@ dependencies {
     compileOnly("org.postgresql:postgresql:42.5.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.1.0")
     compileOnly("org.osgi:org.osgi.core:4.3.0")
+    compileOnly("io.opentelemetry:opentelemetry-api:1.20.1")
+    compileOnly("io.opentelemetry:opentelemetry-exporter-otlp:1.20.1")
+    compileOnly("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.20.1-alpha")
+    compileOnly("com.amazonaws:aws-xray-recorder-sdk-core:2.13.0")
 
     testImplementation("org.junit.platform:junit-platform-commons:1.9.0")
     testImplementation("org.junit.platform:junit-platform-engine:1.9.0")
@@ -64,6 +68,7 @@ dependencies {
     testImplementation("org.apache.poi:poi-ooxml:5.2.2")
     testImplementation("org.slf4j:slf4j-simple:2.0.3")
     testImplementation("com.fasterxml.jackson.core:jackson-databind:2.13.4")
+    testImplementation("com.amazonaws:aws-xray-recorder-sdk-core:2.13.0")
 }
 
 repositories {

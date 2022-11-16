@@ -30,6 +30,7 @@ public class TestEnvironmentInfo {
 
   private TestDatabaseInfo databaseInfo;
   private TestProxyDatabaseInfo proxyDatabaseInfo;
+  private TestXRayTelemetryInfo xRayTelemetryInfo;
 
   public TestDatabaseInfo getDatabaseInfo() {
     return this.databaseInfo;
@@ -37,6 +38,10 @@ public class TestEnvironmentInfo {
 
   public TestProxyDatabaseInfo getProxyDatabaseInfo() {
     return this.proxyDatabaseInfo;
+  }
+
+  public TestXRayTelemetryInfo getTelemetryInfo() {
+    return this.xRayTelemetryInfo;
   }
 
   public TestEnvironmentRequest getRequest() {
@@ -85,6 +90,10 @@ public class TestEnvironmentInfo {
 
   public void setProxyDatabaseInfo(TestProxyDatabaseInfo proxyDatabaseInfo) {
     this.proxyDatabaseInfo = proxyDatabaseInfo;
+  }
+
+  public void setXRayTelemetryInfo(TestXRayTelemetryInfo xRayTelemetryInfo) {
+    this.xRayTelemetryInfo = xRayTelemetryInfo;
   }
 
   public void setAwsAccessKeyId(String awsAccessKeyId) {

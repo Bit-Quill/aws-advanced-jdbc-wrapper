@@ -20,6 +20,7 @@ import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.platform.commons.util.AnnotationUtils.isAnnotated;
 
+import com.amazonaws.xray.AWSXRay;
 import integration.container.aurora.TestAuroraHostListProvider;
 import integration.container.aurora.TestPluginServiceImpl;
 import integration.refactored.DatabaseEngineDeployment;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -90,6 +92,15 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
             new BeforeEachCallback() {
               @Override
               public void beforeEach(ExtensionContext context) throws Exception {
+                if (TestEnvironment.getCurrent()
+                    .getInfo()
+                    .getRequest()
+                    .getFeatures()
+                    .contains(TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)) {
+                  AWSXRay.beginSegment("integration test");
+                  AWSXRay.beginSubsegment("test setup");
+                }
+
                 DriverHelper.unregisterAllDrivers();
                 DriverHelper.registerDriver(testDriver);
                 TestEnvironment.getCurrent().setCurrentDriver(testDriver);
@@ -114,7 +125,7 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
 
                   boolean makeSureFirstInstanceWriter =
                       isAnnotated(context.getElement(), MakeSureFirstInstanceWriter.class)
-                      || isAnnotated(context.getTestClass(), MakeSureFirstInstanceWriter.class);
+                          || isAnnotated(context.getTestClass(), MakeSureFirstInstanceWriter.class);
                   List<String> instanceIDs;
                   if (makeSureFirstInstanceWriter) {
                     instanceIDs = new ArrayList<>();
@@ -158,6 +169,15 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
                   TestAuroraHostListProvider.clearCache();
                   TestPluginServiceImpl.clearHostAvailabilityCache();
                 }
+                AWSXRay.endSubsegment();
+                AWSXRay.beginSubsegment(context.getElement().toString());
+              }
+            },
+            new AfterEachCallback() {
+              @Override
+              public void afterEach(ExtensionContext context) throws Exception {
+                //check if trace still open
+                AWSXRay.endSegment();
               }
             });
       }

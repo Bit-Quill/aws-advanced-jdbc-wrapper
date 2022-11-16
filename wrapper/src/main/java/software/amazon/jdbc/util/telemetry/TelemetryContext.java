@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package software.amazon.jdbc.plugin;
+package software.amazon.jdbc.util.telemetry;
 
-import java.util.Properties;
-import software.amazon.jdbc.ConnectionPlugin;
-import software.amazon.jdbc.ConnectionPluginFactory;
-import software.amazon.jdbc.PluginService;
+public interface TelemetryContext extends AutoCloseable {
 
-public class DataCacheConnectionPluginFactory implements ConnectionPluginFactory {
+  void setSuccess(boolean success);
 
-  @Override
-  public ConnectionPlugin getInstance(PluginService pluginService, Properties props) {
-    return new DataCacheConnectionPlugin(pluginService, props);
-  }
+  void setAttribute(String key, String value);
+
+  String getName();
+
+  void closeContext();
+
 }

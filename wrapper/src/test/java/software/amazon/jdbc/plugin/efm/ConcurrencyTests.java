@@ -58,6 +58,7 @@ import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.JdbcCallable;
 import software.amazon.jdbc.NodeChangeOptions;
 import software.amazon.jdbc.PluginService;
+import software.amazon.jdbc.util.telemetry.TelemetryFactory;
 
 @Disabled
 @SuppressWarnings("checkstyle:OverloadMethodsDeclarationOrder")
@@ -328,6 +329,11 @@ public class ConcurrencyTests {
     @Override
     public Connection connect(HostSpec hostSpec, Properties props) throws SQLException {
       return new TestConnection();
+    }
+
+    @Override
+    public TelemetryFactory getTelemetryFactory() {
+      return null;
     }
 
     @Override

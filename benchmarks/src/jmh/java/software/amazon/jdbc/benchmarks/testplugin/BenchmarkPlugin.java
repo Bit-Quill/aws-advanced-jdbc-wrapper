@@ -28,7 +28,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import software.amazon.jdbc.ConnectionPlugin;
 import software.amazon.jdbc.HostListProviderService;
 import software.amazon.jdbc.HostSpec;

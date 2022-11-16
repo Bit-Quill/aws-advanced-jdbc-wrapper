@@ -42,6 +42,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import software.amazon.jdbc.HostSpec;
+import software.amazon.jdbc.PluginService;
 
 class MonitorServiceImplTest {
 
@@ -51,6 +52,7 @@ class MonitorServiceImplTest {
   private static final int FAILURE_DETECTION_INTERVAL_MILLIS = 100;
   private static final int FAILURE_DETECTION_COUNT = 3;
 
+  @Mock private PluginService mockPluginService;
   @Mock private MonitorInitializer monitorInitializer;
   @Mock private ExecutorServiceInitializer executorServiceInitializer;
   @Mock private Monitor monitorA;
@@ -79,7 +81,7 @@ class MonitorServiceImplTest {
 
     doReturn(task).when(executorService).submit(any(Monitor.class));
 
-    monitorService = new MonitorServiceImpl(monitorInitializer, executorServiceInitializer);
+    monitorService = new MonitorServiceImpl(mockPluginService, monitorInitializer, executorServiceInitializer);
   }
 
   @AfterEach

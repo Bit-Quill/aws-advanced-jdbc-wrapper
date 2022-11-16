@@ -14,17 +14,35 @@
  * limitations under the License.
  */
 
-package software.amazon.jdbc.plugin;
+package software.amazon.jdbc.util.telemetry;
 
-import java.util.Properties;
-import software.amazon.jdbc.ConnectionPlugin;
-import software.amazon.jdbc.ConnectionPluginFactory;
-import software.amazon.jdbc.PluginService;
+public class NullTelemetryContext implements TelemetryContext {
 
-public class DataCacheConnectionPluginFactory implements ConnectionPluginFactory {
+  private final String name;
+
+  public NullTelemetryContext(String name) {
+    this.name = name;
+  }
 
   @Override
-  public ConnectionPlugin getInstance(PluginService pluginService, Properties props) {
-    return new DataCacheConnectionPlugin(pluginService, props);
+  public void setSuccess(boolean success) {
   }
+
+  @Override
+  public void setAttribute(String key, String value) {
+  }
+
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  @Override
+  public void closeContext() {
+  }
+
+  @Override
+  public void close() {
+  }
+
 }

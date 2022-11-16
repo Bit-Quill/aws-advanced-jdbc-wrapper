@@ -16,6 +16,8 @@
 
 package integration.refactored.container;
 
+import com.amazonaws.xray.AWSXRay;
+import com.amazonaws.xray.AWSXRayRecorderBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.rekawek.toxiproxy.Proxy;
@@ -73,6 +75,15 @@ public class TestEnvironment {
         .getFeatures()
         .contains(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)) {
       initProxies(environment);
+    }
+
+    if (environment
+        .info
+        .getRequest()
+        .getFeatures()
+        .contains(TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)) {
+      AWSXRayRecorderBuilder builder = AWSXRayRecorderBuilder.standard();
+      AWSXRay.setGlobalRecorder(builder.build());
     }
 
     return environment;

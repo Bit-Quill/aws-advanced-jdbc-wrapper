@@ -40,6 +40,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.jdbc.Driver;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.JdbcCallable;
+import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.PropertyDefinition;
 
 class IamAuthConnectionPluginTest {
@@ -60,6 +61,7 @@ class IamAuthConnectionPluginTest {
   private static final HostSpec MYSQL_HOST_SPEC = new HostSpec("mysql.testdb.us-east-2.rds.amazonaws.com");
   private Properties props;
 
+  @Mock PluginService mockPluginService;
   @Mock JdbcCallable<Connection, SQLException> mockLambda;
 
   @BeforeEach
@@ -104,7 +106,7 @@ class IamAuthConnectionPluginTest {
   @Test
   public void testPostgresConnectWithInvalidPort() {
     props.setProperty("iamDefaultPort", "0");
-    final IamAuthConnectionPlugin targetPlugin = new IamAuthConnectionPlugin();
+    final IamAuthConnectionPlugin targetPlugin = new IamAuthConnectionPlugin(mockPluginService);
 
     final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
       targetPlugin.connect(PG_DRIVER_PROTOCOL, PG_HOST_SPEC, props, true, mockLambda);
@@ -169,7 +171,7 @@ class IamAuthConnectionPluginTest {
 
   public void testTokenSetInProps(final String protocol, final HostSpec hostSpec) throws SQLException {
 
-    IamAuthConnectionPlugin targetPlugin = new IamAuthConnectionPlugin();
+    IamAuthConnectionPlugin targetPlugin = new IamAuthConnectionPlugin(mockPluginService);
     doThrow(new SQLException()).when(mockLambda).call();
 
     assertThrows(SQLException.class, () -> targetPlugin.connect(protocol, hostSpec, props, true, mockLambda));
@@ -186,7 +188,7 @@ class IamAuthConnectionPluginTest {
       final String protocol,
       final HostSpec hostSpec,
       final String expectedHost) throws SQLException {
-    final IamAuthConnectionPlugin targetPlugin = new IamAuthConnectionPlugin();
+    final IamAuthConnectionPlugin targetPlugin = new IamAuthConnectionPlugin(mockPluginService);
     final IamAuthConnectionPlugin spyPlugin = Mockito.spy(targetPlugin);
 
     doReturn(GENERATED_TOKEN).when(spyPlugin)

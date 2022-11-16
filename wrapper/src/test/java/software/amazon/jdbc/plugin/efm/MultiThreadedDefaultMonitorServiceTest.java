@@ -54,6 +54,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import software.amazon.jdbc.HostSpec;
+import software.amazon.jdbc.PluginService;
+import software.amazon.jdbc.util.telemetry.TelemetryCounter;
 
 /**
  * Multithreaded tests for {@link MultiThreadedDefaultMonitorServiceTest}. Repeats each testcase
@@ -61,6 +63,7 @@ import software.amazon.jdbc.HostSpec;
  */
 class MultiThreadedDefaultMonitorServiceTest {
 
+  @Mock PluginService mockPluginService;
   @Mock MonitorInitializer monitorInitializer;
   @Mock ExecutorServiceInitializer executorServiceInitializer;
   @Mock ExecutorService service;
@@ -69,6 +72,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   @Mock Monitor monitor;
   @Mock Properties properties;
   @Mock JdbcConnection connection;
+  @Mock TelemetryCounter abortedConnectionsCounter;
 
   private final AtomicInteger counter = new AtomicInteger(0);
   private final AtomicInteger concurrentCounter = new AtomicInteger(0);
@@ -384,7 +388,8 @@ class MultiThreadedDefaultMonitorServiceTest {
                   nodeKeys,
                   FAILURE_DETECTION_TIME,
                   FAILURE_DETECTION_INTERVAL,
-                  FAILURE_DETECTION_COUNT));
+                  FAILURE_DETECTION_COUNT,
+                  abortedConnectionsCounter));
         });
 
     return contexts;
@@ -399,7 +404,7 @@ class MultiThreadedDefaultMonitorServiceTest {
   private List<MonitorServiceImpl> generateServices(final int numServices) {
     final List<MonitorServiceImpl> services = new ArrayList<>();
     for (int i = 0; i < numServices; i++) {
-      services.add(new MonitorServiceImpl(monitorInitializer, executorServiceInitializer));
+      services.add(new MonitorServiceImpl(mockPluginService, monitorInitializer, executorServiceInitializer));
     }
     return services;
   }

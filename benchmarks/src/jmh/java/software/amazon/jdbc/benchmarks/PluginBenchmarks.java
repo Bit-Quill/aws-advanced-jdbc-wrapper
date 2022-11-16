@@ -49,6 +49,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import software.amazon.jdbc.ConnectionProvider;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.PluginService;
+import software.amazon.jdbc.util.telemetry.TelemetryFactory;
 import software.amazon.jdbc.wrapper.ConnectionWrapper;
 
 @State(Scope.Benchmark)
@@ -181,8 +182,7 @@ public class PluginBenchmarks {
   }
 
   @Benchmark
-  public ConnectionWrapper
-  initAndReleaseWithAuroraHostListAndReadWriteSplittingPluginWithReaderLoadBalancing()
+  public ConnectionWrapper initAndReleaseWithAuroraHostListAndReadWriteSplittingPluginWithReaderLoadBalancing()
       throws SQLException {
     try (ConnectionWrapper wrapper = new ConnectionWrapper(
         useAuroraHostListAndReadWriteSplittingPluginWithReaderLoadBalancing(),
@@ -209,6 +209,58 @@ public class PluginBenchmarks {
     try (
         ConnectionWrapper wrapper = new ConnectionWrapper(
             useExecutionTimePlugin(),
+            CONNECTION_STRING,
+            mockConnectionProvider);
+        Statement statement = wrapper.createStatement();
+        ResultSet resultSet = statement.executeQuery("some sql")) {
+      return resultSet;
+    }
+  }
+
+  @Benchmark
+  public ResultSet executeStatementWithTelemetryDisabled() throws SQLException {
+    try (
+        ConnectionWrapper wrapper = new ConnectionWrapper(
+            disabledTelemetry(),
+            CONNECTION_STRING,
+            mockConnectionProvider);
+        Statement statement = wrapper.createStatement();
+        ResultSet resultSet = statement.executeQuery("some sql")) {
+      return resultSet;
+    }
+  }
+
+  @Benchmark
+  public ResultSet executeStatementWithTelemetry() throws SQLException {
+    try (
+        ConnectionWrapper wrapper = new ConnectionWrapper(
+            useTelemetry(),
+            CONNECTION_STRING,
+            mockConnectionProvider);
+        Statement statement = wrapper.createStatement();
+        ResultSet resultSet = statement.executeQuery("some sql")) {
+      return resultSet;
+    }
+  }
+
+  @Benchmark
+  public ResultSet executeStatementWithTelemetryTracing() throws SQLException {
+    try (
+        ConnectionWrapper wrapper = new ConnectionWrapper(
+            useTelemetryButOnlyTracing(),
+            CONNECTION_STRING,
+            mockConnectionProvider);
+        Statement statement = wrapper.createStatement();
+        ResultSet resultSet = statement.executeQuery("some sql")) {
+      return resultSet;
+    }
+  }
+
+  @Benchmark
+  public ResultSet executeStatementWithTelemetryMetrics() throws SQLException {
+    try (
+        ConnectionWrapper wrapper = new ConnectionWrapper(
+            useTelemetryButOnlyMetrics(),
             CONNECTION_STRING,
             mockConnectionProvider);
         Statement statement = wrapper.createStatement();
@@ -258,6 +310,36 @@ public class PluginBenchmarks {
     final Properties properties = new Properties();
     properties.setProperty("wrapperPlugins", "auroraHostList,readWriteSplitting");
     properties.setProperty("loadBalanceReadOnlyTraffic", "true");
+    return properties;
+  }
+
+  Properties useTelemetry() {
+    final Properties properties = new Properties();
+    properties.setProperty("wrapperPlugins", "dataCache,auroraHostList,efm");
+    properties.setProperty("enableTelemetry", "true");
+    return properties;
+  }
+
+  Properties disabledTelemetry() {
+    final Properties properties = new Properties();
+    properties.setProperty("wrapperPlugins", "dataCache,auroraHostList,efm");
+    properties.setProperty("enableTelemetry", "false");
+    return properties;
+  }
+
+  Properties useTelemetryButOnlyTracing() {
+    final Properties properties = new Properties();
+    properties.setProperty("wrapperPlugins", "dataCache,auroraHostList,efm");
+    properties.setProperty("enableTelemetry", "true");
+    properties.setProperty("telemetryMetricsBackend", "none");
+    return properties;
+  }
+
+  Properties useTelemetryButOnlyMetrics() {
+    final Properties properties = new Properties();
+    properties.setProperty("wrapperPlugins", "dataCache,auroraHostList,efm");
+    properties.setProperty("enableTelemetry", "true");
+    properties.setProperty("telemetryTracesBackend", "none");
     return properties;
   }
 }

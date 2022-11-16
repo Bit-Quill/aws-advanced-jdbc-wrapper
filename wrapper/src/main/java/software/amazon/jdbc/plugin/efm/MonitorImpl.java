@@ -30,6 +30,9 @@ import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.PropertyUtils;
+import software.amazon.jdbc.util.telemetry.TelemetryContext;
+import software.amazon.jdbc.util.telemetry.TelemetryFactory;
+import software.amazon.jdbc.util.telemetry.TelemetryGauge;
 
 /**
  * This class uses a background thread to monitor a particular server with one or more active {@link
@@ -57,6 +60,7 @@ public class MonitorImpl implements Monitor {
   private final long monitorDisposalTimeMillis;
   private final Queue<MonitorConnectionContext> contexts = new ConcurrentLinkedQueue<>();
   private final PluginService pluginService;
+  private final TelemetryFactory telemetryFactory;
   private final Properties properties;
   private final HostSpec hostSpec;
   private final AtomicLong contextLastUsedTimestampNano = new AtomicLong();
@@ -65,6 +69,9 @@ public class MonitorImpl implements Monitor {
   private final AtomicLong connectionCheckIntervalMillis = new AtomicLong(DEFAULT_CONNECTION_CHECK_INTERVAL_MILLIS);
   private final AtomicBoolean isConnectionCheckIntervalInitialized = new AtomicBoolean(false);
   private Connection monitoringConn = null;
+
+  private final TelemetryGauge contextsSizeGauge;
+  private TelemetryContext telemetryContext;
 
   /**
    * Store the monitoring configuration for a connection.
@@ -87,12 +94,14 @@ public class MonitorImpl implements Monitor {
       long monitorDisposalTimeMillis,
       @NonNull MonitorService monitorService) {
     this.pluginService = pluginService;
+    this.telemetryFactory = pluginService.getTelemetryFactory();
     this.hostSpec = hostSpec;
     this.properties = properties;
     this.monitorDisposalTimeMillis = monitorDisposalTimeMillis;
     this.monitorService = monitorService;
 
     this.contextLastUsedTimestampNano.set(this.getCurrentTimeNano());
+    this.contextsSizeGauge = telemetryFactory.createGauge("efm.contextsQueue.size", () -> (long) contexts.size());
   }
 
   @Override
@@ -134,6 +143,8 @@ public class MonitorImpl implements Monitor {
 
   @Override
   public void run() {
+    this.telemetryContext = telemetryFactory.openTelemetryContext("monitoring thread");
+    telemetryContext.setAttribute("url", hostSpec.getUrl());
     try {
       this.stopped.set(false);
       while (true) {
@@ -171,6 +182,9 @@ public class MonitorImpl implements Monitor {
           // ignore
         }
       }
+      if (telemetryContext != null) {
+        this.telemetryContext.closeContext();
+      }
       this.stopped.set(true);
     }
   }
@@ -185,6 +199,7 @@ public class MonitorImpl implements Monitor {
    * @return whether the server is still alive and the elapsed time spent checking.
    */
   ConnectionStatus checkConnectionStatus(final long shortestFailureDetectionIntervalMillis) {
+    TelemetryContext connectContext = telemetryFactory.openTelemetryContext("connection status check");
     long startNano = this.getCurrentTimeNano();
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
@@ -212,6 +227,8 @@ public class MonitorImpl implements Monitor {
       return new ConnectionStatus(isValid, this.getCurrentTimeNano() - startNano);
     } catch (SQLException sqlEx) {
       return new ConnectionStatus(false, this.getCurrentTimeNano() - startNano);
+    } finally {
+      connectContext.closeContext();
     }
   }
 

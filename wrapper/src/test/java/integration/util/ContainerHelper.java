@@ -143,6 +143,50 @@ public class ContainerHelper {
     return createTestContainer(dockerImageName, getContainerImageName(containerType));
   }
 
+  public GenericContainer<?> createTelemetryXrayContainer(String dockerImageName,
+      String testContainerImageName,
+      Network network,
+      String networkAlias) {
+    return createTelemetryXrayContainer(
+        dockerImageName,
+        testContainerImageName,
+        network,
+        networkAlias,
+        builder -> builder // Return directly, do not append extra run commands to the docker builder.
+    );
+  }
+
+  public GenericContainer<?> createTelemetryXrayContainer(
+      String dockerImageName,
+      String telemetryContainerImageName,
+      Network network,
+      String networkAlias,
+      Function<DockerfileBuilder, DockerfileBuilder> appendExtraCommandsToBuilder) {
+    class FixedExposedPortContainer<T extends GenericContainer<T>> extends GenericContainer<T> {
+
+      public FixedExposedPortContainer(ImageFromDockerfile withDockerfileFromBuilder) {
+        super(withDockerfileFromBuilder);
+      }
+
+      public T withFixedExposedPort(int hostPort, int containerPort, InternetProtocol protocol) {
+        super.addFixedExposedPort(hostPort, containerPort, protocol);
+        return self();
+      }
+    }
+
+    return new FixedExposedPortContainer<>(
+        new ImageFromDockerfile(dockerImageName, true)
+            .withDockerfileFromBuilder(
+                builder -> appendExtraCommandsToBuilder.apply(
+                    builder
+                        .from(telemetryContainerImageName)
+                        .run("mkdir", "app")
+                ).build()))
+        .withFixedExposedPort(2000, 2000, InternetProtocol.UDP) // Mapping container port to host
+        .withNetworkAliases(networkAlias)
+        .withNetwork(network);
+  }
+
   public GenericContainer<?> createTestContainer(String dockerImageName, String testContainerImageName) {
     return createTestContainer(
         dockerImageName,
