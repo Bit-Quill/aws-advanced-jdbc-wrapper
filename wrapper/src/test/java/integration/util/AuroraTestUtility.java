@@ -650,23 +650,28 @@ public class AuroraTestUtility {
   public void failoverClusterToATargetAndWaitUntilWriterChanged(
       String clusterId, String clusterWriterId, String targetInstanceId)
       throws InterruptedException {
-    LOGGER.info(String.format("failover from %s to target: %s", clusterWriterId, targetInstanceId));
+    LOGGER.finest(String.format("failover from %s to target: %s", clusterWriterId, targetInstanceId));
     final String clusterEndpoint = TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getClusterEndpoint();
     final String initialWriterIP = hostToIP(clusterEndpoint);
     String nextClusterWriterId = getDBClusterWriterInstanceId(clusterId);
-    String nextWriterIP = hostToIP(clusterEndpoint);
 
-    while (clusterWriterId.equals(nextClusterWriterId) || initialWriterIP.equals(nextWriterIP)) {
-      LOGGER.info(String.format("clusterWriterId: %s, nextClusterWriterId: %s", clusterWriterId, nextClusterWriterId));
-      LOGGER.info(String.format("initialWriterIP: %s, nextWriterIP: %s", initialWriterIP, nextWriterIP));
+    while (clusterWriterId.equals(nextClusterWriterId)) {
+      LOGGER.finest(String.format("clusterWriterId: %s, nextClusterWriterId: %s", clusterWriterId, nextClusterWriterId));
       failoverClusterWithATargetInstance(clusterId, targetInstanceId);
-      TimeUnit.MILLISECONDS.sleep(3000);
+      TimeUnit.SECONDS.sleep(5);
       // Calling the RDS API to get writer Id.
       nextClusterWriterId = getDBClusterWriterInstanceId(clusterId);
+    }
+
+    // Failover has finished, wait for DNS to be updated so cluster endpoint resolves to the correct writer instance.
+    String nextWriterIP = hostToIP(clusterEndpoint);
+    while (initialWriterIP.equals(nextWriterIP)) {
+      LOGGER.finest(String.format("initialWriterIP: %s, nextWriterIP: %s", initialWriterIP, nextWriterIP));
+      TimeUnit.SECONDS.sleep(1);
       nextWriterIP = hostToIP(clusterEndpoint);
     }
-    // waitUntilWriterInstanceChanged(clusterId, clusterWriterId);
-    LOGGER.info(String.format("finished failover from %s to target: %s", clusterWriterId, targetInstanceId));
+
+    LOGGER.finest(String.format("finished failover from %s to target: %s", clusterWriterId, targetInstanceId));
   }
 
   public void failoverClusterWithATargetInstance(String clusterId, String targetInstanceId)
@@ -682,7 +687,7 @@ public class AuroraTestUtility {
                     .targetDBInstanceIdentifier(targetInstanceId));
         break;
       } catch (final Exception e) {
-        LOGGER.info(String.format("failoverDBCluster request to %s failed: %s", targetInstanceId, e.getMessage()));
+        LOGGER.finest(String.format("failoverDBCluster request to %s failed: %s", targetInstanceId, e.getMessage()));
         TimeUnit.MILLISECONDS.sleep(1000);
       }
     }
