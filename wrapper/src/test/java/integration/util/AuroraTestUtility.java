@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import integration.refactored.DatabaseEngine;
 import integration.refactored.DriverHelper;
-import integration.refactored.TestDatabaseInfo;
 import integration.refactored.TestInstanceInfo;
 import integration.refactored.container.ConnectionStringHelper;
 import integration.refactored.container.TestEnvironment;
@@ -656,7 +655,6 @@ public class AuroraTestUtility {
     String nextClusterWriterId = getDBClusterWriterInstanceId(clusterId);
 
     while (clusterWriterId.equals(nextClusterWriterId)) {
-      LOGGER.finest(String.format("clusterWriterId: %s, nextClusterWriterId: %s", clusterWriterId, nextClusterWriterId));
       failoverClusterWithATargetInstance(clusterId, targetInstanceId);
       TimeUnit.SECONDS.sleep(5);
       // Calling the RDS API to get writer Id.
@@ -666,7 +664,6 @@ public class AuroraTestUtility {
     // Failover has finished, wait for DNS to be updated so cluster endpoint resolves to the correct writer instance.
     String nextWriterIP = hostToIP(clusterEndpoint);
     while (initialWriterIP.equals(nextWriterIP)) {
-      LOGGER.finest(String.format("initialWriterIP: %s, nextWriterIP: %s", initialWriterIP, nextWriterIP));
       TimeUnit.SECONDS.sleep(1);
       nextWriterIP = hostToIP(clusterEndpoint);
     }
