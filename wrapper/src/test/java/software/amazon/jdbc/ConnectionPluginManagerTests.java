@@ -41,6 +41,7 @@ import software.amazon.jdbc.mock.TestPluginOne;
 import software.amazon.jdbc.mock.TestPluginThree;
 import software.amazon.jdbc.mock.TestPluginThrowException;
 import software.amazon.jdbc.mock.TestPluginTwo;
+import software.amazon.jdbc.util.telemetry.TelemetryFactory;
 import software.amazon.jdbc.wrapper.ConnectionWrapper;
 
 public class ConnectionPluginManagerTests {
@@ -75,10 +76,12 @@ public class ConnectionPluginManagerTests {
 
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
 
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
+
     final Object[] testArgs = new Object[] {10, "arg2", 3.33};
 
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     final Object result =
         target.execute(
@@ -120,10 +123,12 @@ public class ConnectionPluginManagerTests {
 
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
 
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
+
     final Object[] testArgs = new Object[] {10, "arg2", 3.33};
 
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     final Object result =
         target.execute(
@@ -163,10 +168,12 @@ public class ConnectionPluginManagerTests {
 
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
 
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
+
     final Object[] testArgs = new Object[] {10, "arg2", 3.33};
 
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     final Object result =
         target.execute(
@@ -203,8 +210,9 @@ public class ConnectionPluginManagerTests {
     final Properties testProperties = new Properties();
     final ConnectionProvider mockConnectionProvider = mock(ConnectionProvider.class);
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     final Connection conn = target.connect("any", new HostSpec("anyHost"), testProperties, true);
 
@@ -230,8 +238,9 @@ public class ConnectionPluginManagerTests {
     final Properties testProperties = new Properties();
     final ConnectionProvider mockConnectionProvider = mock(ConnectionProvider.class);
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     assertThrows(
         SQLException.class,
@@ -256,8 +265,9 @@ public class ConnectionPluginManagerTests {
     final Properties testProperties = new Properties();
     final ConnectionProvider mockConnectionProvider = mock(ConnectionProvider.class);
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     assertThrows(
         SQLException.class,
@@ -285,8 +295,9 @@ public class ConnectionPluginManagerTests {
     final Properties testProperties = new Properties();
     final ConnectionProvider mockConnectionProvider = mock(ConnectionProvider.class);
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     final Exception ex =
         assertThrows(
@@ -312,8 +323,9 @@ public class ConnectionPluginManagerTests {
     final Properties testProperties = new Properties();
     final ConnectionProvider mockConnectionProvider = mock(ConnectionProvider.class);
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
     final ConnectionPluginManager target =
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper);
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory);
 
     final Exception ex =
         assertThrows(
@@ -344,10 +356,12 @@ public class ConnectionPluginManagerTests {
 
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
 
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
+
     final Object[] testArgs = new Object[] {10, "arg2", 3.33};
 
     final ConnectionPluginManager target = Mockito.spy(
-        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper));
+        new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper, mockTelemetryFactory));
 
     Object result =
         target.execute(
@@ -418,6 +432,7 @@ public class ConnectionPluginManagerTests {
     final PluginService mockPluginService = mock(PluginService.class);
     final ConnectionProvider mockConnectionProvider = mock(ConnectionProvider.class);
     final ConnectionWrapper mockConnectionWrapper = mock(ConnectionWrapper.class);
+    final TelemetryFactory mockTelemetryFactory = mock(TelemetryFactory.class);
     final Connection mockOldConnection = mock(Connection.class);
     final Connection mockCurrentConnection = mock(Connection.class);
     final Statement mockOldStatement = mock(Statement.class);
@@ -429,7 +444,7 @@ public class ConnectionPluginManagerTests {
 
     final ConnectionPluginManager target =
         new ConnectionPluginManager(mockConnectionProvider, testProperties, testPlugins, mockConnectionWrapper,
-            mockPluginService);
+            mockPluginService, mockTelemetryFactory);
 
     assertThrows(SQLException.class,
         () -> target.execute(String.class, Exception.class, mockOldConnection, "testJdbcCall_A", () -> "result", null));
