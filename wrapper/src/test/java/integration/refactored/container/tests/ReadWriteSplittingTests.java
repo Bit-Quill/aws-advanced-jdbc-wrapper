@@ -61,7 +61,8 @@ import software.amazon.jdbc.util.SqlState;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @ExtendWith(TestDriverProvider.class)
 @EnableOnNumOfInstances(min = 2)
-@DisableOnTestFeature(TestEnvironmentFeatures.PERFORMANCE)
+@EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
+@DisableOnTestFeature({TestEnvironmentFeatures.PERFORMANCE, TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY})
 @MakeSureFirstInstanceWriter
 public class ReadWriteSplittingTests {
 
@@ -155,8 +156,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   public void test_connectToWriter_switchSetReadOnly() throws SQLException {
     final String url = getUrl();
 
@@ -189,8 +188,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL, DatabaseEngine.PG})
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   public void test_connectToReader_setReadOnlyTrueFalse() throws SQLException {
     final String url = getUrl();
 
@@ -213,7 +210,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL, DatabaseEngine.PG})
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   public void test_connectToReaderCluster_setReadOnlyTrueFalse() throws SQLException {
     final String url = getUrl();
     LOGGER.finest("Connecting to url " + url);
@@ -233,8 +229,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   public void test_setReadOnlyFalseInReadOnlyTransaction() throws SQLException {
     try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
 
@@ -263,8 +257,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   public void test_setReadOnlyFalseInTransaction_setAutocommitFalse() throws SQLException {
     try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
 
@@ -297,8 +289,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL})
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   public void test_setReadOnlyTrueInTransaction() throws SQLException {
     try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
       final AuroraTestUtility auroraUtil =
@@ -336,8 +326,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
   public void test_setReadOnlyTrue_oneHost() throws SQLException {
 
@@ -364,8 +352,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnNumOfInstances(min = 3)
   @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
   public void test_setReadOnlyTrue_allReadersDown() throws SQLException {
@@ -409,8 +395,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
   public void test_setReadOnlyFalse_allInstancesDown() throws SQLException {
     try (final Connection conn = DriverManager.getConnection(getProxiedUrl(), getProxiedProps())) {
@@ -432,7 +416,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL, DatabaseEngine.PG})
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   public void test_executeWithOldConnection() throws SQLException {
     try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
 
@@ -459,7 +442,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL, DatabaseEngine.PG})
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnNumOfInstances(min = 3)
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED, TestEnvironmentFeatures.FAILOVER_SUPPORTED})
   public void test_failoverToNewWriter_setReadOnlyTrueFalse()
@@ -511,7 +493,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL, DatabaseEngine.PG})
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnNumOfInstances(min = 3)
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED, TestEnvironmentFeatures.FAILOVER_SUPPORTED})
   public void test_failoverToNewReader_setReadOnlyFalseTrue() throws SQLException {
@@ -567,7 +548,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL, DatabaseEngine.PG})
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnNumOfInstances(min = 3)
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED, TestEnvironmentFeatures.FAILOVER_SUPPORTED})
   public void test_failoverReaderToWriter_setReadOnlyTrueFalse() throws SQLException {

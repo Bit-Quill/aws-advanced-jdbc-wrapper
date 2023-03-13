@@ -62,7 +62,7 @@ import software.amazon.jdbc.wrapper.ConnectionWrapper;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @ExtendWith(TestDriverProvider.class)
 @EnableOnTestFeature(TestEnvironmentFeatures.HIKARI)
-@DisableOnTestFeature(TestEnvironmentFeatures.PERFORMANCE)
+@DisableOnTestFeature({TestEnvironmentFeatures.PERFORMANCE, TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY})
 @MakeSureFirstInstanceWriter
 public class HikariTests {
 
