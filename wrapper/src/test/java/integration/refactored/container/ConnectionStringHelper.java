@@ -62,6 +62,7 @@ public class ConnectionStringHelper {
 
   /**
    * Creates a JDBC url with the writer instance endpoint.
+   *
    * @return a JDBC URL.
    */
   public static String getWrapperUrl() {
