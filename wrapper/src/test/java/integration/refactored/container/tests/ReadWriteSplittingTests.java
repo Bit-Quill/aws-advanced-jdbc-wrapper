@@ -68,7 +68,7 @@ import software.amazon.jdbc.util.SqlState;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @ExtendWith(TestDriverProvider.class)
 @EnableOnNumOfInstances(min = 2)
-@DisableOnTestFeature(TestEnvironmentFeatures.PERFORMANCE)
+@DisableOnTestFeature({TestEnvironmentFeatures.PERFORMANCE, TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY})
 @MakeSureFirstInstanceWriter
 public class ReadWriteSplittingTests {
 
@@ -405,7 +405,7 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   // Tests use Aurora specific SQL to identify instance name
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
-  @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
+  @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnectionFailover() throws SQLException, InterruptedException {
     AuroraTestUtility auroraUtil =
         new AuroraTestUtility(TestEnvironment.getCurrent().getInfo().getAuroraRegion());
@@ -443,7 +443,7 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   // Tests use Aurora specific SQL to identify instance name
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
-  @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
+  @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnectionFailoverWithClusterURL() throws SQLException, InterruptedException {
     AuroraTestUtility auroraUtil =
         new AuroraTestUtility(TestEnvironment.getCurrent().getInfo().getAuroraRegion());
@@ -460,13 +460,13 @@ public class ReadWriteSplittingTests {
         ConnectionStringHelper.getWrapperClusterEndpointUrl(),
         props)) {
       // The internal connection pool should not be used if the connection is established via a cluster URL.
-      assertEquals(0, provider.getPoolSize(), "Internal connection pool should be empty.");
+      assertEquals(0, provider.getHostCount(), "Internal connection pool should be empty.");
       final String writerConnectionId = queryInstanceId(conn);
       auroraUtil.failoverClusterAndWaitUntilWriterChanged();
       assertThrows(SQLException.class, () -> queryInstanceId(conn));
       final String nextWriterId = queryInstanceId(conn);
       assertNotEquals(writerConnectionId, nextWriterId);
-      assertEquals(0, provider.getPoolSize(), "Internal connection pool should be empty.");
+      assertEquals(0, provider.getHostCount(), "Internal connection pool should be empty.");
     }
     ConnectionProviderManager.releaseResources();
   }

@@ -42,6 +42,7 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
   private static final RdsUtils rdsUtils = new RdsUtils();
   private static final Map<String, HikariDataSource> databasePools = new ConcurrentHashMap<>();
   private final HikariPoolConfigurator poolConfigurator;
+  protected int retries = 10;
 
   public HikariPooledConnectionProvider(HikariPoolConfigurator hikariPoolConfigurator) {
     poolConfigurator = hikariPoolConfigurator;
@@ -79,7 +80,8 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
         });
 
     Connection conn = ds.getConnection();
-    while (conn != null && !conn.isValid(3)) {
+    int count = 0;
+    while (conn != null && count++ < retries && !conn.isValid(3)) {
       ds.evictConnection(conn);
       conn = ds.getConnection();
     }
@@ -136,7 +138,7 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
     }
   }
 
-  public int getPoolSize() {
+  public int getHostCount() {
     return databasePools.size();
   }
 
