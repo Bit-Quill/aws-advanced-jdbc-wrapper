@@ -81,6 +81,7 @@ public class ConnectionPluginManager implements CanReleaseResources {
   private static final String ALL_METHODS = "*";
   private static final String CONNECT_METHOD = "connect";
   private static final String FORCE_CONNECT_METHOD = "forceConnect";
+  private static final String ACCEPTS_STRATEGY_METHOD = "acceptsStrategy";
   private static final String GET_HOST_SPEC_BY_STRATEGY_METHOD = "getHostSpecByStrategy";
   private static final String INIT_HOST_PROVIDER_METHOD = "initHostProvider";
   private static final String NOTIFY_CONNECTION_CHANGED_METHOD = "notifyConnectionChanged";
@@ -238,7 +239,7 @@ public class ConnectionPluginManager implements CanReleaseResources {
       throw new IllegalArgumentException("jdbcMethodFunc");
     }
 
-    //noinspection unchecked
+    // noinspection unchecked
     PluginChainJdbcCallable<T, E> pluginChainFunc = this.pluginChainFuncMap.get(methodName);
 
     if (pluginChainFunc == null) {
@@ -251,6 +252,51 @@ public class ConnectionPluginManager implements CanReleaseResources {
     }
 
     return pluginChainFunc.call(pluginPipeline, jdbcMethodFunc);
+  }
+
+
+  protected <E extends Exception> boolean acceptsStrategyMethod(final PluginPipeline<Boolean, E> pluginPipeline)
+      throws E {
+    if (pluginPipeline == null) {
+      throw new IllegalArgumentException("pluginPipeline");
+    }
+
+    for (ConnectionPlugin plugin : this.plugins) {
+      Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
+      boolean isSubscribed =
+          pluginSubscribedMethods.contains(ALL_METHODS)
+              || pluginSubscribedMethods.contains(ACCEPTS_STRATEGY_METHOD);
+
+      if (isSubscribed) {
+        if (pluginPipeline.call(plugin, null)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  protected <T, E extends Exception> HostSpec getHostSpecByStrategyMethod(
+      final PluginPipeline<HostSpec, E> pluginPipeline,
+      final JdbcCallable<T, E> jdbcMethodFunc)
+      throws E {
+
+    for (ConnectionPlugin plugin : this.plugins) {
+      Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
+      boolean isSubscribed =
+          pluginSubscribedMethods.contains(ALL_METHODS)
+              || pluginSubscribedMethods.contains(GET_HOST_SPEC_BY_STRATEGY_METHOD);
+
+      if (isSubscribed) {
+        final HostSpec host = pluginPipeline.call(plugin, null);
+        if (host != null) {
+          return host;
+        }
+      }
+    }
+
+    return null;
   }
 
   @Nullable
@@ -378,12 +424,20 @@ public class ConnectionPluginManager implements CanReleaseResources {
     }
   }
 
+  public boolean acceptsStrategy(HostRole role, String strategy) throws SQLException {
+    try {
+      return acceptsStrategyMethod((plugin, func) -> plugin.acceptsStrategy(role, strategy));
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new SQLException(e);
+    }
+  }
+
   public HostSpec getHostSpecByStrategy(HostRole role, String strategy) throws SQLException {
     try {
-      return executeWithSubscribedPlugins(
-          GET_HOST_SPEC_BY_STRATEGY_METHOD,
-          (plugin, func) ->
-              plugin.getHostSpecByStrategy(role, strategy, func),
+      return getHostSpecByStrategyMethod(
+          (plugin, func) -> plugin.getHostSpecByStrategy(role, strategy),
           () -> {
             throw new SQLException("Shouldn't be called.");
           });

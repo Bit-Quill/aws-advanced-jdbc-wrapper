@@ -61,19 +61,44 @@ public class ConnectionProviderManager {
     return defaultProvider;
   }
 
-  public HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy) throws SQLException {
+  public boolean acceptsStrategy(HostRole role, String strategy) {
+    boolean acceptsStrategy = false;
     if (connProvider != null) {
       connProviderLock.readLock().lock();
       try {
-        if (connProvider != null && connProvider.acceptsStrategy(role, strategy)) {
-          return connProvider.getHostSpecByStrategy(hosts, role, strategy);
+        if (connProvider != null) {
+          acceptsStrategy = connProvider.acceptsStrategy(role, strategy);
         }
       } finally {
         connProviderLock.readLock().unlock();
       }
     }
 
-    return defaultProvider.getHostSpecByStrategy(hosts, role, strategy);
+    if (!acceptsStrategy) {
+      acceptsStrategy = defaultProvider.acceptsStrategy(role, strategy);
+    }
+
+    return acceptsStrategy;
+  }
+
+  public HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy) throws SQLException {
+    HostSpec host = null;
+    if (connProvider != null) {
+      connProviderLock.readLock().lock();
+      try {
+        if (connProvider != null && connProvider.acceptsStrategy(role, strategy)) {
+          host = connProvider.getHostSpecByStrategy(hosts, role, strategy);
+        }
+      } finally {
+        connProviderLock.readLock().unlock();
+      }
+    }
+
+    if (host == null) {
+      host = defaultProvider.getHostSpecByStrategy(hosts, role, strategy);
+    }
+
+    return host;
   }
 
   public static void resetProvider() {
