@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import software.amazon.jdbc.cleanup.CanReleaseResources;
@@ -45,17 +43,10 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
   private static final Map<String, HikariDataSource> databasePools = new ConcurrentHashMap<>();
   private final HikariPoolConfigurator poolConfigurator;
   private final HikariPoolMapping poolMapping;
-  private final Supplier<HikariDataSource> dataSourceSupplier;
   protected int retries = 10;
 
   public HikariPooledConnectionProvider(HikariPoolConfigurator hikariPoolConfigurator) {
     this(hikariPoolConfigurator, (hostSpec, properties) -> hostSpec.getUrl());
-  }
-
-  HikariPooledConnectionProvider(
-      HikariPoolConfigurator hikariPoolConfigurator,
-      Supplier<HikariDataSource> dataSourceSupplier) {
-    this(hikariPoolConfigurator, (hostSpec, properties) -> hostSpec.getUrl(), dataSourceSupplier);
   }
 
   /**
@@ -69,16 +60,8 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
   public HikariPooledConnectionProvider(
       HikariPoolConfigurator hikariPoolConfigurator,
       HikariPoolMapping mapping) {
-    this(hikariPoolConfigurator, mapping, null);
-  }
-
-  HikariPooledConnectionProvider(
-      HikariPoolConfigurator hikariPoolConfigurator,
-      HikariPoolMapping mapping,
-      Supplier<HikariDataSource> dataSourceSupplier) {
     this.poolConfigurator = hikariPoolConfigurator;
     this.poolMapping = mapping;
-    this.dataSourceSupplier = dataSourceSupplier;
   }
 
   @Override
@@ -105,15 +88,10 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
   public Connection connect(
       @NonNull String protocol, @NonNull HostSpec hostSpec, @NonNull Properties props)
       throws SQLException {
-    HikariDataSource ds = databasePools.computeIfAbsent(
-        poolMapping.getKey(hostSpec, props), url -> {
-          if (this.dataSourceSupplier != null) {
-            return this.dataSourceSupplier.get();
-          }
-          HikariConfig config = poolConfigurator.configurePool(hostSpec, props);
-          setConnectionProperties(config, hostSpec, props);
-          return new HikariDataSource(config);
-        });
+    final HikariDataSource ds = databasePools.computeIfAbsent(
+        poolMapping.getKey(hostSpec, props),
+        url -> createHikariDataSource(hostSpec, props)
+    );
 
     Connection conn = ds.getConnection();
     int count = 0;
@@ -195,5 +173,11 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
       });
       return String.format("Hikari Pooled Connection: \n[\n%s\n]", builder);
     });
+  }
+
+  HikariDataSource createHikariDataSource(HostSpec hostSpec, Properties props) {
+    HikariConfig config = poolConfigurator.configurePool(hostSpec, props);
+    setConnectionProperties(config, hostSpec, props);
+    return new HikariDataSource(config);
   }
 }

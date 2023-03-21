@@ -18,6 +18,9 @@ package software.amazon.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -43,11 +46,6 @@ class HikariPooledConnectionProviderTest {
   private AutoCloseable closeable;
   private static final Properties emptyProperties = new Properties();
 
-  @AfterEach
-  void cleanUp() throws Exception {
-    closeable.close();
-  }
-
   @BeforeEach
   void init() throws SQLException {
     closeable = MockitoAnnotations.openMocks(this);
@@ -66,7 +64,10 @@ class HikariPooledConnectionProviderTest {
     when(mockHostSpec.getUrl()).thenReturn("url");
     final Set<String> expected = new HashSet<>(Collections.singletonList("url"));
 
-    final HikariPooledConnectionProvider provider = new TestHikariPooledConnectionProvider();
+    final HikariPooledConnectionProvider provider = spy(new TestHikariPooledConnectionProvider());
+
+    doReturn(mockDataSource).when(provider).createHikariDataSource(any(), any());
+
     try (Connection conn = provider.connect("protocol", mockHostSpec, emptyProperties)) {
       assertEquals(mockConnection, conn);
       assertEquals(1, provider.getHostCount());
@@ -80,8 +81,11 @@ class HikariPooledConnectionProviderTest {
     when(mockHostSpec.getUrl()).thenReturn("url");
     final Set<String> expected = new HashSet<>(Collections.singletonList("url+someUniqueKey"));
 
-    final HikariPooledConnectionProvider provider = new TestHikariPooledConnectionProvider(
-        (hostSpec, properties) -> hostSpec.getUrl() + "+someUniqueKey");
+    final HikariPooledConnectionProvider provider = spy(new TestHikariPooledConnectionProvider(
+        (hostSpec, properties) -> hostSpec.getUrl() + "+someUniqueKey"));
+
+    doReturn(mockDataSource).when(provider).createHikariDataSource(any(), any());
+
     try (Connection conn = provider.connect("protocol", mockHostSpec, emptyProperties)) {
       assertEquals(mockConnection, conn);
       assertEquals(1, provider.getHostCount());
@@ -93,11 +97,11 @@ class HikariPooledConnectionProviderTest {
   class TestHikariPooledConnectionProvider extends HikariPooledConnectionProvider {
 
     public TestHikariPooledConnectionProvider() {
-      super((hostSpec, properties) -> mockConfig, () -> mockDataSource);
+      super((hostSpec, properties) -> mockConfig);
     }
 
     public TestHikariPooledConnectionProvider(HikariPoolMapping mapping) {
-      super((hostSpec, properties) -> mockConfig, mapping, () -> mockDataSource);
+      super((hostSpec, properties) -> mockConfig, mapping);
     }
 
     @Override
