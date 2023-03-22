@@ -18,7 +18,6 @@ package software.amazon.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -55,7 +54,6 @@ class HikariPooledConnectionProviderTest {
 
   @AfterEach
   void tearDown() throws Exception {
-    ConnectionProviderManager.releaseResources();
     closeable.close();
   }
 
@@ -74,6 +72,8 @@ class HikariPooledConnectionProviderTest {
       final Set<String> hosts = provider.getHosts();
       assertEquals(expected, hosts);
     }
+
+    provider.releaseResources();
   }
 
   @Test
@@ -92,6 +92,8 @@ class HikariPooledConnectionProviderTest {
       final Set<String> hosts = provider.getHosts();
       assertEquals(expected, hosts);
     }
+
+    provider.releaseResources();
   }
 
   class TestHikariPooledConnectionProvider extends HikariPooledConnectionProvider {
