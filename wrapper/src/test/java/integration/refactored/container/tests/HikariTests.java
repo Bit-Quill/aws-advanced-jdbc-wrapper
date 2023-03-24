@@ -149,17 +149,11 @@ public class HikariTests {
    */
 
   @TestTemplate
-  @DisableOnTestDriver(TestDriver.MARIADB)
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   @EnableOnNumOfInstances(min = 3)
   public void testFailoverLostConnection() throws SQLException {
-    final Properties customProps = new Properties();
-    customProps.setProperty(PropertyDefinition.PLUGINS.name, "failover");
-    customProps.setProperty("failoverTimeoutMs", Integer.toString(1));
-    DriverHelper.setSocketTimeout(customProps, 1, TimeUnit.SECONDS);
-
-    final HikariDataSource dataSource = createDataSource(customProps);
+    final HikariDataSource dataSource = createDataSource(null);
 
     try (final Connection conn = dataSource.getConnection()) {
       assertTrue(conn.isValid(5));
@@ -181,7 +175,6 @@ public class HikariTests {
   @TestTemplate
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestDriver({TestDriver.PG, TestDriver.MYSQL})
-  @DisableOnTestDriver(TestDriver.MARIADB)
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   @EnableOnNumOfInstances(min = 3)
   public void testEFMFailover() throws SQLException {
