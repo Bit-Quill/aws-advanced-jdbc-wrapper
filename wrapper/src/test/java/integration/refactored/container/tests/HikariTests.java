@@ -179,9 +179,9 @@ public class HikariTests {
    * connection fails over to another instance through the Enhanced Failure Monitor.
    */
   @TestTemplate
-  @DisableOnTestDriver(TestDriver.MARIADB)
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestDriver({TestDriver.PG, TestDriver.MYSQL})
+  @DisableOnTestDriver(TestDriver.MARIADB)
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   @EnableOnNumOfInstances(min = 3)
   public void testEFMFailover() throws SQLException {
