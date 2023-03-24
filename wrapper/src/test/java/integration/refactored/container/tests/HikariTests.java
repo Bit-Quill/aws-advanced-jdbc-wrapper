@@ -292,9 +292,8 @@ public class HikariTests {
     DriverHelper.setMonitoringConnectTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
     DriverHelper.setMonitoringSocketTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
     DriverHelper.setConnectTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
-   // DriverHelper.setSocketTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
+    DriverHelper.setSocketTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
 
-    DriverHelper.setSocketTimeout(targetDataSourceProps, 5, TimeUnit.SECONDS);
 
     if (customProps != null) {
       Enumeration<?> propertyNames = customProps.propertyNames();
