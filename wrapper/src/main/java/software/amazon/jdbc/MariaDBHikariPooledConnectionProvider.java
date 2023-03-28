@@ -19,7 +19,7 @@ package software.amazon.jdbc;
 import software.amazon.jdbc.util.StringUtils;
 
 public class MariaDBHikariPooledConnectionProvider extends HikariPooledConnectionProvider {
-  private static final String DEFAULT_MARIADB_DATA_SOURCE = "com.mysql.cj.jdbc.MysqlDataSource";
+  private static final String DEFAULT_MARIADB_DATA_SOURCE = "org.mariadb.jdbc.MariaDbDataSource";
   private String dataSourceClassName;
 
   public MariaDBHikariPooledConnectionProvider(

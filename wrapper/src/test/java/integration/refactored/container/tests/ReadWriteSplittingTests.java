@@ -63,8 +63,10 @@ import software.amazon.jdbc.PostgresHikariPooledConnectionProvider;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.hostlistprovider.AuroraHostListProvider;
 import software.amazon.jdbc.hostlistprovider.ConnectionStringHostListProvider;
+import software.amazon.jdbc.plugin.failover.FailoverConnectionPlugin;
 import software.amazon.jdbc.plugin.failover.FailoverFailedSQLException;
 import software.amazon.jdbc.plugin.failover.FailoverSuccessSQLException;
+import software.amazon.jdbc.plugin.failover.TransactionStateUnknownSQLException;
 import software.amazon.jdbc.util.SqlState;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
@@ -476,12 +478,15 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   // Tests use Aurora specific SQL to identify instance name
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
-  @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
-  public void test_pooledConnection_failoverFailed() throws SQLException {
-    AuroraTestUtility auroraUtil =
-        new AuroraTestUtility(TestEnvironment.getCurrent().getInfo().getAuroraRegion());
+  @EnableOnTestFeature({TestEnvironmentFeatures.FAILOVER_SUPPORTED,
+      TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
+  public void test_pooledConnection_failoverFailed() throws SQLException{
     Properties props = getDefaultPropsNoPlugins();
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
+    AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props,
+        "?." + TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
+            .getInstanceEndpointSuffix());
+    FailoverConnectionPlugin.FAILOVER_TIMEOUT_MS.set(props, "1000");
     props.setProperty("databasePropertyName", "databaseName");
     props.setProperty("portPropertyName", "portNumber");
     props.setProperty("serverPropertyName", "serverName");
@@ -491,16 +496,14 @@ public class ReadWriteSplittingTests {
     ConnectionProviderManager.setConnectionProvider(provider);
 
     final String initialWriterId;
-    try (Connection conn = DriverManager.getConnection(getUrl(), props)) {
+    try (Connection conn = DriverManager.getConnection(getProxiedUrl(), props)) {
       initialWriterId = queryInstanceId(conn);
-
       ProxyHelper.disableAllConnectivity();
-      assertThrows(FailoverFailedSQLException.class,
-          () -> auroraUtil.failoverClusterAndWaitUntilWriterChanged());
+      assertThrows(FailoverFailedSQLException.class, () -> queryInstanceId(conn));
     }
 
     ProxyHelper.enableAllConnectivity();
-    try (final Connection conn = DriverManager.getConnection(getUrl(), props)) {
+    try (final Connection conn = DriverManager.getConnection(getProxiedUrl(), props)) {
       final String writerConnectionId = queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
     }
@@ -532,7 +535,7 @@ public class ReadWriteSplittingTests {
       conn.setAutoCommit(false);
       initialWriterId = queryInstanceId(conn);
       auroraUtil.failoverClusterAndWaitUntilWriterChanged();
-      assertThrows(FailoverSuccessSQLException.class, () -> queryInstanceId(conn));
+      assertThrows(TransactionStateUnknownSQLException.class, () -> queryInstanceId(conn));
       conn.setAutoCommit(true);
       nextWriterId = queryInstanceId(conn);
       assertNotEquals(initialWriterId, nextWriterId);
