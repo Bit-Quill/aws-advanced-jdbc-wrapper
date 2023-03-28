@@ -99,11 +99,11 @@ class HikariPooledConnectionProviderTest {
   class TestHikariPooledConnectionProvider extends HikariPooledConnectionProvider {
 
     public TestHikariPooledConnectionProvider() {
-      super((hostSpec, properties) -> mockConfig);
+      super((mockConfig, hostSpec, properties) -> {});
     }
 
     public TestHikariPooledConnectionProvider(HikariPoolMapping mapping) {
-      super((hostSpec, properties) -> mockConfig, mapping);
+      super((mockConfig, hostSpec, properties) -> {}, mapping);
     }
 
     @Override

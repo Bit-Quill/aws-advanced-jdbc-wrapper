@@ -21,5 +21,5 @@ import java.util.Properties;
 
 @FunctionalInterface
 public interface HikariPoolConfigurator {
-  HikariConfig configurePool(HostSpec hostSpec, Properties originalProps);
+  void configurePool(HikariConfig config, HostSpec hostSpec, Properties originalProps);
 }

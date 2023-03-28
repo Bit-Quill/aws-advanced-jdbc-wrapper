@@ -117,13 +117,25 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
 
   abstract String getDataSourceClassName();
 
-  protected void setConnectionProperties(
-      HikariConfig config, HostSpec hostSpec, Properties props) {
+  protected HikariConfig getHikariConfig(HostSpec hostSpec, Properties connectionProps) {
+    Properties hikariProps = new Properties();
+    hikariProps.setProperty("dataSource.serverName", hostSpec.getHost());
+
+    String db = PropertyDefinition.DATABASE.getString(connectionProps);
+    if (!StringUtils.isNullOrEmpty(db)) {
+      hikariProps.setProperty("dataSource.databaseName", db);
+    }
+
+    if (hostSpec.isPortSpecified()) {
+      hikariProps.setProperty("dataSource.portNumber", Integer.toString(hostSpec.getPort()));
+    }
+
+    HikariConfig config = new HikariConfig(hikariProps);
     config.setExceptionOverrideClassName(HikariCPSQLException.class.getName());
     config.setDataSourceClassName(getDataSourceClassName());
 
-    String user = props.getProperty(PropertyDefinition.USER.name);
-    String password = props.getProperty(PropertyDefinition.PASSWORD.name);
+    String user = connectionProps.getProperty(PropertyDefinition.USER.name);
+    String password = connectionProps.getProperty(PropertyDefinition.PASSWORD.name);
     if (user != null) {
       config.setUsername(user);
     }
@@ -135,21 +147,7 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
       config.setReadOnly(true);
     }
 
-    String serverPropertyName = props.getProperty("serverPropertyName");
-    if (!StringUtils.isNullOrEmpty(serverPropertyName)) {
-      config.addDataSourceProperty(serverPropertyName, hostSpec.getHost());
-    }
-
-    String portPropertyName = props.getProperty("portPropertyName");
-    if (!StringUtils.isNullOrEmpty(portPropertyName) && hostSpec.isPortSpecified()) {
-      config.addDataSourceProperty("portNumber", hostSpec.getPort());
-    }
-
-    String dbPropertyName = props.getProperty("databasePropertyName");
-    String db = PropertyDefinition.DATABASE.getString(props);
-    if (!StringUtils.isNullOrEmpty(dbPropertyName) && !StringUtils.isNullOrEmpty(db)) {
-      config.addDataSourceProperty(dbPropertyName, db);
-    }
+    return config;
   }
 
   public int getHostCount() {
@@ -176,8 +174,8 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
   }
 
   HikariDataSource createHikariDataSource(HostSpec hostSpec, Properties props) {
-    HikariConfig config = poolConfigurator.configurePool(hostSpec, props);
-    setConnectionProperties(config, hostSpec, props);
+    HikariConfig config = getHikariConfig(hostSpec, props);
+    poolConfigurator.configurePool(config, hostSpec, props);
     return new HikariDataSource(config);
   }
 }

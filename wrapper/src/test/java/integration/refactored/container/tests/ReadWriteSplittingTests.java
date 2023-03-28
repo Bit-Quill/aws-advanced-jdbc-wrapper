@@ -471,24 +471,21 @@ public class ReadWriteSplittingTests {
     ConnectionProviderManager.releaseResources();
   }
 
-  private static HikariConfig getHikariConfig(HostSpec hostSpec, Properties props) {
-    HikariConfig config = new HikariConfig();
+  private static void configureHikari(HikariConfig config, HostSpec hostSpec, Properties props) {
     config.setMaximumPoolSize(1);
     config.setInitializationFailTimeout(75000);
     config.setConnectionTimeout(1000);
-
-    return config;
   }
 
   private HikariPooledConnectionProvider getTestConnectionProvider() {
     TestDriver driver = TestEnvironment.getCurrent().getCurrentDriver();
     switch (driver) {
       case MYSQL:
-        return new MysqlHikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
+        return new MysqlHikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
       case MARIADB:
-        return new MariaDBHikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
+        return new MariaDBHikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
       case PG:
-        return new PostgresHikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
+        return new PostgresHikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
       default:
         fail(
             "The provided test driver does not have an equivalent HikariPooledConnectionProvider "

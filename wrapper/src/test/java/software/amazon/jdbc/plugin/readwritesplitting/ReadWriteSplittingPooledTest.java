@@ -56,15 +56,12 @@ public class ReadWriteSplittingPooledTest {
     PropertyDefinition.USER.set(props, USERNAME);
     PropertyDefinition.PASSWORD.set(props, PASSWORD);
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
-    props.setProperty("databasePropertyName", "databaseName");
-    props.setProperty("portPropertyName", "portNumber");
-    props.setProperty("serverPropertyName", "serverName");
 
     DriverManager.registerDriver(new software.amazon.jdbc.Driver());
     DriverManager.registerDriver(new org.postgresql.Driver());
 
     ConnectionProviderManager.setConnectionProvider(
-        new PostgresHikariPooledConnectionProvider(ReadWriteSplittingPooledTest::getHikariConfig));
+        new PostgresHikariPooledConnectionProvider(ReadWriteSplittingPooledTest::configureHikari));
   }
 
   @AfterEach
@@ -192,12 +189,9 @@ public class ReadWriteSplittingPooledTest {
     return rs.getString(1) + " **TAG";
   }
 
-  private static HikariConfig getHikariConfig(HostSpec hostSpec, Properties props) {
-    HikariConfig config = new HikariConfig();
+  private static void configureHikari(HikariConfig config, HostSpec hostSpec, Properties props) {
     config.setMaximumPoolSize(10);
     config.setInitializationFailTimeout(75000);
     config.setConnectionTimeout(1000);
-
-    return config;
   }
 }
