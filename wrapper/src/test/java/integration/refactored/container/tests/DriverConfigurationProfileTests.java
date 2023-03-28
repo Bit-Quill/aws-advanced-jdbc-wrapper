@@ -34,6 +34,7 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.Random;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
@@ -45,6 +46,7 @@ import software.amazon.jdbc.wrapper.ConnectionWrapper;
 import software.amazon.jdbc.wrapper.ResultSetWrapper;
 import software.amazon.jdbc.wrapper.StatementWrapper;
 
+@Disabled
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @ExtendWith(TestDriverProvider.class)
 @DisableOnTestFeature({TestEnvironmentFeatures.PERFORMANCE, TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY})

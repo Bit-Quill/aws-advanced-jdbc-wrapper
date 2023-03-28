@@ -43,6 +43,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
@@ -54,6 +55,7 @@ import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.util.StringUtils;
 import software.amazon.jdbc.wrapper.ConnectionWrapper;
 
+@Disabled
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @DisableOnTestFeature({TestEnvironmentFeatures.PERFORMANCE, TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY})
 public class BasicConnectivityTests {

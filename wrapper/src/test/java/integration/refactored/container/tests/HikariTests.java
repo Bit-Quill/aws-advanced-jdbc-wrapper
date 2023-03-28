@@ -182,7 +182,6 @@ public class HikariTests {
    */
   @TestTemplate
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
-  @DisableOnTestDriver(TestDriver.MARIADB)
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   @EnableOnNumOfInstances(min = 3)
   public void testEFMFailover() throws SQLException {
