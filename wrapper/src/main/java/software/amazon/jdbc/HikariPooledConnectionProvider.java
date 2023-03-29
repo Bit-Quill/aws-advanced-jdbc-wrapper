@@ -34,7 +34,7 @@ import software.amazon.jdbc.util.RdsUrlType;
 import software.amazon.jdbc.util.RdsUtils;
 import software.amazon.jdbc.util.StringUtils;
 
-public abstract class HikariPooledConnectionProvider implements PooledConnectionProvider,
+public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     CanReleaseResources {
 
   private static final Logger LOGGER = Logger.getLogger(HikariPooledConnectionProvider.class.getName());
@@ -90,7 +90,7 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
       throws SQLException {
     final HikariDataSource ds = databasePools.computeIfAbsent(
         poolMapping.getKey(hostSpec, props),
-        url -> createHikariDataSource(hostSpec, props)
+        url -> createHikariDataSource(protocol, hostSpec, props)
     );
 
     Connection conn = ds.getConnection();
@@ -115,24 +115,18 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
     databasePools.clear();
   }
 
-  abstract String getDataSourceClassName();
-
-  protected HikariConfig getHikariConfig(HostSpec hostSpec, Properties connectionProps) {
+  protected HikariConfig getHikariConfig(String protocol, HostSpec hostSpec, Properties connectionProps) {
     Properties hikariProps = new Properties();
-    hikariProps.setProperty("dataSource.serverName", hostSpec.getHost());
+    String jdbcUrl = protocol + hostSpec.getUrl();
 
     String db = PropertyDefinition.DATABASE.getString(connectionProps);
     if (!StringUtils.isNullOrEmpty(db)) {
-      hikariProps.setProperty("dataSource.databaseName", db);
-    }
-
-    if (hostSpec.isPortSpecified()) {
-      hikariProps.setProperty("dataSource.portNumber", Integer.toString(hostSpec.getPort()));
+      jdbcUrl += db;
     }
 
     HikariConfig config = new HikariConfig(hikariProps);
+    config.setJdbcUrl(jdbcUrl);
     config.setExceptionOverrideClassName(HikariCPSQLException.class.getName());
-    config.setDataSourceClassName(getDataSourceClassName());
 
     String user = connectionProps.getProperty(PropertyDefinition.USER.name);
     String password = connectionProps.getProperty(PropertyDefinition.PASSWORD.name);
@@ -173,8 +167,8 @@ public abstract class HikariPooledConnectionProvider implements PooledConnection
     });
   }
 
-  HikariDataSource createHikariDataSource(HostSpec hostSpec, Properties props) {
-    HikariConfig config = getHikariConfig(hostSpec, props);
+  HikariDataSource createHikariDataSource(String protocol, HostSpec hostSpec, Properties props) {
+    HikariConfig config = getHikariConfig(protocol, hostSpec, props);
     poolConfigurator.configurePool(config, hostSpec, props);
     return new HikariDataSource(config);
   }

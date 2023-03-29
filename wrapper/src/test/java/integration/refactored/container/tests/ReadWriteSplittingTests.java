@@ -57,9 +57,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import software.amazon.jdbc.ConnectionProviderManager;
 import software.amazon.jdbc.HikariPooledConnectionProvider;
 import software.amazon.jdbc.HostSpec;
-import software.amazon.jdbc.MariaDBHikariPooledConnectionProvider;
-import software.amazon.jdbc.MysqlHikariPooledConnectionProvider;
-import software.amazon.jdbc.PostgresHikariPooledConnectionProvider;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.hostlistprovider.AuroraHostListProvider;
 import software.amazon.jdbc.hostlistprovider.ConnectionStringHostListProvider;
@@ -415,7 +412,8 @@ public class ReadWriteSplittingTests {
     props.setProperty("portPropertyName", "portNumber");
     props.setProperty("serverPropertyName", "serverName");
 
-    final HikariPooledConnectionProvider provider = getTestConnectionProvider();
+    final HikariPooledConnectionProvider provider =
+        new HikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
 
     ConnectionProviderManager.setConnectionProvider(provider);
 
@@ -453,7 +451,8 @@ public class ReadWriteSplittingTests {
     props.setProperty("portPropertyName", "portNumber");
     props.setProperty("serverPropertyName", "serverName");
 
-    final HikariPooledConnectionProvider provider = getTestConnectionProvider();
+    final HikariPooledConnectionProvider provider =
+        new HikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
 
     ConnectionProviderManager.setConnectionProvider(provider);
     try (final Connection conn = DriverManager.getConnection(
@@ -475,23 +474,5 @@ public class ReadWriteSplittingTests {
     config.setMaximumPoolSize(1);
     config.setInitializationFailTimeout(75000);
     config.setConnectionTimeout(1000);
-  }
-
-  private HikariPooledConnectionProvider getTestConnectionProvider() {
-    TestDriver driver = TestEnvironment.getCurrent().getCurrentDriver();
-    switch (driver) {
-      case MYSQL:
-        return new MysqlHikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
-      case MARIADB:
-        return new MariaDBHikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
-      case PG:
-        return new PostgresHikariPooledConnectionProvider(ReadWriteSplittingTests::configureHikari);
-      default:
-        fail(
-            "The provided test driver does not have an equivalent HikariPooledConnectionProvider "
-                + "class: "
-                + driver);
-        return null;
-    }
   }
 }
