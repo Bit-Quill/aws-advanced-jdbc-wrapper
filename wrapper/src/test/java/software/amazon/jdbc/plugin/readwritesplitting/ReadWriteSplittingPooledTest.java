@@ -38,8 +38,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import software.amazon.jdbc.ConnectionProviderManager;
+import software.amazon.jdbc.HikariPooledConnectionProvider;
 import software.amazon.jdbc.HostSpec;
-import software.amazon.jdbc.PostgresHikariPooledConnectionProvider;
 import software.amazon.jdbc.PropertyDefinition;
 
 @Disabled("Replace connection details to run")
@@ -61,7 +61,7 @@ public class ReadWriteSplittingPooledTest {
     DriverManager.registerDriver(new org.postgresql.Driver());
 
     ConnectionProviderManager.setConnectionProvider(
-        new PostgresHikariPooledConnectionProvider(ReadWriteSplittingPooledTest::configureHikari));
+        new HikariPooledConnectionProvider(ReadWriteSplittingPooledTest::getHikariConfig));
   }
 
   @AfterEach
@@ -75,7 +75,8 @@ public class ReadWriteSplittingPooledTest {
       Statement stmt = conn.createStatement();
 
       // Test write statements
-      stmt.execute("CREATE TABLE IF NOT EXISTS poolTest (id int, employee varchar(255))");
+      stmt.execute("DROP TABLE IF EXISTS poolTest");
+      stmt.execute("CREATE TABLE poolTest (id int, employee varchar(255))");
       stmt.execute("DELETE FROM poolTest WHERE id=1");
       stmt.execute("INSERT INTO poolTest VALUES (1, 'George')");
 
@@ -189,9 +190,11 @@ public class ReadWriteSplittingPooledTest {
     return rs.getString(1) + " **TAG";
   }
 
-  private static void configureHikari(HikariConfig config, HostSpec hostSpec, Properties props) {
+  private static HikariConfig getHikariConfig(HostSpec hostSpec, Properties props) {
+    HikariConfig config = new HikariConfig();
     config.setMaximumPoolSize(10);
     config.setInitializationFailTimeout(75000);
     config.setConnectionTimeout(1000);
+    return config;
   }
 }

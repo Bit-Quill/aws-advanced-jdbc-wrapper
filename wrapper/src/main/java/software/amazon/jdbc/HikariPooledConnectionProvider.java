@@ -115,8 +115,7 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     databasePools.clear();
   }
 
-  protected HikariConfig getHikariConfig(String protocol, HostSpec hostSpec, Properties connectionProps) {
-    Properties hikariProps = new Properties();
+  protected void setConnectionProperties(HikariConfig config, String protocol, HostSpec hostSpec, Properties connectionProps) {
     String jdbcUrl = protocol + hostSpec.getUrl();
 
     String db = PropertyDefinition.DATABASE.getString(connectionProps);
@@ -124,7 +123,6 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
       jdbcUrl += db;
     }
 
-    HikariConfig config = new HikariConfig(hikariProps);
     config.setJdbcUrl(jdbcUrl);
     config.setExceptionOverrideClassName(HikariCPSQLException.class.getName());
 
@@ -140,8 +138,6 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     if (HostRole.READER.equals(hostSpec.getRole())) {
       config.setReadOnly(true);
     }
-
-    return config;
   }
 
   public int getHostCount() {
@@ -168,8 +164,8 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
   }
 
   HikariDataSource createHikariDataSource(String protocol, HostSpec hostSpec, Properties props) {
-    HikariConfig config = getHikariConfig(protocol, hostSpec, props);
-    poolConfigurator.configurePool(config, hostSpec, props);
+    HikariConfig config = poolConfigurator.configurePool(hostSpec, props);
+    setConnectionProperties(config, protocol, hostSpec, props);
     return new HikariDataSource(config);
   }
 }

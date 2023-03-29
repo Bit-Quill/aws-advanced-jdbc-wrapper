@@ -22,6 +22,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -39,6 +40,7 @@ class HikariPooledConnectionProviderTest {
   @Mock Connection mockConnection;
   @Mock HikariDataSource mockDataSource;
   @Mock HostSpec mockHostSpec;
+  @Mock HikariConfig mockConfig;
 
   private AutoCloseable closeable;
   private static final Properties emptyProperties = new Properties();
@@ -61,7 +63,7 @@ class HikariPooledConnectionProviderTest {
     final Set<String> expected = new HashSet<>(Collections.singletonList("url"));
 
     final HikariPooledConnectionProvider provider =
-        spy(new HikariPooledConnectionProvider((mockConfig, hostSpec, properties) -> {}));
+        spy(new HikariPooledConnectionProvider((hostSpec, properties) -> mockConfig));
 
     doReturn(mockDataSource).when(provider).createHikariDataSource(any(), any(), any());
 
@@ -81,7 +83,7 @@ class HikariPooledConnectionProviderTest {
     final Set<String> expected = new HashSet<>(Collections.singletonList("url+someUniqueKey"));
 
     final HikariPooledConnectionProvider provider = spy(new HikariPooledConnectionProvider(
-        (mockConfig, hostSpec, properties) -> {},
+        (hostSpec, properties) -> mockConfig,
         (hostSpec, properties) -> hostSpec.getUrl() + "+someUniqueKey"));
 
     doReturn(mockDataSource).when(provider).createHikariDataSource(any(), any(), any());
