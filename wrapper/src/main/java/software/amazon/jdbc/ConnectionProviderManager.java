@@ -89,6 +89,8 @@ public class ConnectionProviderManager {
         if (connProvider != null && connProvider.acceptsStrategy(role, strategy)) {
           host = connProvider.getHostSpecByStrategy(hosts, role, strategy);
         }
+      } catch (UnsupportedOperationException e) {
+        // The custom provider does not support the provided strategy, ignore it and try with the default provider.
       } finally {
         connProviderLock.readLock().unlock();
       }

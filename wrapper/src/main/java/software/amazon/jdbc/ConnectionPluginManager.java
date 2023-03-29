@@ -254,51 +254,6 @@ public class ConnectionPluginManager implements CanReleaseResources {
     return pluginChainFunc.call(pluginPipeline, jdbcMethodFunc);
   }
 
-
-  protected <E extends Exception> boolean acceptsStrategyMethod(final PluginPipeline<Boolean, E> pluginPipeline)
-      throws E {
-    if (pluginPipeline == null) {
-      throw new IllegalArgumentException("pluginPipeline");
-    }
-
-    for (ConnectionPlugin plugin : this.plugins) {
-      Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
-      boolean isSubscribed =
-          pluginSubscribedMethods.contains(ALL_METHODS)
-              || pluginSubscribedMethods.contains(ACCEPTS_STRATEGY_METHOD);
-
-      if (isSubscribed) {
-        if (pluginPipeline.call(plugin, null)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  protected <T, E extends Exception> HostSpec getHostSpecByStrategyMethod(
-      final PluginPipeline<HostSpec, E> pluginPipeline,
-      final JdbcCallable<T, E> jdbcMethodFunc)
-      throws E {
-
-    for (ConnectionPlugin plugin : this.plugins) {
-      Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
-      boolean isSubscribed =
-          pluginSubscribedMethods.contains(ALL_METHODS)
-              || pluginSubscribedMethods.contains(GET_HOST_SPEC_BY_STRATEGY_METHOD);
-
-      if (isSubscribed) {
-        final HostSpec host = pluginPipeline.call(plugin, null);
-        if (host != null) {
-          return host;
-        }
-      }
-    }
-
-    return null;
-  }
-
   @Nullable
   protected <T, E extends Exception> PluginChainJdbcCallable<T, E> makePluginChainFunc(
       final @NonNull String methodName) {
@@ -426,7 +381,20 @@ public class ConnectionPluginManager implements CanReleaseResources {
 
   public boolean acceptsStrategy(HostRole role, String strategy) throws SQLException {
     try {
-      return acceptsStrategyMethod((plugin, func) -> plugin.acceptsStrategy(role, strategy));
+      for (ConnectionPlugin plugin : this.plugins) {
+        Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
+        boolean isSubscribed =
+            pluginSubscribedMethods.contains(ALL_METHODS)
+                || pluginSubscribedMethods.contains(ACCEPTS_STRATEGY_METHOD);
+
+        if (isSubscribed) {
+          if (plugin.acceptsStrategy(role, strategy)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
     } catch (RuntimeException e) {
       throw e;
     } catch (Exception e) {
@@ -436,12 +404,26 @@ public class ConnectionPluginManager implements CanReleaseResources {
 
   public HostSpec getHostSpecByStrategy(HostRole role, String strategy) throws SQLException {
     try {
-      return getHostSpecByStrategyMethod(
-          (plugin, func) -> plugin.getHostSpecByStrategy(role, strategy),
-          () -> {
-            throw new SQLException("Shouldn't be called.");
-          });
-    } catch (SQLException | RuntimeException e) {
+      for (ConnectionPlugin plugin : this.plugins) {
+        Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
+        boolean isSubscribed =
+            pluginSubscribedMethods.contains(ALL_METHODS)
+                || pluginSubscribedMethods.contains(GET_HOST_SPEC_BY_STRATEGY_METHOD);
+
+        if (isSubscribed) {
+          try {
+            final HostSpec host = plugin.getHostSpecByStrategy(role, strategy);
+            if (host != null) {
+              return host;
+            }
+          } catch (UnsupportedOperationException e) {
+            // This plugin does not support the provided strategy, ignore the exception and move on
+          }
+        }
+      }
+
+      return null;
+    } catch (RuntimeException e) {
       throw e;
     } catch (Exception e) {
       throw new SQLException(e);
