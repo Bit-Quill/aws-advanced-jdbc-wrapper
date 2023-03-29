@@ -40,7 +40,7 @@ public class TestEnvironmentInfo {
     return this.proxyDatabaseInfo;
   }
 
-  public TestXRayTelemetryInfo getTelemetryInfo() {
+  public TestXRayTelemetryInfo getXRayTelemetryInfo() {
     return this.xRayTelemetryInfo;
   }
 
