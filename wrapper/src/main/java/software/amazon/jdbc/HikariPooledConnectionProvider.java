@@ -123,6 +123,10 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
       jdbcUrl += db;
     }
 
+    if (connectionProps.containsKey("permitMysqlScheme")) {
+      jdbcUrl += "?permitMysqlScheme";
+    }
+
     config.setJdbcUrl(jdbcUrl);
     config.setExceptionOverrideClassName(HikariCPSQLException.class.getName());
 
