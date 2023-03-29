@@ -50,6 +50,8 @@ import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
 public class TestDriverProvider implements TestTemplateInvocationContextProvider {
   private static final Logger LOGGER = Logger.getLogger(TestDriverProvider.class.getName());
 
+  private boolean telemetryEnabled = false;
+
   @Override
   public boolean supportsTestTemplate(ExtensionContext context) {
     return true;
@@ -92,11 +94,13 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
             new BeforeEachCallback() {
               @Override
               public void beforeEach(ExtensionContext context) throws Exception {
-                if (TestEnvironment.getCurrent()
+                telemetryEnabled = TestEnvironment.getCurrent()
                     .getInfo()
                     .getRequest()
                     .getFeatures()
-                    .contains(TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)) {
+                    .contains(TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED);
+
+                if (telemetryEnabled) {
                   AWSXRay.beginSegment("integration test");
                   AWSXRay.beginSubsegment("test setup");
                 }
@@ -169,15 +173,18 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
                   TestAuroraHostListProvider.clearCache();
                   TestPluginServiceImpl.clearHostAvailabilityCache();
                 }
-                AWSXRay.endSubsegment();
-                AWSXRay.beginSubsegment(context.getElement().toString());
+                if (telemetryEnabled) {
+                  AWSXRay.endSubsegment();
+                  AWSXRay.beginSubsegment(context.getElement().toString());
+                }
               }
             },
             new AfterEachCallback() {
               @Override
               public void afterEach(ExtensionContext context) throws Exception {
-                //check if trace still open
-                AWSXRay.endSegment();
+                if (telemetryEnabled) {
+                  AWSXRay.endSegment();
+                }
               }
             });
       }
