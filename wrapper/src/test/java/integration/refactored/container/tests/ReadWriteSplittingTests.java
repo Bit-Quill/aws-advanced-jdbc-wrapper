@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import com.zaxxer.hikari.HikariConfig;
 import integration.refactored.DatabaseEngine;
@@ -30,7 +29,6 @@ import integration.refactored.TestEnvironmentFeatures;
 import integration.refactored.TestInstanceInfo;
 import integration.refactored.container.ConnectionStringHelper;
 import integration.refactored.container.ProxyHelper;
-import integration.refactored.container.TestDriver;
 import integration.refactored.container.TestDriverProvider;
 import integration.refactored.container.TestEnvironment;
 import integration.refactored.container.condition.DisableOnTestFeature;
@@ -57,9 +55,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import software.amazon.jdbc.ConnectionProviderManager;
 import software.amazon.jdbc.HikariPooledConnectionProvider;
 import software.amazon.jdbc.HostSpec;
-import software.amazon.jdbc.MariaDBHikariPooledConnectionProvider;
-import software.amazon.jdbc.MysqlHikariPooledConnectionProvider;
-import software.amazon.jdbc.PostgresHikariPooledConnectionProvider;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.hostlistprovider.AuroraHostListProvider;
 import software.amazon.jdbc.hostlistprovider.ConnectionStringHostListProvider;
@@ -415,11 +410,9 @@ public class ReadWriteSplittingTests {
         new AuroraTestUtility(TestEnvironment.getCurrent().getInfo().getAuroraRegion());
     Properties props = getDefaultPropsNoPlugins();
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
-    props.setProperty("databasePropertyName", "databaseName");
-    props.setProperty("portPropertyName", "portNumber");
-    props.setProperty("serverPropertyName", "serverName");
 
-    final HikariPooledConnectionProvider provider = getTestConnectionProvider();
+    final HikariPooledConnectionProvider provider =
+        new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
 
     ConnectionProviderManager.setConnectionProvider(provider);
 
@@ -453,11 +446,9 @@ public class ReadWriteSplittingTests {
         new AuroraTestUtility(TestEnvironment.getCurrent().getInfo().getAuroraRegion());
     Properties props = getDefaultPropsNoPlugins();
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
-    props.setProperty("databasePropertyName", "databaseName");
-    props.setProperty("portPropertyName", "portNumber");
-    props.setProperty("serverPropertyName", "serverName");
 
-    final HikariPooledConnectionProvider provider = getTestConnectionProvider();
+    final HikariPooledConnectionProvider provider =
+        new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
 
     ConnectionProviderManager.setConnectionProvider(provider);
     try (final Connection conn = DriverManager.getConnection(
@@ -491,7 +482,8 @@ public class ReadWriteSplittingTests {
     props.setProperty("portPropertyName", "portNumber");
     props.setProperty("serverPropertyName", "serverName");
 
-    final HikariPooledConnectionProvider provider = getTestConnectionProvider();
+    final HikariPooledConnectionProvider provider =
+        new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
 
     ConnectionProviderManager.setConnectionProvider(provider);
 
@@ -525,7 +517,8 @@ public class ReadWriteSplittingTests {
     props.setProperty("portPropertyName", "portNumber");
     props.setProperty("serverPropertyName", "serverName");
 
-    final HikariPooledConnectionProvider provider = getTestConnectionProvider();
+    final HikariPooledConnectionProvider provider =
+        new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
 
     ConnectionProviderManager.setConnectionProvider(provider);
 
@@ -557,25 +550,6 @@ public class ReadWriteSplittingTests {
     config.setMaximumPoolSize(1);
     config.setInitializationFailTimeout(75000);
     config.setConnectionTimeout(1000);
-
     return config;
-  }
-
-  private HikariPooledConnectionProvider getTestConnectionProvider() {
-    TestDriver driver = TestEnvironment.getCurrent().getCurrentDriver();
-    switch (driver) {
-      case MYSQL:
-        return new MysqlHikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
-      case MARIADB:
-        return new MariaDBHikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
-      case PG:
-        return new PostgresHikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
-      default:
-        fail(
-            "The provided test driver does not have an equivalent HikariPooledConnectionProvider "
-                + "class: "
-                + driver);
-        return null;
-    }
   }
 }
