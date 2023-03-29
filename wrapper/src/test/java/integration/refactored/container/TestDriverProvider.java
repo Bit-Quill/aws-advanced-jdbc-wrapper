@@ -102,6 +102,7 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
 
                 if (telemetryEnabled) {
                   AWSXRay.beginSegment("integration test");
+                  LOGGER.finest("[XRAY] Opened test segment.");
                   AWSXRay.beginSubsegment("test setup");
                 }
 
@@ -184,6 +185,7 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
               public void afterEach(ExtensionContext context) throws Exception {
                 if (telemetryEnabled) {
                   AWSXRay.endSegment();
+                  LOGGER.finest("[XRAY] Closed test segment.");
                 }
               }
             });
