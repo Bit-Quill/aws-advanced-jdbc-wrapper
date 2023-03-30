@@ -592,7 +592,6 @@ public class TestEnvironment implements AutoCloseable {
 
     env.telemetryXRayContainer = containerHelper.createTelemetryXrayContainer(
         "amazon/aws-xray-daemon",
-        getContainerBaseImageName(env.info.getRequest()),
         env.network,
         TELEMETRY_XRAY_CONTAINER_NAME);
 
