@@ -149,8 +149,8 @@ public class ContainerHelper {
       String networkAlias) {
     class FixedExposedPortContainer<T extends GenericContainer<T>> extends GenericContainer<T> {
 
-      public FixedExposedPortContainer(ImageFromDockerfile withDockerfileFromBuilder) {
-        super(withDockerfileFromBuilder);
+      public FixedExposedPortContainer(String dockerImageName) {
+        super(dockerImageName);
       }
 
       public T withFixedExposedPort(int hostPort, int containerPort, InternetProtocol protocol) {
@@ -159,9 +159,7 @@ public class ContainerHelper {
       }
     }
 
-    return new FixedExposedPortContainer<>(
-        new ImageFromDockerfile(dockerImageName, true)
-            .withDockerfileFromBuilder(DockerfileBuilder::build))
+    return new FixedExposedPortContainer<>(dockerImageName)
         .withFixedExposedPort(2000, 2000, InternetProtocol.UDP) // Mapping container port to host
         .withNetworkAliases(networkAlias)
         .withNetwork(network);

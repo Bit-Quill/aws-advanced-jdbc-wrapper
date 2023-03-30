@@ -600,6 +600,7 @@ public class TestEnvironment implements AutoCloseable {
         .getFeatures()
         .contains(TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED)) {
       env.telemetryXRayContainer
+          .withEnv("AWS_REGION", env.info.getAuroraRegion())
           .withEnv("AWS_ACCESS_KEY_ID", env.awsAccessKeyId)
           .withEnv("AWS_SECRET_ACCESS_KEY", env.awsSecretAccessKey)
           .withEnv("AWS_SESSION_TOKEN", env.awsSessionToken);
