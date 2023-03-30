@@ -73,6 +73,7 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
     final boolean noGraalVm = Boolean.parseBoolean(System.getProperty("test-no-graalvm", "false"));
     final boolean noOpenJdk = Boolean.parseBoolean(System.getProperty("test-no-openjdk", "false"));
     final boolean testHibernateOnly = Boolean.parseBoolean(System.getProperty("test-hibernate-only", "false"));
+    final boolean noXRayTelemetry = Boolean.parseBoolean(System.getProperty("test-no-xray-telemetry", "false"));
 
     if (!noDocker) {
       if (!noMysqlEngine && !noOpenJdk) {
@@ -89,7 +90,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    testHibernateOnly ? TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY : null)));
+                    testHibernateOnly ? TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noPgEngine && !noOpenJdk) {
         resultContextList.add(
@@ -105,7 +107,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    testHibernateOnly ? TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY : null)));
+                    testHibernateOnly ? TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noMariadbEngine && !noOpenJdk) {
         resultContextList.add(
@@ -120,7 +123,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noMysqlEngine && !noGraalVm) {
         resultContextList.add(
@@ -135,7 +139,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noPgEngine && !noGraalVm) {
         resultContextList.add(
@@ -150,7 +155,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noMariadbEngine && !noGraalVm) {
         resultContextList.add(
@@ -165,7 +171,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
 
       // multiple instances
@@ -183,7 +190,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noPgEngine && !noOpenJdk) {
         resultContextList.add(
@@ -198,7 +206,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noMariadbEngine && !noOpenJdk) {
         resultContextList.add(
@@ -213,7 +222,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noMysqlEngine && !noGraalVm) {
         resultContextList.add(
@@ -228,7 +238,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noPgEngine && !noGraalVm) {
         resultContextList.add(
@@ -243,7 +254,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noMariadbEngine && !noGraalVm) {
         resultContextList.add(
@@ -258,7 +270,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
     }
 
@@ -281,7 +294,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noPerformance ? null : TestEnvironmentFeatures.PERFORMANCE,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
 
         // Tests for HIKARI, IAM, SECRETS_MANAGER and PERFORMANCE are covered by
         // cluster configuration above, so it's safe to skip these tests for configurations below.
@@ -299,7 +313,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
       if (!noPgEngine && !noOpenJdk) {
         resultContextList.add(
@@ -319,7 +334,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     noPerformance ? null : TestEnvironmentFeatures.PERFORMANCE,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
 
         // Tests for HIKARI, IAM, SECRETS_MANAGER and PERFORMANCE are covered by
         // cluster configuration above, so it's safe to skip these tests for configurations below.
@@ -337,7 +353,8 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null)));
+                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
     }
 
