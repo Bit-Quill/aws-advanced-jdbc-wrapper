@@ -588,6 +588,7 @@ public class TestEnvironment implements AutoCloseable {
   }
 
   private static void createTelemetryXRayContainer(TestEnvironment env) {
+    LOGGER.finest("Creating XRay telemetry contatiner");
     final ContainerHelper containerHelper = new ContainerHelper();
 
     env.telemetryXRayContainer = containerHelper.createTelemetryXrayContainer(
@@ -607,6 +608,7 @@ public class TestEnvironment implements AutoCloseable {
     }
 
     env.info.setXRayTelemetryInfo(new TestXRayTelemetryInfo(TELEMETRY_XRAY_CONTAINER_NAME, 2000));
+    LOGGER.finest("Starting XRay telemetry contatiner");
     env.telemetryXRayContainer.start();
   }
 
