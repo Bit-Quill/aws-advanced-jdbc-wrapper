@@ -166,7 +166,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
 
     if (updatedCurrentHost == null) {
-      logAndThrowException(Messages.get("ReadWriteSplittingPlugin.errorUpdatingHostSpecRole"));
+      logAndThrowException(Messages.get("ReadWriteSplittingPlugin.errorVerifyingInitialHostSpecRole"));
       return null;
     }
 

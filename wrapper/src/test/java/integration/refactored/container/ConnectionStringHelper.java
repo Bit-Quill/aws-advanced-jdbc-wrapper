@@ -161,7 +161,7 @@ public class ConnectionStringHelper {
             .getInfo()
             .getDatabaseInfo()
             .getClusterEndpointPort(),
-        TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo().getDefaultDbName());
+        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName());
   }
 
   public static Properties getDefaultProperties() {
