@@ -153,15 +153,14 @@ public class ContainerHelper {
         super(dockerImageName);
       }
 
-      public T withFixedExposedPort(int hostPort, int containerPort) {
-        super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.UDP);
-        //super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.TCP);
+      public T withFixedExposedPort(int hostPort, int containerPort, InternetProtocol protocol) {
+        super.addFixedExposedPort(hostPort, containerPort, protocol);
         return self();
       }
     }
 
     return new FixedExposedPortContainer<>(dockerImageName)
-        .withFixedExposedPort(2000, 2000)
+        .withFixedExposedPort(2000, 2000, InternetProtocol.UDP)
         .withNetworkAliases(networkAlias)
         .withNetwork(network);
   }
