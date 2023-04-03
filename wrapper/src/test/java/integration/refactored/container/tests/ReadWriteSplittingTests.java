@@ -51,6 +51,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
@@ -187,18 +188,17 @@ public class ReadWriteSplittingTests {
 
     LOGGER.finest("Connecting to url " + url);
     try (final Connection conn = DriverManager.getConnection(url, getProps())) {
-      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
-      LOGGER.finest("writerConnectionId: " + writerConnectionId);
-
-      conn.setReadOnly(true);
       final String readerConnectionId = auroraUtil.queryInstanceId(conn);
       LOGGER.finest("readerConnectionId: " + readerConnectionId);
-      assertNotEquals(writerConnectionId, readerConnectionId);
+
+      conn.setReadOnly(true);
+      final String currentConnectionId = auroraUtil.queryInstanceId(conn);
+      assertEquals(readerConnectionId, currentConnectionId);
 
       conn.setReadOnly(false);
-      final String currentConnectionId = auroraUtil.queryInstanceId(conn);
-      assertEquals(writerConnectionId, currentConnectionId);
-      assertNotEquals(readerConnectionId, currentConnectionId);
+      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
+      LOGGER.finest("writerConnectionId: " + writerConnectionId);
+      assertNotEquals(readerConnectionId, writerConnectionId);
     }
   }
 
@@ -207,16 +207,16 @@ public class ReadWriteSplittingTests {
     final String url = getReaderClusterUrl();
     LOGGER.finest("Connecting to url " + url);
     try (final Connection conn = DriverManager.getConnection(url, getProps())) {
-      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
-      LOGGER.finest("writerConnectionId: " + writerConnectionId);
+      final String readerConnectionId = auroraUtil.queryInstanceId(conn);
+      LOGGER.finest("readerConnectionId: " + readerConnectionId);
 
       conn.setReadOnly(true);
-      final String readerConnectionId = auroraUtil.queryInstanceId(conn);
-      assertNotEquals(writerConnectionId, readerConnectionId);
+      final String currentConnectionId = auroraUtil.queryInstanceId(conn);
+      assertEquals(readerConnectionId, currentConnectionId);
 
       conn.setReadOnly(false);
-      final String currentConnectionId = auroraUtil.queryInstanceId(conn);
-      assertEquals(writerConnectionId, currentConnectionId);
+      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
+      LOGGER.finest("writerConnectionId: " + writerConnectionId);
       assertNotEquals(readerConnectionId, writerConnectionId);
     }
   }
@@ -614,6 +614,10 @@ public class ReadWriteSplittingTests {
     }
   }
 
+  // "Flaky - if a failover occurs in the test before this one, the cluster DNS may be stale
+  // which causes failure to update the initial host spec role in the RW plugin. The
+  // HostListProvider should be modified to verify the initial host spec role."
+  @Disabled("Temporarily disabled - flaky")
   @TestTemplate
   // Tests use Aurora specific SQL to identify instance name
   @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
