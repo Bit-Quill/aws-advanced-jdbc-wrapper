@@ -78,19 +78,19 @@ public class ReadWriteSplittingTests {
   private static final Logger LOGGER = Logger.getLogger(ReadWriteSplittingTests.class.getName());
 
   protected static Properties getProxiedPropsWithFailover() {
-      final Properties props = getAuroraPropsWithFailover();
-      AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props,
-          "?." + TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
-              .getInstanceEndpointSuffix());
-      return props;
+    final Properties props = getAuroraPropsWithFailover();
+    AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props,
+        "?." + TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
+            .getInstanceEndpointSuffix());
+    return props;
   }
 
   protected static Properties getProxiedProps() {
-      final Properties props = getProps();
-      AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props,
-          "?." + TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
-              .getInstanceEndpointSuffix());
-      return props;
+    final Properties props = getProps();
+    AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props,
+        "?." + TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
+            .getInstanceEndpointSuffix());
+    return props;
   }
 
   protected static Properties getDefaultPropsNoPlugins() {
@@ -111,6 +111,7 @@ public class ReadWriteSplittingTests {
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover");
     return props;
   }
+
   protected String getUrl() {
     return ConnectionStringHelper.getWrapperUrl();
   }

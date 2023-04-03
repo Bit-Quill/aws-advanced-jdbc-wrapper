@@ -115,7 +115,8 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     databasePools.clear();
   }
 
-  protected void setConnectionProperties(HikariConfig config, String protocol, HostSpec hostSpec, Properties connectionProps) {
+  protected void setConnectionProperties(
+      HikariConfig config, String protocol, HostSpec hostSpec, Properties connectionProps) {
     String jdbcUrl = protocol + hostSpec.getUrl();
 
     String db = PropertyDefinition.DATABASE.getString(connectionProps);
