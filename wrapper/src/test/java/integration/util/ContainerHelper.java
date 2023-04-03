@@ -155,7 +155,7 @@ public class ContainerHelper {
 
       public T withFixedExposedPort(int hostPort, int containerPort) {
         super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.UDP);
-        super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.TCP);
+        //super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.TCP);
         return self();
       }
     }
