@@ -168,8 +168,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       }
     } else {
       final String instanceId = getCurrentInstanceId(currentConnection, driverProtocol);
-      updatedCurrentHost =
-          getHostSpecFromInstanceId(instanceId);
+      updatedCurrentHost = getHostSpecFromInstanceId(instanceId);
       if (updatedCurrentHost == null) {
         logAndThrowException(
             Messages.get("ReadWriteSplittingPlugin.errorVerifyingInitialHostSpecRole2",
