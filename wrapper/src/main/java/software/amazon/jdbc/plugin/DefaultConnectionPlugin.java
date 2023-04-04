@@ -41,6 +41,7 @@ import software.amazon.jdbc.NodeChangeOptions;
 import software.amazon.jdbc.OldConnectionSuggestedAction;
 import software.amazon.jdbc.PluginManagerService;
 import software.amazon.jdbc.PluginService;
+import software.amazon.jdbc.util.DriverInfo;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.SqlMethodAnalyzer;
 import software.amazon.jdbc.util.WrapperUtils;
@@ -97,6 +98,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
     LOGGER.finest(
         () -> Messages.get("DefaultConnectionPlugin.executingMethod", new Object[] {methodName}));
+
     final T result = jdbcMethodFunc.call();
 
     Connection currentConn = this.pluginService.getCurrentConnection();
@@ -172,15 +174,18 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
   }
 
   @Override
-  public HostSpec getHostSpecByStrategy(HostRole role, String strategy,
-      JdbcCallable<HostSpec, SQLException> getHostSpecByStrategyFunc)
+  public boolean acceptsStrategy(HostRole role, String strategy) {
+    return this.connProviderManager.acceptsStrategy(role, strategy);
+  }
+
+  @Override
+  public HostSpec getHostSpecByStrategy(HostRole role, String strategy)
       throws SQLException {
     List<HostSpec> hosts = this.pluginService.getHosts();
     if (hosts.size() < 1) {
       throw new SQLException(Messages.get("DefaultConnectionPlugin.noHostsAvailable"));
     }
 
-    // It's guaranteed that this plugin is always the last in plugin chain so getHostSpecByStrategyFunc can be ignored.
     return this.connProviderManager.getHostSpecByStrategy(hosts, role, strategy);
   }
 

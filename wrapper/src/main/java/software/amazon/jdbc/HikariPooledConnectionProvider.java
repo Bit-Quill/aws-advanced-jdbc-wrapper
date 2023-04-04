@@ -115,10 +115,11 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     databasePools.clear();
   }
 
-  protected void setConnectionProperties(HikariConfig config, String protocol, HostSpec hostSpec, Properties connectionProps) {
+  protected void setConnectionProperties(
+      HikariConfig config, String protocol, HostSpec hostSpec, Properties connectionProps) {
     String jdbcUrl = protocol + hostSpec.getUrl();
 
-    String db = PropertyDefinition.DATABASE.getString(connectionProps);
+    final String db = PropertyDefinition.DATABASE.getString(connectionProps);
     if (!StringUtils.isNullOrEmpty(db)) {
       jdbcUrl += db;
     }
@@ -130,8 +131,8 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     config.setJdbcUrl(jdbcUrl);
     config.setExceptionOverrideClassName(HikariCPSQLException.class.getName());
 
-    String user = connectionProps.getProperty(PropertyDefinition.USER.name);
-    String password = connectionProps.getProperty(PropertyDefinition.PASSWORD.name);
+    final String user = connectionProps.getProperty(PropertyDefinition.USER.name);
+    final String password = connectionProps.getProperty(PropertyDefinition.PASSWORD.name);
     if (user != null) {
       config.setUsername(user);
     }

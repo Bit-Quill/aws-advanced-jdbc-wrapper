@@ -130,6 +130,12 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       final boolean isInitialConnection,
       final @NonNull JdbcCallable<Connection, SQLException> connectFunc)
       throws SQLException {
+
+    if (!pluginService.acceptsStrategy(hostSpec.getRole(), this.readerSelectorStrategy)) {
+      throw new UnsupportedOperationException(
+          Messages.get("ReadWriteSplittingPlugin.unsupportedHostSpecSelectorStrategy",
+              new Object[] { this.readerSelectorStrategy }));
+    }
     return connectInternal(driverProtocol, hostSpec, isInitialConnection, connectFunc);
   }
 
@@ -152,15 +158,19 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     this.pluginService.refreshHostList(currentConnection);
     final HostSpec currentHost = this.pluginService.getCurrentHostSpec();
     final HostSpec updatedCurrentHost;
+    final String hostToMatch;
     if (RdsUrlType.RDS_INSTANCE.equals(urlType)) {
-      updatedCurrentHost = getHostSpecFromUrl(currentHost.getUrl());
+      hostToMatch = currentHost.getUrl();
+      updatedCurrentHost = getHostSpecFromUrl(hostToMatch);
     } else {
-      updatedCurrentHost =
-          getHostSpecFromInstanceId(getCurrentInstanceId(currentConnection, driverProtocol));
+      hostToMatch = getCurrentInstanceId(currentConnection, driverProtocol);
+      updatedCurrentHost = getHostSpecFromInstanceId(hostToMatch);
     }
 
     if (updatedCurrentHost == null) {
-      logAndThrowException(Messages.get("ReadWriteSplittingPlugin.errorUpdatingHostSpecRole"));
+      logAndThrowException(
+          Messages.get("ReadWriteSplittingPlugin.errorVerifyingInitialHostSpecRole",
+              new Object[] {hostToMatch}));
       return null;
     }
 

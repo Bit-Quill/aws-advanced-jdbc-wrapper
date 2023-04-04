@@ -35,6 +35,7 @@ import software.amazon.jdbc.plugin.AuroraHostListConnectionPluginFactory;
 import software.amazon.jdbc.plugin.AwsSecretsManagerConnectionPluginFactory;
 import software.amazon.jdbc.plugin.DataCacheConnectionPluginFactory;
 import software.amazon.jdbc.plugin.DefaultConnectionPlugin;
+import software.amazon.jdbc.plugin.DriverMetaDataConnectionPluginFactory;
 import software.amazon.jdbc.plugin.ExecutionTimeConnectionPluginFactory;
 import software.amazon.jdbc.plugin.IamAuthConnectionPluginFactory;
 import software.amazon.jdbc.plugin.LogQueryConnectionPluginFactory;
@@ -72,6 +73,7 @@ public class ConnectionPluginManager implements CanReleaseResources {
           put("auroraStaleDns", AuroraStaleDnsPluginFactory.class);
           put("readWriteSplitting", ReadWriteSplittingPluginFactory.class);
           put("auroraConnectionTracker", AuroraConnectionTrackerPluginFactory.class);
+          put("driverMetaData", DriverMetaDataConnectionPluginFactory.class);
         }
       };
 
@@ -81,6 +83,7 @@ public class ConnectionPluginManager implements CanReleaseResources {
   private static final String ALL_METHODS = "*";
   private static final String CONNECT_METHOD = "connect";
   private static final String FORCE_CONNECT_METHOD = "forceConnect";
+  private static final String ACCEPTS_STRATEGY_METHOD = "acceptsStrategy";
   private static final String GET_HOST_SPEC_BY_STRATEGY_METHOD = "getHostSpecByStrategy";
   private static final String INIT_HOST_PROVIDER_METHOD = "initHostProvider";
   private static final String NOTIFY_CONNECTION_CHANGED_METHOD = "notifyConnectionChanged";
@@ -238,7 +241,7 @@ public class ConnectionPluginManager implements CanReleaseResources {
       throw new IllegalArgumentException("jdbcMethodFunc");
     }
 
-    //noinspection unchecked
+    // noinspection unchecked
     PluginChainJdbcCallable<T, E> pluginChainFunc = this.pluginChainFuncMap.get(methodName);
 
     if (pluginChainFunc == null) {
@@ -378,16 +381,51 @@ public class ConnectionPluginManager implements CanReleaseResources {
     }
   }
 
+  public boolean acceptsStrategy(HostRole role, String strategy) throws SQLException {
+    try {
+      for (ConnectionPlugin plugin : this.plugins) {
+        Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
+        boolean isSubscribed =
+            pluginSubscribedMethods.contains(ALL_METHODS)
+                || pluginSubscribedMethods.contains(ACCEPTS_STRATEGY_METHOD);
+
+        if (isSubscribed) {
+          if (plugin.acceptsStrategy(role, strategy)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new SQLException(e);
+    }
+  }
+
   public HostSpec getHostSpecByStrategy(HostRole role, String strategy) throws SQLException {
     try {
-      return executeWithSubscribedPlugins(
-          GET_HOST_SPEC_BY_STRATEGY_METHOD,
-          (plugin, func) ->
-              plugin.getHostSpecByStrategy(role, strategy, func),
-          () -> {
-            throw new SQLException("Shouldn't be called.");
-          });
-    } catch (SQLException | RuntimeException e) {
+      for (ConnectionPlugin plugin : this.plugins) {
+        Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
+        boolean isSubscribed =
+            pluginSubscribedMethods.contains(ALL_METHODS)
+                || pluginSubscribedMethods.contains(GET_HOST_SPEC_BY_STRATEGY_METHOD);
+
+        if (isSubscribed) {
+          try {
+            final HostSpec host = plugin.getHostSpecByStrategy(role, strategy);
+            if (host != null) {
+              return host;
+            }
+          } catch (UnsupportedOperationException e) {
+            // This plugin does not support the provided strategy, ignore the exception and move on
+          }
+        }
+      }
+
+      return null;
+    } catch (RuntimeException e) {
       throw e;
     } catch (Exception e) {
       throw new SQLException(e);
