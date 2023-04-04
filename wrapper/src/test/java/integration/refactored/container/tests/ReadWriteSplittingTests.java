@@ -468,7 +468,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnNumOfInstances(min = 3)
-  @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED, TestEnvironmentFeatures.FAILOVER_SUPPORTED})
+  @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   public void test_failoverToNewReader_setReadOnlyFalseTrue() throws SQLException {
     try (final Connection conn =
              DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedPropsWithFailover())) {
@@ -522,7 +522,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnNumOfInstances(min = 3)
-  @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED, TestEnvironmentFeatures.FAILOVER_SUPPORTED})
+  @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   public void test_failoverReaderToWriter_setReadOnlyTrueFalse() throws SQLException {
     try (final Connection conn =
              DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedPropsWithFailover())) {
@@ -635,8 +635,7 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  @EnableOnTestFeature({TestEnvironmentFeatures.FAILOVER_SUPPORTED,
-      TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
+  @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   public void test_pooledConnection_failoverFailed() throws SQLException {
     Properties props = getProxiedPropsWithFailover();
     FailoverConnectionPlugin.FAILOVER_TIMEOUT_MS.set(props, "1000");
