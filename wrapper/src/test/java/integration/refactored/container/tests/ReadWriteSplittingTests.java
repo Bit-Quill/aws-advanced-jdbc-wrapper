@@ -119,38 +119,6 @@ public class ReadWriteSplittingTests {
     return ConnectionStringHelper.getWrapperUrl();
   }
 
-  protected String getReaderClusterUrl() {
-    return ConnectionStringHelper.getWrapperUrl(
-        TestEnvironment.getCurrent().getCurrentDriver(),
-        TestEnvironment.getCurrent()
-            .getInfo()
-            .getDatabaseInfo()
-            .getClusterReadOnlyEndpoint(),
-        TestEnvironment.getCurrent()
-            .getInfo()
-            .getDatabaseInfo()
-            .getClusterReadOnlyEndpointPort(),
-        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName());
-  }
-
-  protected String getReaderInstanceUrl() {
-    return ConnectionStringHelper.getWrapperUrl(
-        TestEnvironment.getCurrent().getCurrentDriver(),
-        TestEnvironment.getCurrent()
-            .getInfo()
-            .getDatabaseInfo()
-            .getInstances()
-            .get(1)
-            .getEndpoint(),
-        TestEnvironment.getCurrent()
-            .getInfo()
-            .getDatabaseInfo()
-            .getInstances()
-            .get(1)
-            .getEndpointPort(),
-        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName());
-  }
-
   protected String getProxiedUrl() {
     return ConnectionStringHelper.getProxyWrapperUrl();
   }
@@ -188,7 +156,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_connectToReader_setReadOnlyTrueFalse() throws SQLException {
-    final String url = getReaderInstanceUrl();
+    final String url = ConnectionStringHelper.getWrapperReaderInstanceUrl();
 
     LOGGER.finest("Connecting to url " + url);
     try (final Connection conn = DriverManager.getConnection(url, getProps())) {
@@ -208,7 +176,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_connectToReaderCluster_setReadOnlyTrueFalse() throws SQLException {
-    final String url = getReaderClusterUrl();
+    final String url = ConnectionStringHelper.getWrapperReaderClusterUrl();
     LOGGER.finest("Connecting to url " + url);
     try (final Connection conn = DriverManager.getConnection(url, getProps())) {
       final String readerConnectionId = auroraUtil.queryInstanceId(conn);
