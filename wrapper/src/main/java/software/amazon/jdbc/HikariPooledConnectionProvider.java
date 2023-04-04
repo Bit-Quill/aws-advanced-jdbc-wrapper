@@ -115,20 +115,20 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     databasePools.clear();
   }
 
-  protected void setConnectionProperties(
+  protected void configurePool(
       HikariConfig config, String protocol, HostSpec hostSpec, Properties connectionProps) {
-    String jdbcUrl = protocol + hostSpec.getUrl();
+    StringBuilder urlBuilder = new StringBuilder().append(protocol).append(hostSpec.getUrl());
 
     final String db = PropertyDefinition.DATABASE.getString(connectionProps);
     if (!StringUtils.isNullOrEmpty(db)) {
-      jdbcUrl += db;
+      urlBuilder.append(db);
     }
 
     if (connectionProps.containsKey("permitMysqlScheme")) {
-      jdbcUrl += "?permitMysqlScheme";
+      urlBuilder.append("?permitMysqlScheme");
     }
 
-    config.setJdbcUrl(jdbcUrl);
+    config.setJdbcUrl(urlBuilder.toString());
     config.setExceptionOverrideClassName(HikariCPSQLException.class.getName());
 
     final String user = connectionProps.getProperty(PropertyDefinition.USER.name);
@@ -138,10 +138,6 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
     }
     if (password != null) {
       config.setPassword(password);
-    }
-
-    if (HostRole.READER.equals(hostSpec.getRole())) {
-      config.setReadOnly(true);
     }
   }
 
@@ -170,7 +166,7 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
 
   HikariDataSource createHikariDataSource(String protocol, HostSpec hostSpec, Properties props) {
     HikariConfig config = poolConfigurator.configurePool(hostSpec, props);
-    setConnectionProperties(config, protocol, hostSpec, props);
+    configurePool(config, protocol, hostSpec, props);
     return new HikariDataSource(config);
   }
 }
