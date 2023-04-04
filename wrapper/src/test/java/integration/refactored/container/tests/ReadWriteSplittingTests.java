@@ -111,7 +111,7 @@ public class ReadWriteSplittingTests {
 
   protected static Properties getPropsWithFailover() {
     final Properties props = getDefaultPropsNoPlugins();
-    PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover");
+    PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
     return props;
   }
 
@@ -328,7 +328,8 @@ public class ReadWriteSplittingTests {
   @EnableOnNumOfInstances(min = 3)
   @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
   public void test_setReadOnlyTrue_allReadersDown() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
+    try (final Connection conn = DriverManager.getConnection(
+        ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -358,7 +359,8 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_setReadOnly_closedConnection() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
+    try (final Connection conn = DriverManager.getConnection(
+        ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
       conn.close();
 
       final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(true));
@@ -369,7 +371,8 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
   public void test_setReadOnlyFalse_allInstancesDown() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
+    try (final Connection conn = DriverManager.getConnection(
+        ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -562,8 +565,7 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnectionFailover() throws SQLException, InterruptedException {
-    Properties props = getDefaultPropsNoPlugins();
-    PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
+    Properties props = getPropsWithFailover();
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
@@ -609,8 +611,7 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnectionFailoverWithClusterURL() throws SQLException, InterruptedException {
-    Properties props = getDefaultPropsNoPlugins();
-    PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
+    Properties props = getPropsWithFailover();
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
@@ -636,16 +637,9 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   @EnableOnTestFeature({TestEnvironmentFeatures.FAILOVER_SUPPORTED,
       TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
-  public void test_pooledConnection_failoverFailed() throws SQLException{
-    Properties props = getDefaultPropsNoPlugins();
-    PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
-    AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props,
-        "?." + TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
-            .getInstanceEndpointSuffix());
+  public void test_pooledConnection_failoverFailed() throws SQLException {
+    Properties props = getProxiedPropsWithFailover();
     FailoverConnectionPlugin.FAILOVER_TIMEOUT_MS.set(props, "1000");
-    props.setProperty("databasePropertyName", "databaseName");
-    props.setProperty("portPropertyName", "portNumber");
-    props.setProperty("serverPropertyName", "serverName");
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
@@ -674,13 +668,7 @@ public class ReadWriteSplittingTests {
   @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnection_failoverInTransaction()
       throws SQLException, InterruptedException {
-    AuroraTestUtility auroraUtil =
-        new AuroraTestUtility(TestEnvironment.getCurrent().getInfo().getAuroraRegion());
-    Properties props = getDefaultPropsNoPlugins();
-    PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover,efm");
-    props.setProperty("databasePropertyName", "databaseName");
-    props.setProperty("portPropertyName", "portNumber");
-    props.setProperty("serverPropertyName", "serverName");
+    Properties props = getPropsWithFailover();
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
