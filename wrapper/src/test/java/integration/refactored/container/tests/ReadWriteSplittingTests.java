@@ -81,7 +81,7 @@ public class ReadWriteSplittingTests {
   private static final Logger LOGGER = Logger.getLogger(ReadWriteSplittingTests.class.getName());
 
   protected static Properties getProxiedPropsWithFailover() {
-    final Properties props = getAuroraPropsWithFailover();
+    final Properties props = getPropsWithFailover();
     AuroraHostListProvider.CLUSTER_INSTANCE_HOST_PATTERN.set(props,
         "?." + TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
             .getInstanceEndpointSuffix());
@@ -109,23 +109,15 @@ public class ReadWriteSplittingTests {
     return props;
   }
 
-  protected static Properties getAuroraPropsWithFailover() {
+  protected static Properties getPropsWithFailover() {
     final Properties props = getDefaultPropsNoPlugins();
     PropertyDefinition.PLUGINS.set(props, "readWriteSplitting,failover");
     return props;
   }
 
-  protected String getUrl() {
-    return ConnectionStringHelper.getWrapperUrl();
-  }
-
-  protected String getProxiedUrl() {
-    return ConnectionStringHelper.getProxyWrapperUrl();
-  }
-
   @TestTemplate
   public void test_connectToWriter_switchSetReadOnly() throws SQLException {
-    final String url = getUrl();
+    final String url = ConnectionStringHelper.getWrapperUrl();
 
     LOGGER.finest("Connecting to url " + url);
     try (final Connection conn = DriverManager.getConnection(url, getProps())) {
@@ -214,7 +206,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_setReadOnlyFalseInReadOnlyTransaction() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
+    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), getProps())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -242,7 +234,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_setReadOnlyFalseInTransaction_setAutocommitFalse() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
+    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), getProps())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -274,7 +266,7 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   @EnableOnDatabaseEngine({DatabaseEngine.MYSQL})
   public void test_setReadOnlyTrueInTransaction() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
+    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), getProps())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -336,7 +328,7 @@ public class ReadWriteSplittingTests {
   @EnableOnNumOfInstances(min = 3)
   @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
   public void test_setReadOnlyTrue_allReadersDown() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(getProxiedUrl(), getProxiedProps())) {
+    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -366,7 +358,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_setReadOnly_closedConnection() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(getProxiedUrl(), getProxiedProps())) {
+    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
       conn.close();
 
       final SQLException exception = assertThrows(SQLException.class, () -> conn.setReadOnly(true));
@@ -377,7 +369,7 @@ public class ReadWriteSplittingTests {
   @TestTemplate
   @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
   public void test_setReadOnlyFalse_allInstancesDown() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(getProxiedUrl(), getProxiedProps())) {
+    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedProps())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -396,7 +388,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_executeWithOldConnection() throws SQLException {
-    try (final Connection conn = DriverManager.getConnection(getUrl(), getProps())) {
+    try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), getProps())) {
 
       final String writerId = auroraUtil.queryInstanceId(conn);
 
@@ -425,7 +417,7 @@ public class ReadWriteSplittingTests {
   public void test_failoverToNewWriter_setReadOnlyTrueFalse()
       throws SQLException, InterruptedException {
     try (final Connection conn =
-             DriverManager.getConnection(getProxiedUrl(), getProxiedPropsWithFailover())) {
+             DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedPropsWithFailover())) {
 
       final String originalWriterId = auroraUtil.queryInstanceId(conn);
 
@@ -476,7 +468,7 @@ public class ReadWriteSplittingTests {
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED, TestEnvironmentFeatures.FAILOVER_SUPPORTED})
   public void test_failoverToNewReader_setReadOnlyFalseTrue() throws SQLException {
     try (final Connection conn =
-             DriverManager.getConnection(getProxiedUrl(), getProxiedPropsWithFailover())) {
+             DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedPropsWithFailover())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
       LOGGER.info("writerConnectionId: " + writerConnectionId);
@@ -530,7 +522,7 @@ public class ReadWriteSplittingTests {
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED, TestEnvironmentFeatures.FAILOVER_SUPPORTED})
   public void test_failoverReaderToWriter_setReadOnlyTrueFalse() throws SQLException {
     try (final Connection conn =
-             DriverManager.getConnection(getProxiedUrl(), getProxiedPropsWithFailover())) {
+             DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), getProxiedPropsWithFailover())) {
 
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
 
@@ -568,8 +560,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnectionFailover() throws SQLException, InterruptedException {
     Properties props = getDefaultPropsNoPlugins();
@@ -577,14 +567,13 @@ public class ReadWriteSplittingTests {
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
-
     ConnectionProviderManager.setConnectionProvider(provider);
 
     String initialWriterId;
     String nextWriterId;
 
     try {
-      try (Connection conn = DriverManager.getConnection(getUrl(), props)) {
+      try (Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
         initialWriterId = auroraUtil.queryInstanceId(conn);
         auroraUtil.failoverClusterAndWaitUntilWriterChanged();
         assertThrows(SQLException.class, () -> auroraUtil.queryInstanceId(conn));
@@ -592,7 +581,7 @@ public class ReadWriteSplittingTests {
         assertNotEquals(initialWriterId, nextWriterId);
       }
 
-      try (final Connection conn = DriverManager.getConnection(getUrl(), props)) {
+      try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
         // The initial connection should be invalid and evicted by the connection pool.
         // This should be a new connection to the initial writer ID.
         // If the dead connection was not evicted, this query would result in an exception.
@@ -605,13 +594,19 @@ public class ReadWriteSplittingTests {
     }
   }
 
+  protected static HikariConfig getHikariConfig(HostSpec hostSpec, Properties props) {
+    HikariConfig config = new HikariConfig();
+    config.setMaximumPoolSize(1);
+    config.setInitializationFailTimeout(75000);
+    config.setConnectionTimeout(1000);
+    return config;
+  }
+
   // "Flaky - if a failover occurs in the test before this one, the cluster DNS may be stale
   // which causes failure to update the initial host spec role in the RW plugin. The
   // HostListProvider should be modified to verify the initial host spec role."
   @Disabled("Temporarily disabled - flaky")
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnectionFailoverWithClusterURL() throws SQLException, InterruptedException {
     Properties props = getDefaultPropsNoPlugins();
@@ -619,8 +614,8 @@ public class ReadWriteSplittingTests {
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
-
     ConnectionProviderManager.setConnectionProvider(provider);
+
     try (final Connection conn = DriverManager.getConnection(
         ConnectionStringHelper.getWrapperClusterEndpointUrl(),
         props)) {
@@ -639,8 +634,6 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestFeature({TestEnvironmentFeatures.FAILOVER_SUPPORTED,
       TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
   public void test_pooledConnection_failoverFailed() throws SQLException{
@@ -656,28 +649,28 @@ public class ReadWriteSplittingTests {
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
-
     ConnectionProviderManager.setConnectionProvider(provider);
 
-    final String initialWriterId;
-    try (Connection conn = DriverManager.getConnection(getProxiedUrl(), props)) {
-      initialWriterId = auroraUtil.queryInstanceId(conn);
-      ProxyHelper.disableAllConnectivity();
-      assertThrows(FailoverFailedSQLException.class, () -> auroraUtil.queryInstanceId(conn));
-    }
+    try {
+      final String initialWriterId;
+      try (Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), props)) {
+        initialWriterId = auroraUtil.queryInstanceId(conn);
+        ProxyHelper.disableAllConnectivity();
+        assertThrows(FailoverFailedSQLException.class, () -> auroraUtil.queryInstanceId(conn));
+      }
 
-    ProxyHelper.enableAllConnectivity();
-    try (final Connection conn = DriverManager.getConnection(getProxiedUrl(), props)) {
-      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
-      assertEquals(initialWriterId, writerConnectionId);
+      ProxyHelper.enableAllConnectivity();
+      try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), props)) {
+        final String writerConnectionId = auroraUtil.queryInstanceId(conn);
+        assertEquals(initialWriterId, writerConnectionId);
+      }
+    } finally {
+      ConnectionProviderManager.releaseResources();
+      ConnectionProviderManager.resetProvider();
     }
-
-    ConnectionProviderManager.releaseResources();
   }
 
   @TestTemplate
-  // Tests use Aurora specific SQL to identify instance name
-  @EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
   @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnection_failoverInTransaction()
       throws SQLException, InterruptedException {
@@ -691,37 +684,32 @@ public class ReadWriteSplittingTests {
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
-
     ConnectionProviderManager.setConnectionProvider(provider);
 
     String initialWriterId;
     String nextWriterId;
-    try (Connection conn = DriverManager.getConnection(getUrl(), props)) {
-      conn.setAutoCommit(false);
-      initialWriterId = auroraUtil.queryInstanceId(conn);
-      auroraUtil.failoverClusterAndWaitUntilWriterChanged();
-      assertThrows(TransactionStateUnknownSQLException.class, () -> auroraUtil.queryInstanceId(conn));
-      conn.setAutoCommit(true);
-      nextWriterId = auroraUtil.queryInstanceId(conn);
-      assertNotEquals(initialWriterId, nextWriterId);
+    try {
+      try (Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
+        conn.setAutoCommit(false);
+        initialWriterId = auroraUtil.queryInstanceId(conn);
+        auroraUtil.failoverClusterAndWaitUntilWriterChanged();
+        assertThrows(TransactionStateUnknownSQLException.class,
+            () -> auroraUtil.queryInstanceId(conn));
+        conn.setAutoCommit(true);
+        nextWriterId = auroraUtil.queryInstanceId(conn);
+        assertNotEquals(initialWriterId, nextWriterId);
+      }
+
+      try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
+        // The initial connection should be invalid and evicted by the connection pool.
+        // This should be a new connection to the initial writer ID.
+        // If the dead connection was not evicted, this query would result in an exception.
+        final String writerConnectionId = auroraUtil.queryInstanceId(conn);
+        assertEquals(initialWriterId, writerConnectionId);
+      }
+    } finally {
+      ConnectionProviderManager.releaseResources();
+      ConnectionProviderManager.resetProvider();
     }
-
-    try (final Connection conn = DriverManager.getConnection(getUrl(), props)) {
-      // The initial connection should be invalid and evicted by the connection pool.
-      // This should be a new connection to the initial writer ID.
-      // If the dead connection was not evicted, this query would result in an exception.
-      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
-      assertEquals(initialWriterId, writerConnectionId);
-    }
-
-    ConnectionProviderManager.releaseResources();
-  }
-
-  private static HikariConfig getHikariConfig(HostSpec hostSpec, Properties props) {
-    HikariConfig config = new HikariConfig();
-    config.setMaximumPoolSize(1);
-    config.setInitializationFailTimeout(75000);
-    config.setConnectionTimeout(1000);
-    return config;
   }
 }
