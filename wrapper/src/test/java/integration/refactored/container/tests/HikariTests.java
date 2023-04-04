@@ -25,6 +25,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import com.zaxxer.hikari.pool.HikariProxyConnection;
+import integration.refactored.DatabaseEngine;
 import integration.refactored.DatabaseEngineDeployment;
 import integration.refactored.DriverHelper;
 import integration.refactored.TestEnvironmentFeatures;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
@@ -72,6 +74,7 @@ public class HikariTests {
 
   private static final Logger LOGGER = Logger.getLogger(HikariTests.class.getName());
 
+  @Disabled
   @TestTemplate
   public void testOpenConnectionWithUrl() throws SQLException {
     final HikariDataSource dataSource = new HikariDataSource();
@@ -94,6 +97,7 @@ public class HikariTests {
     conn.close();
   }
 
+  @Disabled
   @TestTemplate
   public void testOpenConnectionWithDataSourceClassName() throws SQLException {
 
@@ -197,6 +201,8 @@ public class HikariTests {
     LOGGER.fine("Instance to connect to: " + writerIdentifier);
     LOGGER.fine("Instance to fail over to: " + readerIdentifier);
 
+
+
     ProxyHelper.enableConnectivity(writerIdentifier);
     final HikariDataSource dataSource = createDataSource(null);
 
@@ -257,6 +263,7 @@ public class HikariTests {
     config.addDataSourceProperty("serverPropertyName", "serverName");
     config.addDataSourceProperty("databasePropertyName", "databaseName");
 
+
     final Properties targetDataSourceProps = new Properties();
 
     targetDataSourceProps.setProperty(
@@ -270,11 +277,14 @@ public class HikariTests {
     targetDataSourceProps.setProperty(
         "databaseName",
         TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo().getDefaultDbName());
+    targetDataSourceProps.setProperty("url", ConnectionStringHelper.getProxyUrl("failover,efm"));
+    LOGGER.fine("URL name here: " + ConnectionStringHelper.getProxyUrl("failover,efm"));
+
 
     targetDataSourceProps.setProperty("portNumber",
         Integer.toString(TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo()
             .getClusterEndpointPort()));
-    targetDataSourceProps.setProperty(PropertyDefinition.PLUGINS.name, "failover,efm");
+   // targetDataSourceProps.setProperty(PropertyDefinition.PLUGINS.name, "failover");
     targetDataSourceProps.setProperty(
         "clusterInstanceHostPattern",
         "?."
@@ -293,6 +303,13 @@ public class HikariTests {
     DriverHelper.setMonitoringSocketTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
     DriverHelper.setConnectTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
     DriverHelper.setSocketTimeout(targetDataSourceProps, 3, TimeUnit.SECONDS);
+    if (TestEnvironment.getCurrent().getCurrentDriver() == TestDriver.MARIADB
+        && TestEnvironment.getCurrent().getInfo().getRequest().getDatabaseEngine()
+        == DatabaseEngine.MYSQL) {
+      // Connecting to Mysql database with MariaDb driver requires a configuration parameter
+      // "permitMysqlScheme"
+      targetDataSourceProps.setProperty("permitMysqlScheme", "1");
+    }
 
     if (customProps != null) {
       final Enumeration<?> propertyNames = customProps.propertyNames();

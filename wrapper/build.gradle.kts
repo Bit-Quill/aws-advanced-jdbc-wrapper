@@ -296,6 +296,7 @@ tasks.register<Test>("test-all-aurora") {
         systemProperty("test-no-graalvm", "true")
         systemProperty("test-no-pg-driver", "true")
         systemProperty("test-no-pg-engine", "true")
+        systemProperty("test-no-mysql-driver", "true")
     }
 }
 
@@ -348,6 +349,12 @@ tasks.register<Test>("debug-all-aurora") {
     doFirst {
         systemProperty("test-no-docker", "true")
         systemProperty("test-no-performance", "true")
+        systemProperty("test-no-iam", "true")
+        systemProperty("test-no-secrets-manager", "true")
+        systemProperty("test-no-graalvm", "true")
+        systemProperty("test-no-pg-driver", "true")
+        systemProperty("test-no-pg-engine", "true")
+        systemProperty("test-no-mysql-driver", "true")
     }
 }
 

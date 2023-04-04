@@ -71,6 +71,26 @@ public class ConnectionStringHelper {
     return wrapperPlugins != null ? url + wrapperPlugins : url;
   }
 
+  public static String getProxyUrl(final String wrapperPlugins) {
+    return getUrl(
+        TestEnvironment.getCurrent()
+            .getInfo()
+            .getProxyDatabaseInfo()
+            .getInstances()
+            .get(0)
+            .getEndpoint(),
+        TestEnvironment.getCurrent()
+            .getInfo()
+            .getProxyDatabaseInfo()
+            .getInstances()
+            .get(0)
+            .getEndpointPort(),
+        TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo().getDefaultDbName(),
+        wrapperPlugins);
+  }
+
+
+
   public static String getWrapperUrl() {
     return getWrapperUrl(
         TestEnvironment.getCurrent().getCurrentDriver(),
