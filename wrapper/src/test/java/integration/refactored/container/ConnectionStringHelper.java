@@ -125,25 +125,6 @@ public class ConnectionStringHelper {
         TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName());
   }
 
-  // Assumes the writer is stored as the first instance and all other instances are readers
-  public static String getWrapperReaderInstanceUrl() {
-    return ConnectionStringHelper.getWrapperUrl(
-        TestEnvironment.getCurrent().getCurrentDriver(),
-        TestEnvironment.getCurrent()
-            .getInfo()
-            .getDatabaseInfo()
-            .getInstances()
-            .get(1)
-            .getEndpoint(),
-        TestEnvironment.getCurrent()
-            .getInfo()
-            .getDatabaseInfo()
-            .getInstances()
-            .get(1)
-            .getEndpointPort(),
-        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName());
-  }
-
   public static String getProxyWrapperUrl() {
     return getWrapperUrl(
         TestEnvironment.getCurrent().getCurrentDriver(),

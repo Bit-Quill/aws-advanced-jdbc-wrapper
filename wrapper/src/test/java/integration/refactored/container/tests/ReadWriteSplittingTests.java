@@ -153,7 +153,7 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   public void test_connectToReader_setReadOnlyTrueFalse() throws SQLException {
-    final String url = ConnectionStringHelper.getWrapperReaderInstanceUrl();
+    final String url = getWrapperReaderInstanceUrl();
 
     LOGGER.finest("Connecting to url " + url);
     try (final Connection conn = DriverManager.getConnection(url, getProps())) {
@@ -169,6 +169,25 @@ public class ReadWriteSplittingTests {
       LOGGER.finest("writerConnectionId: " + writerConnectionId);
       assertNotEquals(readerConnectionId, writerConnectionId);
     }
+  }
+
+  // Assumes the writer is stored as the first instance and all other instances are readers.
+  protected String getWrapperReaderInstanceUrl() {
+    return ConnectionStringHelper.getWrapperUrl(
+        TestEnvironment.getCurrent().getCurrentDriver(),
+        TestEnvironment.getCurrent()
+            .getInfo()
+            .getDatabaseInfo()
+            .getInstances()
+            .get(1)
+            .getEndpoint(),
+        TestEnvironment.getCurrent()
+            .getInfo()
+            .getDatabaseInfo()
+            .getInstances()
+            .get(1)
+            .getEndpointPort(),
+        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName());
   }
 
   @TestTemplate
