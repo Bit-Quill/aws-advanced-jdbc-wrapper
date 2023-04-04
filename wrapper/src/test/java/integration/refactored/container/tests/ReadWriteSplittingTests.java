@@ -674,14 +674,14 @@ public class ReadWriteSplittingTests {
 
     final String initialWriterId;
     try (Connection conn = DriverManager.getConnection(getProxiedUrl(), props)) {
-      initialWriterId = queryInstanceId(conn);
+      initialWriterId = auroraUtil.queryInstanceId(conn);
       ProxyHelper.disableAllConnectivity();
-      assertThrows(FailoverFailedSQLException.class, () -> queryInstanceId(conn));
+      assertThrows(FailoverFailedSQLException.class, () -> auroraUtil.queryInstanceId(conn));
     }
 
     ProxyHelper.enableAllConnectivity();
     try (final Connection conn = DriverManager.getConnection(getProxiedUrl(), props)) {
-      final String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
     }
 
@@ -711,11 +711,11 @@ public class ReadWriteSplittingTests {
     String nextWriterId;
     try (Connection conn = DriverManager.getConnection(getUrl(), props)) {
       conn.setAutoCommit(false);
-      initialWriterId = queryInstanceId(conn);
+      initialWriterId = auroraUtil.queryInstanceId(conn);
       auroraUtil.failoverClusterAndWaitUntilWriterChanged();
-      assertThrows(TransactionStateUnknownSQLException.class, () -> queryInstanceId(conn));
+      assertThrows(TransactionStateUnknownSQLException.class, () -> auroraUtil.queryInstanceId(conn));
       conn.setAutoCommit(true);
-      nextWriterId = queryInstanceId(conn);
+      nextWriterId = auroraUtil.queryInstanceId(conn);
       assertNotEquals(initialWriterId, nextWriterId);
     }
 
@@ -723,7 +723,7 @@ public class ReadWriteSplittingTests {
       // The initial connection should be invalid and evicted by the connection pool.
       // This should be a new connection to the initial writer ID.
       // If the dead connection was not evicted, this query would result in an exception.
-      final String writerConnectionId = queryInstanceId(conn);
+      final String writerConnectionId = auroraUtil.queryInstanceId(conn);
       assertEquals(initialWriterId, writerConnectionId);
     }
 
