@@ -162,7 +162,10 @@ public class ContainerHelper {
     return new FixedExposedPortContainer<>(dockerImageName)
         .withFixedExposedPort(2000, 2000, InternetProtocol.UDP)
         .withNetworkAliases(networkAlias)
-        .withNetwork(network);
+        .withNetwork(network)
+        .withCopyFileToContainer(
+            MountableFile.forHostPath("./src/test/resources/cfg.yaml"),
+            "/usr/bin/xray/cfg.yaml");
   }
 
   public GenericContainer<?> createTestContainer(String dockerImageName, String testContainerImageName) {
