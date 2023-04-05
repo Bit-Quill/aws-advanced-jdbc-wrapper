@@ -111,6 +111,20 @@ public class ConnectionStringHelper {
         TestEnvironment.getCurrent().getInfo().getRequest().getDatabaseEngine(), testDriver);
   }
 
+  public static String getWrapperReaderClusterUrl() {
+    return ConnectionStringHelper.getWrapperUrl(
+        TestEnvironment.getCurrent().getCurrentDriver(),
+        TestEnvironment.getCurrent()
+            .getInfo()
+            .getDatabaseInfo()
+            .getClusterReadOnlyEndpoint(),
+        TestEnvironment.getCurrent()
+            .getInfo()
+            .getDatabaseInfo()
+            .getClusterReadOnlyEndpointPort(),
+        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName());
+  }
+
   public static String getProxyWrapperUrl() {
     return getWrapperUrl(
         TestEnvironment.getCurrent().getCurrentDriver(),
