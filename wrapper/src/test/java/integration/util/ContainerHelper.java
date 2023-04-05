@@ -165,7 +165,7 @@ public class ContainerHelper {
         .withNetwork(network)
         .withCopyFileToContainer(
             MountableFile.forHostPath("./src/test/resources/cfg.yaml"),
-            "/usr/bin/xray/cfg.yaml");
+            "usr/bin/xray/cfg.yaml");
   }
 
   public GenericContainer<?> createTestContainer(String dockerImageName, String testContainerImageName) {
