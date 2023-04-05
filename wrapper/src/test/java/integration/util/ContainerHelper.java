@@ -143,14 +143,29 @@ public class ContainerHelper {
     return createTestContainer(dockerImageName, getContainerImageName(containerType));
   }
 
-  public GenericContainer<?> createTelemetryXrayContainer(
-      String dockerImageName,
+  public GenericContainer<?> createTelemetryXrayContainer(String dockerImageName,
+      String testContainerImageName,
       Network network,
       String networkAlias) {
+    return createTelemetryXrayContainer(
+        dockerImageName,
+        testContainerImageName,
+        network,
+        networkAlias,
+        builder -> builder // Return directly, do not append extra run commands to the docker builder.
+    );
+  }
+
+  public GenericContainer<?> createTelemetryXrayContainer(
+      String dockerImageName,
+      String testContainerImageName,
+      Network network,
+      String networkAlias,
+      Function<DockerfileBuilder, DockerfileBuilder> appendExtraCommandsToBuilder) {
     class FixedExposedPortContainer<T extends GenericContainer<T>> extends GenericContainer<T> {
 
-      public FixedExposedPortContainer(String dockerImageName) {
-        super(dockerImageName);
+      public FixedExposedPortContainer(ImageFromDockerfile withDockerfileFromBuilder) {
+        super(withDockerfileFromBuilder);
       }
 
       public T withFixedExposedPort(int hostPort, int containerPort, InternetProtocol protocol) {
@@ -159,7 +174,14 @@ public class ContainerHelper {
       }
     }
 
-    return new FixedExposedPortContainer<>(dockerImageName)
+    return new FixedExposedPortContainer<>(
+        new ImageFromDockerfile(dockerImageName, true)
+        .withDockerfileFromBuilder(
+            builder -> appendExtraCommandsToBuilder.apply(
+                builder
+                    .from(testContainerImageName)
+                    .run("mkdir", "usr/bin/xray")
+            ).build()))
         .withFixedExposedPort(2000, 2000, InternetProtocol.UDP)
         .withNetworkAliases(networkAlias)
         .withNetwork(network)
