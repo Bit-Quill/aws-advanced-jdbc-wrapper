@@ -692,8 +692,8 @@ public class ReadWriteSplittingTests {
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
     ConnectionProviderManager.setConnectionProvider(provider);
 
-     final Connection initialWriterConn1;
-     final Connection initialWriterConn2;
+    final Connection initialWriterConn1;
+    final Connection initialWriterConn2;
 
     try {
       final String initialWriterId;
