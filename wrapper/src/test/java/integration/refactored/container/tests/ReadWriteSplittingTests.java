@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -563,6 +565,46 @@ public class ReadWriteSplittingTests {
   }
 
   @TestTemplate
+  public void test_pooledConnection_reuseCachedConnection() throws SQLException {
+    Properties props = getProps();
+
+    final HikariPooledConnectionProvider provider =
+        new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
+    ConnectionProviderManager.setConnectionProvider(provider);
+
+    final Connection conn1;
+    final Connection conn2;
+    final Connection unwrappedConn1;
+    final Connection unwrappedConn2;
+
+    try {
+      conn1 = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props);
+      unwrappedConn1 = conn1.unwrap(Connection.class);
+      conn1.close();
+
+      conn2 = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props);
+      unwrappedConn2 = conn2.unwrap(Connection.class);
+      conn2.close();
+
+      // The ConnectionWrapper objects should be different, but the underlying connection should
+      // have been cached and thus should be the same across conn1 and conn2.
+      assertNotSame(conn1, conn2);
+      assertSame(unwrappedConn1, unwrappedConn2);
+    } finally {
+      ConnectionProviderManager.releaseResources();
+      ConnectionProviderManager.resetProvider();
+    }
+  }
+
+  protected static HikariConfig getHikariConfig(HostSpec hostSpec, Properties props) {
+    final HikariConfig config = new HikariConfig();
+    config.setMaximumPoolSize(1);
+    config.setInitializationFailTimeout(75000);
+    config.setConnectionTimeout(1000);
+    return config;
+  }
+
+  @TestTemplate
   @EnableOnTestFeature(TestEnvironmentFeatures.FAILOVER_SUPPORTED)
   public void test_pooledConnectionFailover() throws SQLException, InterruptedException {
     Properties props = getPropsWithFailover();
@@ -571,37 +613,37 @@ public class ReadWriteSplittingTests {
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
     ConnectionProviderManager.setConnectionProvider(provider);
 
-    String initialWriterId;
-    String nextWriterId;
+    final String initialWriterId;
+    final String nextWriterId;
+    final Connection initialWriterConn1;
+    final Connection initialWriterConn2;
+    final Connection newWriterConn;
 
     try {
-      try (Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
+      try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
+        initialWriterConn1 = conn.unwrap(Connection.class);
         initialWriterId = auroraUtil.queryInstanceId(conn);
         auroraUtil.failoverClusterAndWaitUntilWriterChanged();
         assertThrows(SQLException.class, () -> auroraUtil.queryInstanceId(conn));
         nextWriterId = auroraUtil.queryInstanceId(conn);
         assertNotEquals(initialWriterId, nextWriterId);
+        newWriterConn = conn.unwrap(Connection.class);
+        assertNotSame(initialWriterConn1, newWriterConn);
       }
 
       try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
-        // The initial connection should be invalid and evicted by the connection pool.
-        // This should be a new connection to the initial writer ID.
-        // If the dead connection was not evicted, this query would result in an exception.
+        // This should be a new connection to the initial writer instance (now a reader).
         final String writerConnectionId = auroraUtil.queryInstanceId(conn);
         assertEquals(initialWriterId, writerConnectionId);
+        initialWriterConn2 = conn.unwrap(Connection.class);
+        // The initial connection should have been evicted from the pool when failover occurred, so
+        // this should be a new connection even though it is connected to the same instance.
+        assertNotSame(initialWriterConn1, initialWriterConn2);
       }
     } finally {
       ConnectionProviderManager.releaseResources();
       ConnectionProviderManager.resetProvider();
     }
-  }
-
-  protected static HikariConfig getHikariConfig(HostSpec hostSpec, Properties props) {
-    HikariConfig config = new HikariConfig();
-    config.setMaximumPoolSize(1);
-    config.setInitializationFailTimeout(75000);
-    config.setConnectionTimeout(1000);
-    return config;
   }
 
   // "Flaky - if a failover occurs in the test before this one, the cluster DNS may be stale
@@ -617,9 +659,13 @@ public class ReadWriteSplittingTests {
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
     ConnectionProviderManager.setConnectionProvider(provider);
 
+    final Connection initialWriterConn;
+    final Connection newWriterConn;
+
     try (final Connection conn = DriverManager.getConnection(
         ConnectionStringHelper.getWrapperClusterEndpointUrl(),
         props)) {
+      initialWriterConn = conn.unwrap(Connection.class);
       // The internal connection pool should not be used if the connection is established via a cluster URL.
       assertEquals(0, provider.getHostCount(), "Internal connection pool should be empty.");
       final String writerConnectionId = auroraUtil.queryInstanceId(conn);
@@ -628,6 +674,8 @@ public class ReadWriteSplittingTests {
       final String nextWriterId = auroraUtil.queryInstanceId(conn);
       assertNotEquals(writerConnectionId, nextWriterId);
       assertEquals(0, provider.getHostCount(), "Internal connection pool should be empty.");
+      newWriterConn = conn.unwrap(Connection.class);
+      assertNotSame(initialWriterConn, newWriterConn);
     } finally {
       ConnectionProviderManager.releaseResources();
       ConnectionProviderManager.resetProvider();
@@ -644,9 +692,13 @@ public class ReadWriteSplittingTests {
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
     ConnectionProviderManager.setConnectionProvider(provider);
 
+     final Connection initialWriterConn1;
+     final Connection initialWriterConn2;
+
     try {
       final String initialWriterId;
       try (Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), props)) {
+        initialWriterConn1 = conn.unwrap(Connection.class);
         initialWriterId = auroraUtil.queryInstanceId(conn);
         ProxyHelper.disableAllConnectivity();
         assertThrows(FailoverFailedSQLException.class, () -> auroraUtil.queryInstanceId(conn));
@@ -656,6 +708,10 @@ public class ReadWriteSplittingTests {
       try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getProxyWrapperUrl(), props)) {
         final String writerConnectionId = auroraUtil.queryInstanceId(conn);
         assertEquals(initialWriterId, writerConnectionId);
+        initialWriterConn2 = conn.unwrap(Connection.class);
+        // The initial connection should have been evicted from the pool when failover occurred, so
+        // this should be a new connection even though it is connected to the same instance.
+        assertNotSame(initialWriterConn1, initialWriterConn2);
       }
     } finally {
       ConnectionProviderManager.releaseResources();
@@ -673,10 +729,15 @@ public class ReadWriteSplittingTests {
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
     ConnectionProviderManager.setConnectionProvider(provider);
 
-    String initialWriterId;
-    String nextWriterId;
+    final String initialWriterId;
+    final String nextWriterId;
+    final Connection initialWriterConn1;
+    final Connection initialWriterConn2;
+    final Connection newWriterConn;
+
     try {
       try (Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
+        initialWriterConn1 = conn.unwrap(Connection.class);
         conn.setAutoCommit(false);
         initialWriterId = auroraUtil.queryInstanceId(conn);
         auroraUtil.failoverClusterAndWaitUntilWriterChanged();
@@ -685,14 +746,18 @@ public class ReadWriteSplittingTests {
         conn.setAutoCommit(true);
         nextWriterId = auroraUtil.queryInstanceId(conn);
         assertNotEquals(initialWriterId, nextWriterId);
+        newWriterConn = conn.unwrap(Connection.class);
+        assertNotSame(initialWriterConn1, newWriterConn);
       }
 
       try (final Connection conn = DriverManager.getConnection(ConnectionStringHelper.getWrapperUrl(), props)) {
-        // The initial connection should be invalid and evicted by the connection pool.
-        // This should be a new connection to the initial writer ID.
-        // If the dead connection was not evicted, this query would result in an exception.
+        // This should be a new connection to the initial writer instance (now a reader).
         final String writerConnectionId = auroraUtil.queryInstanceId(conn);
         assertEquals(initialWriterId, writerConnectionId);
+        initialWriterConn2 = conn.unwrap(Connection.class);
+        // The initial connection should have been evicted from the pool when failover occurred, so
+        // this should be a new connection even though it is connected to the same instance.
+        assertNotSame(initialWriterConn1, initialWriterConn2);
       }
     } finally {
       ConnectionProviderManager.releaseResources();
