@@ -176,12 +176,13 @@ public class ContainerHelper {
 
     return new FixedExposedPortContainer<>(
         new ImageFromDockerfile(dockerImageName, true)
-        .withDockerfileFromBuilder(
-            builder -> appendExtraCommandsToBuilder.apply(
-                builder
-                    .from(testContainerImageName)
-                    .run("mkdir", "usr/bin/xray")
-            ).build()))
+            .withDockerfileFromBuilder(
+                builder -> appendExtraCommandsToBuilder.apply(
+                    builder
+                        .from(testContainerImageName)
+                        .entryPoint("/bin/sh -c \"while true; do sleep 30; done;\"")
+                        .expose(2000) // Exposing ports for debugger to be attached
+                ).build()))
         .withFixedExposedPort(2000, 2000, InternetProtocol.UDP)
         .withNetworkAliases(networkAlias)
         .withNetwork(network)
