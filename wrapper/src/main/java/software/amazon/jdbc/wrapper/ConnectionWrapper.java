@@ -134,8 +134,6 @@ public class ConnectionWrapper implements Connection, CanReleaseResources {
       if (conn == null) {
         throw new SQLException(Messages.get("ConnectionWrapper.connectionNotOpen"), SqlState.UNKNOWN_STATE.getState());
       }
-
-      this.pluginService.setCurrentConnection(conn, this.pluginService.getInitialConnectionHostSpec());
     }
   }
 

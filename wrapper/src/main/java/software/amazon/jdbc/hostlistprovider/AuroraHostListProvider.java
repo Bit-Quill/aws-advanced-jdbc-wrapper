@@ -86,6 +86,10 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
           // filter out nodes that haven't been updated in the last 5 minutes
           + "WHERE time_to_sec(timediff(now(), LAST_UPDATE_TIMESTAMP)) <= 300 OR SESSION_ID = 'MASTER_SESSION_ID' "
           + "ORDER BY LAST_UPDATE_TIMESTAMP";
+  static final String PG_GET_INSTANCE_NAME_SQL = "SELECT aurora_db_instance_identifier()";
+  static final String MYSQL_GET_INSTANCE_NAME_SQL = "SELECT @@aurora_server_id";
+  static final String PG_INSTANCE_NAME_COL = "aurora_db_instance_identifier";
+  static final String MYSQL_INSTANCE_NAME_COL = "@@aurora_server_id";
   static final String WRITER_SESSION_ID = "MASTER_SESSION_ID";
   static final String FIELD_SERVER_ID = "SERVER_ID";
   static final String FIELD_SESSION_ID = "SESSION_ID";
@@ -109,6 +113,8 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
 
   private static final String PG_DRIVER_PROTOCOL = "postgresql";
   private final String retrieveTopologyQuery;
+  private final String getInstanceNameQuery;
+  private final String instanceNameCol;
   private final ReentrantLock lock = new ReentrantLock();
   protected String clusterId;
   protected HostSpec clusterInstanceTemplate;
@@ -146,8 +152,12 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
 
     if (driverProtocol.contains(PG_DRIVER_PROTOCOL)) {
       retrieveTopologyQuery = PG_RETRIEVE_TOPOLOGY_SQL;
+      getInstanceNameQuery = PG_GET_INSTANCE_NAME_SQL;
+      instanceNameCol = PG_INSTANCE_NAME_COL;
     } else {
       retrieveTopologyQuery = MYSQL_RETRIEVE_TOPOLOGY_SQL;
+      getInstanceNameQuery = MYSQL_GET_INSTANCE_NAME_SQL;
+      instanceNameCol = MYSQL_INSTANCE_NAME_COL;
     }
   }
 
@@ -596,5 +606,77 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
       this.clusterId = clusterId;
       this.isPrimaryClusterId = isPrimaryClusterId;
     }
+  }
+
+  @Override
+  public HostRole getHostRole(HostSpec hostSpec) throws SQLException {
+    final RdsUrlType urlType = rdsHelper.identifyRdsType(hostSpec.getHost());
+    if (RdsUrlType.RDS_WRITER_CLUSTER.equals(urlType)) {
+      return HostRole.WRITER;
+    } else if (RdsUrlType.RDS_READER_CLUSTER.equals(urlType)) {
+      return HostRole.READER;
+    }
+
+    refresh();
+    if (RdsUrlType.RDS_INSTANCE.equals(urlType)) {
+      HostSpec topologyHost = getHostSpecFromUrl(hostSpec.getUrl());
+      if (topologyHost != null) {
+        return topologyHost.getRole();
+      }
+    }
+    return HostRole.UNKNOWN;
+  }
+
+  private HostSpec getHostSpecFromUrl(final String url) {
+    if (url == null) {
+      return null;
+    }
+
+    for (final HostSpec host : this.hostList) {
+      if (host.getUrl().equals(url)) {
+        return host;
+      }
+    }
+
+    return null;
+  }
+
+  @Override
+  public HostRole getHostRole(String instanceName) throws SQLException {
+    refresh();
+    HostSpec topologyHost = getHostSpecFromInstanceId(instanceName);
+    if (topologyHost != null) {
+      return topologyHost.getRole();
+    }
+    return HostRole.UNKNOWN;
+  }
+
+  private HostSpec getHostSpecFromInstanceId(final String instanceId) {
+    if (instanceId == null) {
+      return null;
+    }
+
+    for (final HostSpec host : this.hostList) {
+      if (host.getUrl().startsWith(instanceId)) {
+        return host;
+      }
+    }
+
+    return null;
+  }
+
+  @Override
+  public String getInstanceId(Connection conn) {
+    String instanceName = null;
+    try (final Statement stmt = conn.createStatement();
+         final ResultSet resultSet = stmt.executeQuery(getInstanceNameQuery)) {
+      if (resultSet.next()) {
+        instanceName = resultSet.getString(instanceNameCol);
+      }
+    } catch (final SQLException e) {
+      return null;
+    }
+
+    return instanceName;
   }
 }

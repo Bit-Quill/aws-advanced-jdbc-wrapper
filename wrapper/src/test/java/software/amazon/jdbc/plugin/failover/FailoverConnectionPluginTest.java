@@ -532,5 +532,20 @@ class FailoverConnectionPluginTest {
     public List<HostSpec> forceRefresh(Connection connection) {
       return new ArrayList<>();
     }
+
+    @Override
+    public HostRole getHostRole(HostSpec hostSpec) {
+      return HostRole.WRITER;
+    }
+
+    @Override
+    public HostRole getHostRole(String instanceName) {
+      return HostRole.WRITER;
+    }
+
+    @Override
+    public String getInstanceId(Connection conn) {
+      return "instance-id";
+    }
   }
 }
