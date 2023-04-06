@@ -78,8 +78,8 @@ public class TelemetryTracingXRayExample {
 
     final Properties properties = new Properties();
     properties.setProperty(PropertyDefinition.PLUGINS.name, "dataCache, efm, failover");
-    properties.setProperty(PropertyDefinition.USER.name, MetricsUtil.USERNAME);
-    properties.setProperty(PropertyDefinition.PASSWORD.name, MetricsUtil.PASSWORD);
+//     properties.setProperty(PropertyDefinition.USER.name, MetricsUtil.USERNAME);
+//     properties.setProperty(PropertyDefinition.PASSWORD.name, MetricsUtil.PASSWORD);
 
     properties.setProperty(PropertyDefinition.ENABLE_TELEMETRY.name, String.valueOf(true));
     properties.setProperty(PropertyDefinition.TELEMETRY_SUBMIT_TOPLEVEL.name, String.valueOf(true));

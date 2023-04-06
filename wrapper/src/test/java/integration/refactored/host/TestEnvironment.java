@@ -588,12 +588,17 @@ public class TestEnvironment implements AutoCloseable {
   }
 
   private static void createTelemetryXRayContainer(TestEnvironment env) {
-    LOGGER.finest("Creating XRay telemetry contatiner");
+
+    String xrayRegion =
+        !StringUtils.isNullOrEmpty(System.getenv("XRAY_AWS_REGION"))
+            ? System.getenv("XRAY_AWS_REGION")
+            : "us-east-2";
+
+    LOGGER.finest("Creating XRay telemetry container");
     final ContainerHelper containerHelper = new ContainerHelper();
 
     env.telemetryXRayContainer = containerHelper.createTelemetryXrayContainer(
-        "amazon/aws-xray-daemon",
-        getContainerBaseImageName(env.info.getRequest()),
+        xrayRegion,
         env.network,
         TELEMETRY_XRAY_CONTAINER_NAME);
 
@@ -602,14 +607,13 @@ public class TestEnvironment implements AutoCloseable {
         .getFeatures()
         .contains(TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED)) {
       env.telemetryXRayContainer
-          .withEnv("AWS_REGION", env.info.getAuroraRegion())
           .withEnv("AWS_ACCESS_KEY_ID", env.awsAccessKeyId)
           .withEnv("AWS_SECRET_ACCESS_KEY", env.awsSecretAccessKey)
           .withEnv("AWS_SESSION_TOKEN", env.awsSessionToken);
     }
 
     env.info.setXRayTelemetryInfo(new TestXRayTelemetryInfo(TELEMETRY_XRAY_CONTAINER_NAME, 2000));
-    LOGGER.finest("Starting XRay telemetry contatiner");
+    LOGGER.finest("Starting XRay telemetry container");
     env.telemetryXRayContainer.start();
   }
 

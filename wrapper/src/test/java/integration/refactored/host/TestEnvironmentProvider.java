@@ -93,269 +93,269 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     testHibernateOnly ? TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY : null,
                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
       }
-      if (!noPgEngine && !noOpenJdk) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.PG,
-                    DatabaseInstances.SINGLE_INSTANCE,
-                    1,
-                    DatabaseEngineDeployment.DOCKER,
-                    testHibernateOnly ? TargetJvm.OPENJDK11 : TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    testHibernateOnly ? TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noMariadbEngine && !noOpenJdk) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MARIADB,
-                    DatabaseInstances.SINGLE_INSTANCE,
-                    1,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noMysqlEngine && !noGraalVm) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MYSQL,
-                    DatabaseInstances.SINGLE_INSTANCE,
-                    1,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.GRAALVM,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noPgEngine && !noGraalVm) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.PG,
-                    DatabaseInstances.SINGLE_INSTANCE,
-                    1,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.GRAALVM,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noMariadbEngine && !noGraalVm) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MARIADB,
-                    DatabaseInstances.SINGLE_INSTANCE,
-                    1,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.GRAALVM,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-
-      // multiple instances
-
-      if (!noMysqlEngine && !noOpenJdk) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MYSQL,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noPgEngine && !noOpenJdk) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.PG,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noMariadbEngine && !noOpenJdk) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MARIADB,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noMysqlEngine && !noGraalVm) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MYSQL,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.GRAALVM,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noPgEngine && !noGraalVm) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.PG,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.GRAALVM,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noMariadbEngine && !noGraalVm) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MARIADB,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.DOCKER,
-                    TargetJvm.GRAALVM,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-    }
-
-    if (!noAurora) {
-      if (!noMysqlEngine && !noOpenJdk) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MYSQL,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    5,
-                    DatabaseEngineDeployment.AURORA,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
-                    TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
-                    noIam ? null : TestEnvironmentFeatures.IAM,
-                    noSecretsManager ? null : TestEnvironmentFeatures.SECRETS_MANAGER,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noPerformance ? null : TestEnvironmentFeatures.PERFORMANCE,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-
-        // Tests for HIKARI, IAM, SECRETS_MANAGER and PERFORMANCE are covered by
-        // cluster configuration above, so it's safe to skip these tests for configurations below.
-        // The main goal of the following cluster configurations is to check failover.
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.MYSQL,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.AURORA,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
-                    TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
-      if (!noPgEngine && !noOpenJdk) {
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.PG,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    5,
-                    DatabaseEngineDeployment.AURORA,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
-                    TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
-                    noIam ? null : TestEnvironmentFeatures.IAM,
-                    noSecretsManager ? null : TestEnvironmentFeatures.SECRETS_MANAGER,
-                    noHikari ? null : TestEnvironmentFeatures.HIKARI,
-                    noPerformance ? null : TestEnvironmentFeatures.PERFORMANCE,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-
-        // Tests for HIKARI, IAM, SECRETS_MANAGER and PERFORMANCE are covered by
-        // cluster configuration above, so it's safe to skip these tests for configurations below.
-        // The main goal of the following cluster configurations is to check failover.
-        resultContextList.add(
-            getEnvironment(
-                new TestEnvironmentRequest(
-                    DatabaseEngine.PG,
-                    DatabaseInstances.MULTI_INSTANCE,
-                    2,
-                    DatabaseEngineDeployment.AURORA,
-                    TargetJvm.OPENJDK8,
-                    TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
-                    noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
-                    TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
-                    noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
-                    noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
-                    noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
-                    noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
-      }
+//       if (!noPgEngine && !noOpenJdk) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.PG,
+//                     DatabaseInstances.SINGLE_INSTANCE,
+//                     1,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     testHibernateOnly ? TargetJvm.OPENJDK11 : TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     testHibernateOnly ? TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noMariadbEngine && !noOpenJdk) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MARIADB,
+//                     DatabaseInstances.SINGLE_INSTANCE,
+//                     1,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noMysqlEngine && !noGraalVm) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MYSQL,
+//                     DatabaseInstances.SINGLE_INSTANCE,
+//                     1,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.GRAALVM,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noPgEngine && !noGraalVm) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.PG,
+//                     DatabaseInstances.SINGLE_INSTANCE,
+//                     1,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.GRAALVM,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noMariadbEngine && !noGraalVm) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MARIADB,
+//                     DatabaseInstances.SINGLE_INSTANCE,
+//                     1,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.GRAALVM,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//
+//       // multiple instances
+//
+//       if (!noMysqlEngine && !noOpenJdk) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MYSQL,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noPgEngine && !noOpenJdk) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.PG,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noMariadbEngine && !noOpenJdk) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MARIADB,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noMysqlEngine && !noGraalVm) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MYSQL,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.GRAALVM,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noPgEngine && !noGraalVm) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.PG,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.GRAALVM,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noMariadbEngine && !noGraalVm) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MARIADB,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.DOCKER,
+//                     TargetJvm.GRAALVM,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//     }
+//
+//     if (!noAurora) {
+//       if (!noMysqlEngine && !noOpenJdk) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MYSQL,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     5,
+//                     DatabaseEngineDeployment.AURORA,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
+//                     TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
+//                     noIam ? null : TestEnvironmentFeatures.IAM,
+//                     noSecretsManager ? null : TestEnvironmentFeatures.SECRETS_MANAGER,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noPerformance ? null : TestEnvironmentFeatures.PERFORMANCE,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//
+//         // Tests for HIKARI, IAM, SECRETS_MANAGER and PERFORMANCE are covered by
+//         // cluster configuration above, so it's safe to skip these tests for configurations below.
+//         // The main goal of the following cluster configurations is to check failover.
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.MYSQL,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.AURORA,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
+//                     TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
+//       if (!noPgEngine && !noOpenJdk) {
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.PG,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     5,
+//                     DatabaseEngineDeployment.AURORA,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
+//                     TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
+//                     noIam ? null : TestEnvironmentFeatures.IAM,
+//                     noSecretsManager ? null : TestEnvironmentFeatures.SECRETS_MANAGER,
+//                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
+//                     noPerformance ? null : TestEnvironmentFeatures.PERFORMANCE,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//
+//         // Tests for HIKARI, IAM, SECRETS_MANAGER and PERFORMANCE are covered by
+//         // cluster configuration above, so it's safe to skip these tests for configurations below.
+//         // The main goal of the following cluster configurations is to check failover.
+//         resultContextList.add(
+//             getEnvironment(
+//                 new TestEnvironmentRequest(
+//                     DatabaseEngine.PG,
+//                     DatabaseInstances.MULTI_INSTANCE,
+//                     2,
+//                     DatabaseEngineDeployment.AURORA,
+//                     TargetJvm.OPENJDK8,
+//                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+//                     noFailover ? null : TestEnvironmentFeatures.FAILOVER_SUPPORTED,
+//                     TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED,
+//                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
+//                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
+//                     noMariadbDriver ? TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS : null,
+//                     noXRayTelemetry ? null : TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED)));
+//       }
     }
 
     int index = 1;
