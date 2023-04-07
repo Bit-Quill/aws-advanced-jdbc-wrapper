@@ -90,6 +90,8 @@ public class TestEnvironment implements AutoCloseable {
   public static TestEnvironment build(TestEnvironmentRequest request) {
     TestEnvironment env = new TestEnvironment(request);
 
+    initAwsCredentials(env);
+
     switch (request.getDatabaseEngineDeployment()) {
       case DOCKER:
         initDatabaseParams(env);
@@ -227,12 +229,10 @@ public class TestEnvironment implements AutoCloseable {
 
     switch (env.info.getRequest().getDatabaseInstances()) {
       case SINGLE_INSTANCE:
-        initAwsCredentials(env);
         env.numOfInstances = 1;
         createAuroraDbCluster(env, 1);
         break;
       case MULTI_INSTANCE:
-        initAwsCredentials(env);
 
         env.numOfInstances = env.info.getRequest().getNumOfInstances();
         if (env.numOfInstances < 1 || env.numOfInstances > 15) {
@@ -434,6 +434,14 @@ public class TestEnvironment implements AutoCloseable {
   }
 
   private static void initAwsCredentials(TestEnvironment env) {
+
+    if (!env.info
+        .getRequest()
+        .getFeatures()
+        .contains(TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED)) {
+      return;
+    }
+
     env.awsAccessKeyId = System.getenv("AWS_ACCESS_KEY_ID");
     env.awsSecretAccessKey = System.getenv("AWS_SECRET_ACCESS_KEY");
     env.awsSessionToken = System.getenv("AWS_SESSION_TOKEN");
@@ -445,15 +453,10 @@ public class TestEnvironment implements AutoCloseable {
       throw new RuntimeException("Environment variable AWS_SECRET_ACCESS_KEY is required.");
     }
 
-    if (env.info
-        .getRequest()
-        .getFeatures()
-        .contains(TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED)) {
-      env.info.setAwsAccessKeyId(env.awsAccessKeyId);
-      env.info.setAwsSecretAccessKey(env.awsSecretAccessKey);
-      if (!StringUtils.isNullOrEmpty(env.awsSessionToken)) {
-        env.info.setAwsSessionToken(env.awsSessionToken);
-      }
+    env.info.setAwsAccessKeyId(env.awsAccessKeyId);
+    env.info.setAwsSecretAccessKey(env.awsSecretAccessKey);
+    if (!StringUtils.isNullOrEmpty(env.awsSessionToken)) {
+      env.info.setAwsSessionToken(env.awsSessionToken);
     }
   }
 
@@ -606,6 +609,7 @@ public class TestEnvironment implements AutoCloseable {
         .getRequest()
         .getFeatures()
         .contains(TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED)) {
+
       env.telemetryXRayContainer
           .withEnv("AWS_ACCESS_KEY_ID", env.awsAccessKeyId)
           .withEnv("AWS_SECRET_ACCESS_KEY", env.awsSecretAccessKey)

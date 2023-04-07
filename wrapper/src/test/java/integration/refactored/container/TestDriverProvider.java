@@ -21,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.platform.commons.util.AnnotationUtils.isAnnotated;
 
 import com.amazonaws.xray.AWSXRay;
+import com.amazonaws.xray.entities.Segment;
+import com.amazonaws.xray.entities.Subsegment;
 import integration.container.aurora.TestAuroraHostListProvider;
 import integration.container.aurora.TestPluginServiceImpl;
 import integration.refactored.DatabaseEngineDeployment;
@@ -32,6 +34,7 @@ import integration.refactored.container.condition.EnableBasedOnEnvironmentFeatur
 import integration.refactored.container.condition.EnableBasedOnTestDriverExtension;
 import integration.refactored.container.condition.MakeSureFirstInstanceWriter;
 import integration.util.AuroraTestUtility;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,8 +52,6 @@ import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
 
 public class TestDriverProvider implements TestTemplateInvocationContextProvider {
   private static final Logger LOGGER = Logger.getLogger(TestDriverProvider.class.getName());
-
-  private boolean telemetryEnabled = false;
 
   @Override
   public boolean supportsTestTemplate(ExtensionContext context) {
@@ -94,16 +95,24 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
             new BeforeEachCallback() {
               @Override
               public void beforeEach(ExtensionContext context) throws Exception {
-                telemetryEnabled = TestEnvironment.getCurrent()
+                boolean telemetryEnabled = TestEnvironment.getCurrent()
                     .getInfo()
                     .getRequest()
                     .getFeatures()
                     .contains(TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED);
 
                 if (telemetryEnabled) {
-                  AWSXRay.beginSegment("integration test");
+                  String testName = "unknown test";
+                  if (context.getElement().isPresent() && context.getElement().get() instanceof Method) {
+                    Method method = (Method)context.getElement().get();
+                    testName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
+                  }
+
+                  Segment segment = AWSXRay.beginSegment(testName);
                   LOGGER.finest("[XRAY] Opened test segment.");
+                  LOGGER.finest("[XRAY] Reference: " + segment.getId());
                   AWSXRay.beginSubsegment("test setup");
+                  AWSXRay.sendSegment(segment);
                 }
 
                 DriverHelper.unregisterAllDrivers();
@@ -176,15 +185,25 @@ public class TestDriverProvider implements TestTemplateInvocationContextProvider
                 }
                 if (telemetryEnabled) {
                   AWSXRay.endSubsegment();
-                  AWSXRay.beginSubsegment(context.getElement().toString());
+                  Subsegment subsegment = AWSXRay.beginSubsegment("test");
+                  LOGGER.finest("XRay reference: " + subsegment.getId());
                 }
               }
             },
             new AfterEachCallback() {
               @Override
               public void afterEach(ExtensionContext context) throws Exception {
+                boolean telemetryEnabled = TestEnvironment.getCurrent()
+                    .getInfo()
+                    .getRequest()
+                    .getFeatures()
+                    .contains(TestEnvironmentFeatures.TELEMETRY_XRAY_ENABLED);
+
                 if (telemetryEnabled) {
+                  AWSXRay.endSubsegment();
+                  Segment segment = AWSXRay.getCurrentSegment();
                   AWSXRay.endSegment();
+                  AWSXRay.sendSegment(segment);
                   LOGGER.finest("[XRAY] Closed test segment.");
                 }
               }

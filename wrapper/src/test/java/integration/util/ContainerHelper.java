@@ -172,6 +172,7 @@ public class ContainerHelper {
                             "-t", "0.0.0.0:2000",
                             "-b", "0.0.0.0:2000",
                             "--local-mode",
+                            "--log-level", "debug",
                             "--region", xrayAwsRegion)
                         .build()))
         .withFixedExposedPort(2000, 2000, InternetProtocol.UDP)

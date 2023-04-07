@@ -86,6 +86,7 @@ public class TestEnvironmentProvider implements TestTemplateInvocationContextPro
                     DatabaseEngineDeployment.DOCKER,
                     testHibernateOnly ? TargetJvm.OPENJDK11 : TargetJvm.OPENJDK8,
                     TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED,
+                    TestEnvironmentFeatures.AWS_CREDENTIALS_ENABLED, // TODO: remove
                     noHikari ? null : TestEnvironmentFeatures.HIKARI,
                     noMysqlDriver ? TestEnvironmentFeatures.SKIP_MYSQL_DRIVER_TESTS : null,
                     noPgDriver ? TestEnvironmentFeatures.SKIP_PG_DRIVER_TESTS : null,
