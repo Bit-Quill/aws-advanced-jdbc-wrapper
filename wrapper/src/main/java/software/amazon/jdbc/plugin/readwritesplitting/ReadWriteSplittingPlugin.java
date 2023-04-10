@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -161,7 +160,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     final String hostToMatch;
     final DynamicHostListProvider hostListProvider =
         (DynamicHostListProvider) this.hostListProviderService.getHostListProvider();
-    if (Objects.equals(RdsUrlType.RDS_INSTANCE, urlType)) {
+    if (RdsUrlType.RDS_INSTANCE.equals(urlType)) {
       hostToMatch = currentHost.getUrl();
       currentHostRole = hostListProvider.getHostRole(currentHost);
     } else {

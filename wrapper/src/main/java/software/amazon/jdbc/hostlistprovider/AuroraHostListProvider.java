@@ -627,6 +627,16 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
     return HostRole.UNKNOWN;
   }
 
+  @Override
+  public HostRole getHostRole(String instanceName) throws SQLException {
+    refresh();
+    HostSpec topologyHost = getHostSpecFromInstanceId(instanceName);
+    if (topologyHost != null) {
+      return topologyHost.getRole();
+    }
+    return HostRole.UNKNOWN;
+  }
+
   private HostSpec getHostSpecFromUrl(final String url) {
     if (url == null) {
       return null;
@@ -639,16 +649,6 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
     }
 
     return null;
-  }
-
-  @Override
-  public HostRole getHostRole(String instanceName) throws SQLException {
-    refresh();
-    HostSpec topologyHost = getHostSpecFromInstanceId(instanceName);
-    if (topologyHost != null) {
-      return topologyHost.getRole();
-    }
-    return HostRole.UNKNOWN;
   }
 
   private HostSpec getHostSpecFromInstanceId(final String instanceId) {
