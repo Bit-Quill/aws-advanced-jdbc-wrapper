@@ -600,74 +600,7 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
   }
 
   @Override
-  public HostRole getHostRole(HostSpec hostSpec) throws SQLException {
-    final RdsUrlType urlType = rdsHelper.identifyRdsType(hostSpec.getHost());
-    if (RdsUrlType.RDS_WRITER_CLUSTER.equals(urlType)) {
-      return HostRole.WRITER;
-    } else if (RdsUrlType.RDS_READER_CLUSTER.equals(urlType)) {
-      return HostRole.READER;
-    }
-
-    refresh();
-    if (RdsUrlType.RDS_INSTANCE.equals(urlType)) {
-      HostSpec topologyHost = getHostSpecFromUrl(hostSpec.getUrl());
-      if (topologyHost != null) {
-        return topologyHost.getRole();
-      }
-    }
-    return HostRole.UNKNOWN;
-  }
-
-  @Override
-  public HostRole getHostRole(String instanceName) throws SQLException {
-    refresh();
-    HostSpec topologyHost = getHostSpecFromInstanceId(instanceName);
-    if (topologyHost != null) {
-      return topologyHost.getRole();
-    }
-    return HostRole.UNKNOWN;
-  }
-
-  private HostSpec getHostSpecFromUrl(final String url) {
-    if (url == null) {
-      return null;
-    }
-
-    for (final HostSpec host : this.hostList) {
-      if (host.getUrl().equals(url)) {
-        return host;
-      }
-    }
-
+  public HostRole getHostRole(Connection conn) throws SQLException {
     return null;
-  }
-
-  private HostSpec getHostSpecFromInstanceId(final String instanceId) {
-    if (instanceId == null) {
-      return null;
-    }
-
-    for (final HostSpec host : this.hostList) {
-      if (host.getUrl().startsWith(instanceId)) {
-        return host;
-      }
-    }
-
-    return null;
-  }
-
-  @Override
-  public String getInstanceId(Connection conn) {
-    String instanceName = null;
-    try (final Statement stmt = conn.createStatement();
-         final ResultSet resultSet = stmt.executeQuery(getInstanceNameQuery)) {
-      if (resultSet.next()) {
-        instanceName = resultSet.getString(instanceNameCol);
-      }
-    } catch (final SQLException e) {
-      return null;
-    }
-
-    return instanceName;
   }
 }
