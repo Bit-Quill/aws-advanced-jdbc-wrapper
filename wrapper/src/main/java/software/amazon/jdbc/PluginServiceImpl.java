@@ -325,7 +325,7 @@ public class PluginServiceImpl implements PluginService, CanReleaseResources,
   @Override
   public void refreshHostList() throws SQLException {
     final List<HostSpec> updatedHostList = this.getHostListProvider().refresh();
-    if (updatedHostList != null && updatedHostList != this.hosts) {
+    if (updatedHostList != null) {
       updateHostAvailability(updatedHostList);
       setNodeList(this.hosts, updatedHostList);
     }
