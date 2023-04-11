@@ -115,6 +115,11 @@ public class ReadWriteSplittingPluginTest {
         .thenReturn(readerHostSpec1);
     when(this.mockPluginService.connect(eq(writerHostSpec), any(Properties.class)))
         .thenReturn(mockWriterConn);
+    when(this.mockPluginService.getInitialConnectionHostSpec()).thenReturn(writerHostSpec);
+    when(this.mockPluginService.getHostRole(mockWriterConn)).thenReturn(HostRole.WRITER);
+    when(this.mockPluginService.getHostRole(mockReaderConn1)).thenReturn(HostRole.READER);
+    when(this.mockPluginService.getHostRole(mockReaderConn2)).thenReturn(HostRole.READER);
+    when(this.mockPluginService.getHostRole(mockReaderConn3)).thenReturn(HostRole.READER);
     when(this.mockPluginService.connect(eq(readerHostSpec1), any(Properties.class)))
         .thenReturn(mockReaderConn1);
     when(this.mockPluginService.connect(eq(readerHostSpec2), any(Properties.class)))
@@ -388,8 +393,7 @@ public class ReadWriteSplittingPluginTest {
 
   @Test
   public void testConnectRdsInstanceUrl() throws SQLException {
-    when(this.mockPluginService.getCurrentConnection()).thenReturn(null);
-    when(this.mockPluginService.getCurrentHostSpec()).thenReturn(readerHostSpecWithIncorrectRole);
+    when(this.mockPluginService.getInitialConnectionHostSpec()).thenReturn(readerHostSpecWithIncorrectRole);
     when(this.mockConnectFunc.call()).thenReturn(mockReaderConn1);
 
     final ReadWriteSplittingPlugin plugin = new ReadWriteSplittingPlugin(
@@ -411,11 +415,9 @@ public class ReadWriteSplittingPluginTest {
   }
 
   @Test
-  public void testConnectIpUrl() throws SQLException {
-    when(this.mockPluginService.getCurrentConnection()).thenReturn(null);
-    when(this.mockPluginService.getCurrentHostSpec()).thenReturn(readerHostSpecWithIncorrectRole);
+  public void testConnectReaderIpUrl() throws SQLException {
     when(this.mockConnectFunc.call()).thenReturn(mockReaderConn1);
-    when(mockResultSet.getString(any(String.class))).thenReturn("instance-1");
+    when(this.mockPluginService.getInitialConnectionHostSpec()).thenReturn(readerHostSpecWithIncorrectRole);
 
     final ReadWriteSplittingPlugin plugin = new ReadWriteSplittingPlugin(
         mockPluginService,
@@ -433,8 +435,6 @@ public class ReadWriteSplittingPluginTest {
 
   @Test
   public void testConnectClusterUrl() throws SQLException {
-    when(this.mockPluginService.getCurrentConnection()).thenReturn(null);
-
     final ReadWriteSplittingPlugin plugin = new ReadWriteSplittingPlugin(
         mockPluginService,
         defaultProps,
@@ -450,9 +450,9 @@ public class ReadWriteSplittingPluginTest {
   }
 
   @Test
-  public void testConnect_errorUpdatingHostSpec() {
-    when(this.mockPluginService.getCurrentConnection()).thenReturn(null);
-
+  public void testConnect_errorUpdatingHostSpec() throws SQLException {
+    when(this.mockConnectFunc.call()).thenReturn(mockReaderConn1);
+    when(this.mockPluginService.getHostRole(mockReaderConn1)).thenReturn(null);
     final ReadWriteSplittingPlugin plugin = new ReadWriteSplittingPlugin(
         mockPluginService,
         defaultProps,
