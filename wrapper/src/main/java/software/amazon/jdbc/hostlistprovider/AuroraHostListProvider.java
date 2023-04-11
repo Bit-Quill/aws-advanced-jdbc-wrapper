@@ -84,10 +84,9 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
           // filter out nodes that haven't been updated in the last 5 minutes
           + "WHERE time_to_sec(timediff(now(), LAST_UPDATE_TIMESTAMP)) <= 300 OR SESSION_ID = 'MASTER_SESSION_ID' "
           + "ORDER BY LAST_UPDATE_TIMESTAMP";
-  static final String PG_GET_INSTANCE_NAME_SQL = "SELECT aurora_db_instance_identifier()";
-  static final String MYSQL_GET_INSTANCE_NAME_SQL = "SELECT @@aurora_server_id";
-  static final String PG_INSTANCE_NAME_COL = "aurora_db_instance_identifier";
-  static final String MYSQL_INSTANCE_NAME_COL = "@@aurora_server_id";
+  private static final String PG_IS_READER_QUERY = "SELECT pg_is_in_recovery() AS is_reader";
+  private static final String MYSQL_IS_READER_QUERY = "SELECT @@innodb_read_only AS is_reader";
+  private static final String IS_READER_COLUMN = "is_reader";
   static final String WRITER_SESSION_ID = "MASTER_SESSION_ID";
   static final String FIELD_SERVER_ID = "SERVER_ID";
   static final String FIELD_SESSION_ID = "SESSION_ID";
@@ -110,8 +109,7 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
 
   private static final String PG_DRIVER_PROTOCOL = "postgresql";
   private final String retrieveTopologyQuery;
-  private final String getInstanceNameQuery;
-  private final String instanceNameCol;
+  private final String isReaderQuery;
   private final ReentrantLock lock = new ReentrantLock();
   protected String clusterId;
   protected HostSpec clusterInstanceTemplate;
@@ -149,12 +147,10 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
 
     if (driverProtocol.contains(PG_DRIVER_PROTOCOL)) {
       retrieveTopologyQuery = PG_RETRIEVE_TOPOLOGY_SQL;
-      getInstanceNameQuery = PG_GET_INSTANCE_NAME_SQL;
-      instanceNameCol = PG_INSTANCE_NAME_COL;
+      isReaderQuery = PG_IS_READER_QUERY;
     } else {
       retrieveTopologyQuery = MYSQL_RETRIEVE_TOPOLOGY_SQL;
-      getInstanceNameQuery = MYSQL_GET_INSTANCE_NAME_SQL;
-      instanceNameCol = MYSQL_INSTANCE_NAME_COL;
+      isReaderQuery = MYSQL_IS_READER_QUERY;
     }
   }
 
@@ -541,43 +537,6 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
     }
   }
 
-  public static void logCache() {
-    LOGGER.finest(() -> {
-      StringBuilder sb = new StringBuilder();
-      final Set<Entry<String, List<HostSpec>>> cacheEntries = topologyCache.getEntries().entrySet();
-
-      if (cacheEntries.isEmpty()) {
-        sb.append("Cache is empty.");
-        return sb.toString();
-      }
-
-      for (Entry<String, List<HostSpec>> entry : cacheEntries) {
-        final List<HostSpec> hosts = entry.getValue();
-        final Boolean isPrimaryCluster = primaryClusterIdCache.get(entry.getKey());
-        final String suggestedPrimaryClusterId = suggestedPrimaryClusterIdCache.get(entry.getKey());
-
-        if (sb.length() > 0) {
-          sb.append("\n");
-        }
-        sb.append("[").append(entry.getKey()).append("]:\n")
-            .append("\tisPrimaryCluster: ")
-            .append(isPrimaryCluster == null ? false : isPrimaryCluster).append("\n")
-            .append("\tsuggestedPrimaryCluster: ")
-            .append(suggestedPrimaryClusterId).append("\n")
-            .append("\tHosts: ");
-
-        if (hosts == null) {
-          sb.append("<null>");
-        } else {
-          for (HostSpec h : hosts) {
-            sb.append("\n\t").append(h);
-          }
-        }
-      }
-      return sb.toString();
-    });
-  }
-
   static class FetchTopologyResult {
 
     public List<HostSpec> hosts;
@@ -601,6 +560,16 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
 
   @Override
   public HostRole getHostRole(Connection conn) throws SQLException {
-    return null;
+    try (final Statement stmt = conn.createStatement();
+         final ResultSet rs = stmt.executeQuery(isReaderQuery)) {
+      if (rs.next()) {
+        boolean isReader = rs.getBoolean(IS_READER_COLUMN);
+        return isReader ? HostRole.READER : HostRole.WRITER;
+      }
+    } catch (SQLException e) {
+      throw new SQLException(Messages.get("AuroraHostListProvider.errorGettingHostRole"), e);
+    }
+
+    throw new SQLException(Messages.get("AuroraHostListProvider.errorGettingHostRole"));
   }
 }

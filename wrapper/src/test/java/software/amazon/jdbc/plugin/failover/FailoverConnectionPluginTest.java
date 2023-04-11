@@ -534,18 +534,8 @@ class FailoverConnectionPluginTest {
     }
 
     @Override
-    public HostRole getHostRole(HostSpec hostSpec) {
+    public HostRole getHostRole(Connection conn) {
       return HostRole.WRITER;
-    }
-
-    @Override
-    public HostRole getHostRole(String instanceName) {
-      return HostRole.WRITER;
-    }
-
-    @Override
-    public String getInstanceId(Connection conn) {
-      return "instance-id";
     }
   }
 }

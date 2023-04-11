@@ -135,16 +135,7 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     }
 
     final HostSpec currentHost = this.pluginService.getInitialConnectionHostSpec();
-    HostRole currentRole = null;
-    try {
-      currentRole = this.pluginService.getHostRole(currentConnection);
-    } catch (SQLException e) {
-      logAndThrowException(
-          Messages.get("ReadWriteSplittingPlugin.errorVerifyingInitialHostSpecRole"),
-          e.getSQLState(),
-          e);
-    }
-
+    HostRole currentRole = this.pluginService.getHostRole(currentConnection);
     if (currentRole == null || HostRole.UNKNOWN.equals(currentRole)) {
       logAndThrowException(
           Messages.get("ReadWriteSplittingPlugin.errorVerifyingInitialHostSpecRole"));
