@@ -100,6 +100,7 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
       : TimeUnit.MILLISECONDS.toNanos(30000);
   private final long suggestedClusterIdRefreshRateNano = TimeUnit.MINUTES.toNanos(10);
   private List<HostSpec> hostList = new ArrayList<>();
+  private List<HostSpec> lastReturnedHostList;
   private List<HostSpec> initialHostList = new ArrayList<>();
   private HostSpec initialHostSpec;
 
@@ -481,7 +482,12 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
     final FetchTopologyResult results = getTopology(currentConnection, false);
     LOGGER.finest(() -> Utils.logTopology(results.hosts));
 
+    if (results.isCachedData && this.lastReturnedHostList == results.hosts) {
+      return null; // no topology update
+    }
+
     this.hostList = results.hosts;
+    this.lastReturnedHostList = this.hostList;
     return Collections.unmodifiableList(hostList);
   }
 
@@ -500,6 +506,7 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
     final FetchTopologyResult results = getTopology(currentConnection, true);
     LOGGER.finest(() -> Utils.logTopology(results.hosts));
     this.hostList = results.hosts;
+    this.lastReturnedHostList = this.hostList;
     return Collections.unmodifiableList(this.hostList);
   }
 
