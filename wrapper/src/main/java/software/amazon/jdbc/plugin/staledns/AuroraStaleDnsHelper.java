@@ -27,6 +27,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
+import software.amazon.jdbc.HostListProviderService;
 import software.amazon.jdbc.HostRole;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.JdbcCallable;
@@ -56,6 +57,7 @@ public class AuroraStaleDnsHelper {
   }
 
   public Connection getVerifiedConnection(
+      final HostListProviderService hostListProviderService,
       final String driverProtocol,
       HostSpec hostSpec,
       Properties props,
@@ -135,6 +137,7 @@ public class AuroraStaleDnsHelper {
           new Object[]{this.writerHostSpec}));
 
       Connection writerConn = this.pluginService.connect(this.writerHostSpec, props);
+      hostListProviderService.setInitialConnectionHostSpec(this.writerHostSpec);
 
       if (conn != null) {
         try {

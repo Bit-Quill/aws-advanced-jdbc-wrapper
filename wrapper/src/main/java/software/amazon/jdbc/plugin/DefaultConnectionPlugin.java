@@ -146,15 +146,13 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
     // It's guaranteed that this plugin is always the last in plugin chain so connectFunc can be
     // ignored.
-    return connectInternal(driverProtocol, hostSpec, props, connProvider, isInitialConnection);
+    return connectInternal(driverProtocol, hostSpec, props, connProvider);
   }
 
-  private Connection connectInternal(String driverProtocol, HostSpec hostSpec, Properties props,
-      ConnectionProvider connProvider, boolean isInitialConnection) throws SQLException {
+  private Connection connectInternal(
+      String driverProtocol, HostSpec hostSpec, Properties props, ConnectionProvider connProvider)
+      throws SQLException {
     final Connection conn = connProvider.connect(driverProtocol, hostSpec, props);
-    if (isInitialConnection) {
-      this.pluginService.setCurrentConnection(conn, hostSpec);
-    }
     this.pluginService.setAvailability(hostSpec.asAliases(), HostAvailability.AVAILABLE);
     return conn;
   }
@@ -172,7 +170,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
     // It's guaranteed that this plugin is always the last in plugin chain so forceConnectFunc can be
     // ignored.
-    return connectInternal(driverProtocol, hostSpec, props, connProvider, isInitialConnection);
+    return connectInternal(driverProtocol, hostSpec, props, connProvider);
   }
 
   @Override
