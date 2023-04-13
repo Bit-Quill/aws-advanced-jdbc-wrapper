@@ -544,6 +544,43 @@ public class AuroraHostListProvider implements DynamicHostListProvider {
     }
   }
 
+  public static void logCache() {
+    LOGGER.finest(() -> {
+      StringBuilder sb = new StringBuilder();
+      final Set<Entry<String, List<HostSpec>>> cacheEntries = topologyCache.getEntries().entrySet();
+
+      if (cacheEntries.isEmpty()) {
+        sb.append("Cache is empty.");
+        return sb.toString();
+      }
+
+      for (Entry<String, List<HostSpec>> entry : cacheEntries) {
+        final List<HostSpec> hosts = entry.getValue();
+        final Boolean isPrimaryCluster = primaryClusterIdCache.get(entry.getKey());
+        final String suggestedPrimaryClusterId = suggestedPrimaryClusterIdCache.get(entry.getKey());
+
+        if (sb.length() > 0) {
+          sb.append("\n");
+        }
+        sb.append("[").append(entry.getKey()).append("]:\n")
+            .append("\tisPrimaryCluster: ")
+            .append(isPrimaryCluster != null && isPrimaryCluster).append("\n")
+            .append("\tsuggestedPrimaryCluster: ")
+            .append(suggestedPrimaryClusterId).append("\n")
+            .append("\tHosts: ");
+
+        if (hosts == null) {
+          sb.append("<null>");
+        } else {
+          for (HostSpec h : hosts) {
+            sb.append("\n\t").append(h);
+          }
+        }
+      }
+      return sb.toString();
+    });
+  }
+
   static class FetchTopologyResult {
 
     public List<HostSpec> hosts;
