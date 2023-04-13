@@ -84,8 +84,8 @@ public class AuroraStaleDnsPlugin extends AbstractConnectionPlugin {
       final boolean isInitialConnection,
       final JdbcCallable<Connection, SQLException> connectFunc)
       throws SQLException {
-    return this.helper.getVerifiedConnection(
-        this.hostListProviderService, driverProtocol, hostSpec, props, connectFunc);
+    return this.helper.getVerifiedConnection(isInitialConnection, this.hostListProviderService,
+        driverProtocol, hostSpec, props, connectFunc);
   }
 
   @Override
@@ -96,8 +96,8 @@ public class AuroraStaleDnsPlugin extends AbstractConnectionPlugin {
       final boolean isInitialConnection,
       final JdbcCallable<Connection, SQLException> forceConnectFunc)
       throws SQLException {
-    return this.helper.getVerifiedConnection(
-        this.hostListProviderService, driverProtocol, hostSpec, props, forceConnectFunc);
+    return this.helper.getVerifiedConnection(isInitialConnection, this.hostListProviderService,
+        driverProtocol, hostSpec, props, forceConnectFunc);
   }
 
   @Override

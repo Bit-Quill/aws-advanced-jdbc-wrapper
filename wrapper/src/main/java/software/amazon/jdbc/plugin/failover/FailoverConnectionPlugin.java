@@ -796,8 +796,9 @@ public class FailoverConnectionPlugin extends AbstractConnectionPlugin {
   private Connection connectInternal(String driverProtocol, HostSpec hostSpec, Properties props,
       boolean isInitialConnection, JdbcCallable<Connection, SQLException> connectFunc)
       throws SQLException {
-    final Connection conn = this.staleDnsHelper.getVerifiedConnection(
-        this.hostListProviderService, driverProtocol, hostSpec, props, connectFunc);
+    final Connection conn =
+        this.staleDnsHelper.getVerifiedConnection(isInitialConnection, this.hostListProviderService,
+            driverProtocol, hostSpec, props, connectFunc);
 
     if (isInitialConnection) {
       this.pluginService.refreshHostList(conn);
