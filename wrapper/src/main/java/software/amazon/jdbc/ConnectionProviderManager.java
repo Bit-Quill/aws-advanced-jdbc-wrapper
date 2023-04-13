@@ -122,18 +122,25 @@ public class ConnectionProviderManager {
   }
 
   /**
-   * Select a {@link HostSpec} with the desired role from the given hosts using the requested strategy.
-   * {@link #acceptsStrategy} should be called first to evaluate if the available {@link ConnectionProvider} instances
-   * support the selection of a host with the requested role and strategy.
+   * Select a {@link HostSpec} with the desired role from the given hosts using the requested
+   * strategy. {@link #acceptsStrategy} should be called first to evaluate if the available
+   * {@link ConnectionProvider} instances support the selection of a host with the requested role
+   * and strategy.
    *
    * @param hosts    the list of hosts to select from.
    * @param role     the desired role of the host - either a writer or a reader.
-   * @param strategy the strategy that should be used to select a {@link HostSpec} from the host list (eg "random").
+   * @param strategy the strategy that should be used to select a {@link HostSpec} from the host
+   *                 list (eg "random").
    * @return a {@link HostSpec} with the requested role.
-   * @throws SQLException if the available {@link ConnectionProvider} instances do not support the requested strategy or
-   *                      cannot find a host in the host list matching the requested role.
+   * @throws SQLException                  if the available {@link ConnectionProvider} instances
+   *                                       cannot find a host in the host list matching the
+   *                                       requested role or an error occurs while selecting a
+   *                                       host.
+   * @throws UnsupportedOperationException if the available {@link ConnectionProvider} instances do
+   *                                       not support the requested strategy.
    */
-  public HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy) throws SQLException {
+  public HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy)
+      throws SQLException, UnsupportedOperationException {
     HostSpec host = null;
     if (connProvider != null) {
       connProviderLock.readLock().lock();

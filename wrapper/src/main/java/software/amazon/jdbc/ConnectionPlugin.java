@@ -107,18 +107,23 @@ public interface ConnectionPlugin {
   boolean acceptsStrategy(final HostRole role, final String strategy);
 
   /**
-   * Selects a {@link HostSpec} with the requested role from available hosts using the requested strategy.
-   * {@link #acceptsStrategy} should be called first to evaluate if this {@link ConnectionPlugin} supports the selection
-   * of a host with the requested role and strategy.
+   * Selects a {@link HostSpec} with the requested role from available hosts using the requested
+   * strategy. {@link #acceptsStrategy} should be called first to evaluate if this
+   * {@link ConnectionPlugin} supports the selection of a host with the requested role and
+   * strategy.
    *
    * @param role     the desired role of the host - either a writer or a reader.
-   * @param strategy the strategy that should be used to select a {@link HostSpec} from the available hosts (eg
-   *                 "random").
+   * @param strategy the strategy that should be used to select a {@link HostSpec} from the
+   *                 available hosts (eg "random").
    * @return a {@link HostSpec} with the requested role.
-   * @throws UnsupportedOperationException if this {@link ConnectionPlugin} does not support the requested strategy or
-   *                                       cannot find a host matching the requested role.
+   * @throws SQLException                  if the available hosts do not contain any hosts matching
+   *                                       the requested role or an error occurs while selecting a
+   *                                       host.
+   * @throws UnsupportedOperationException if this {@link ConnectionPlugin} does not support the
+   *                                       requested strategy.
    */
-  HostSpec getHostSpecByStrategy(final HostRole role, final String strategy) throws UnsupportedOperationException;
+  HostSpec getHostSpecByStrategy(final HostRole role, final String strategy)
+      throws SQLException, UnsupportedOperationException;
 
   void initHostProvider(
       final String driverProtocol,

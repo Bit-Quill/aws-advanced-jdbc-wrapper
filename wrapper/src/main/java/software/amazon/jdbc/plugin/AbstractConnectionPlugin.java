@@ -75,7 +75,8 @@ public abstract class AbstractConnectionPlugin implements ConnectionPlugin {
   }
 
   @Override
-  public HostSpec getHostSpecByStrategy(final HostRole role, final String strategy) throws UnsupportedOperationException {
+  public HostSpec getHostSpecByStrategy(final HostRole role, final String strategy)
+      throws UnsupportedOperationException {
     throw new UnsupportedOperationException("getHostSpecByStrategy is not supported by this plugin.");
   }
 
