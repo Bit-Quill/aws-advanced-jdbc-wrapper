@@ -51,8 +51,10 @@ public class ReadWriteSplittingPostgresExample {
     props.setProperty(PropertyDefinition.USER.name, USERNAME);
     props.setProperty(PropertyDefinition.PASSWORD.name, PASSWORD);
 
-    // Optional: configure read-write splitting to use internal connection pools.
-    // The getPoolKey parameter is optional, see UsingTheReadWriteSplittingPlugin.md for more info.
+    /**
+     * Optional: configure read-write splitting to use internal connection pools (the getPoolKey
+     * parameter is optional, see UsingTheReadWriteSplittingPlugin.md for more info).
+     */
     // final HikariPooledConnectionProvider connProvider =
     //     new HikariPooledConnectionProvider(
     //         ReadWriteSplittingPostgresExample::getHikariConfig,
@@ -60,7 +62,7 @@ public class ReadWriteSplittingPostgresExample {
     //     );
     // ConnectionProviderManager.setConnectionProvider(connProvider);
 
-    // Setup Step: Open connection and create tables - uncomment this section to create table and test values
+    /* Setup Step: Open connection and create tables - uncomment this section to create table and test values */
     // try (final Connection connection = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
     // setInitialSessionSettings(connection);
     // executeWithFailoverHandling(connection,
@@ -106,7 +108,7 @@ public class ReadWriteSplittingPostgresExample {
       throw e;
     }
 
-    // Optional: if configured to use internal connection pools, close them here
+    /* Optional: if configured to use internal connection pools, close them here. */
     // ConnectionProviderManager.releaseResources();
   }
 
