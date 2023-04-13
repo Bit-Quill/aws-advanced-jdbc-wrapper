@@ -25,7 +25,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-import java.util.function.Consumer;
 import software.amazon.jdbc.ConnectionProviderManager;
 import software.amazon.jdbc.HikariPooledConnectionProvider;
 import software.amazon.jdbc.HostSpec;
@@ -54,25 +53,21 @@ public class ReadWriteSplittingPostgresExample {
 
     // Optional: configure read-write splitting to use internal connection pools.
     // The getPoolKey parameter is optional, see UsingTheReadWriteSplittingPlugin.md for more info.
-    final HikariPooledConnectionProvider connProvider =
-        new HikariPooledConnectionProvider(
-            ReadWriteSplittingPostgresExample::getHikariConfig,
-            ReadWriteSplittingPostgresExample::getPoolKey
-        );
-    ConnectionProviderManager.setConnectionProvider(connProvider);
+    // final HikariPooledConnectionProvider connProvider =
+    //     new HikariPooledConnectionProvider(
+    //         ReadWriteSplittingPostgresExample::getHikariConfig,
+    //         ReadWriteSplittingPostgresExample::getPoolKey
+    //     );
+    // ConnectionProviderManager.setConnectionProvider(connProvider);
 
     // Setup Step: Open connection and create tables - uncomment this section to create table and test values
-    try (final Connection connection = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
-      setInitialSessionSettings(connection);
-      executeWithFailoverHandling(
-          connection,
-          "CREATE TABLE bank_test (id int primary key, name varchar(40), account_balance int)",
-          null);
-      executeWithFailoverHandling(
-          connection,
-          "INSERT INTO bank_test VALUES (0, 'Jane Doe', 200), (1, 'John Smith', 200), (2, 'Sally Smith', 200), (3, 'Joe Smith', 200)",
-          null);
-    }
+    // try (final Connection connection = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
+    // setInitialSessionSettings(connection);
+    // executeWithFailoverHandling(connection,
+    //    "CREATE TABLE bank_test (id int primary key, name varchar(40), account_balance int)");
+    // executeWithFailoverHandling(connection,
+    //    "INSERT INTO bank_test VALUES (0, 'Jane Doe', 200), (1, 'John Smith', 200), (2, 'Sally Smith', 200), (3, 'Joe Smith', 200)");
+    // }
 
     // Example Step: Open connection and perform transaction
     try (final Connection conn = DriverManager.getConnection(POSTGRESQL_CONNECTION_STRING, props)) {
@@ -83,12 +78,10 @@ public class ReadWriteSplittingPostgresExample {
       // Example business transaction
       executeWithFailoverHandling(
           conn,
-          "UPDATE bank_test SET account_balance=account_balance - 100 WHERE name='Jane Doe'",
-          null);
+          "UPDATE bank_test SET account_balance=account_balance - 100 WHERE name='Jane Doe'");
       executeWithFailoverHandling(
           conn,
-          "UPDATE bank_test SET account_balance=account_balance + 100 WHERE name='John Smith'",
-          null);
+          "UPDATE bank_test SET account_balance=account_balance + 100 WHERE name='John Smith'");
 
       // Commit business transaction
       conn.commit();
@@ -96,10 +89,7 @@ public class ReadWriteSplittingPostgresExample {
       conn.setReadOnly(true);
 
       for (int i = 0; i < 4; i++) {
-        executeWithFailoverHandling(
-            conn,
-            "SELECT * FROM bank_test WHERE id = " + i,
-            ReadWriteSplittingPostgresExample::processResults);
+        executeWithFailoverHandling(conn, "SELECT * FROM bank_test WHERE id = " + i);
       }
 
     } catch (FailoverFailedSQLException e) {
@@ -131,10 +121,10 @@ public class ReadWriteSplittingPostgresExample {
     }
   }
 
-  public static void executeWithFailoverHandling(
-      Connection conn, String query, Consumer<ResultSet> processResults) throws SQLException {
+  public static void executeWithFailoverHandling(Connection conn, String query) throws SQLException {
     try (Statement stmt = conn.createStatement()) {
-      if (stmt.execute(query) && processResults != null) {
+      boolean hasResults = stmt.execute(query);
+      if (hasResults) {
         processResults(stmt.getResultSet());
       }
     } catch (FailoverFailedSQLException e) {
@@ -146,7 +136,8 @@ public class ReadWriteSplittingPostgresExample {
       setInitialSessionSettings(conn);
       // Re-run query
       try (Statement stmt = conn.createStatement()) {
-        if (stmt.execute(query) && processResults != null) {
+        boolean hasResults = stmt.execute(query);
+        if (hasResults) {
           processResults(stmt.getResultSet());
         }
       }
