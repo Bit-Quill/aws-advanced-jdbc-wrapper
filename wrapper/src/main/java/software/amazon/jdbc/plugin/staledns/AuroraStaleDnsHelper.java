@@ -57,6 +57,7 @@ public class AuroraStaleDnsHelper {
   }
 
   public Connection getVerifiedConnection(
+      final boolean isInitialConnection,
       final HostListProviderService hostListProviderService,
       final String driverProtocol,
       HostSpec hostSpec,
@@ -137,7 +138,9 @@ public class AuroraStaleDnsHelper {
           new Object[]{this.writerHostSpec}));
 
       Connection writerConn = this.pluginService.connect(this.writerHostSpec, props);
-      hostListProviderService.setInitialConnectionHostSpec(this.writerHostSpec);
+      if (isInitialConnection) {
+        hostListProviderService.setInitialConnectionHostSpec(this.writerHostSpec);
+      }
 
       if (conn != null) {
         try {
