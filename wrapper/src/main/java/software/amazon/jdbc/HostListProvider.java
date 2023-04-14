@@ -33,9 +33,10 @@ public interface HostListProvider {
   /**
    * Evaluates the host role of the given connection - either a writer or a reader.
    *
-   * @param connection a connection to the database instance whose role should be determined.
-   * @return the role of the given connection - either a writer or a reader.
-   * @throws SQLException if there is a problem executing or processing the SQL query used to determine the host role.
+   * @param connection a connection to the database instance whose role should be determined
+   * @return the role of the given connection - either a writer or a reader
+   * @throws SQLException if there is a problem executing or processing the SQL query used to
+   *                      determine the host role
    */
   HostRole getHostRole(Connection connection) throws SQLException;
 }

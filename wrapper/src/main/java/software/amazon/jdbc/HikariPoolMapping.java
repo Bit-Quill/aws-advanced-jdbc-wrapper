@@ -20,11 +20,13 @@ import java.util.Properties;
 
 @FunctionalInterface
 public interface HikariPoolMapping {
+
   /**
    * A function that can optionally be passed to the {@link HikariPooledConnectionProvider}
    * constructor to define a mapping from the given parameters to an internal connection pool key.
    *
-   * <p>By default, the HikariPooledConnectionProvider will create an internal connection pool for each
+   * <p>By default, the HikariPooledConnectionProvider will create an internal connection pool for
+   * each
    * database instance in the database cluster. This function allows you to define your own key
    * mapping if the default behavior does not suit your needs. For example, if your application
    * establishes multiple connections to the same instance under different users, you can implement
@@ -32,9 +34,9 @@ public interface HikariPoolMapping {
    * in the properties. The resulting HikariPooledConnectionProvider will then create a new internal
    * connection pool for each instance-user combination.
    *
-   * @param hostSpec      the host details for the internal connection pool.
+   * @param hostSpec      the host details for the internal connection pool
    * @param originalProps the properties specified for the original connection through
-   *                      {@link java.sql.DriverManager#getConnection(String, Properties)}.
+   *                      {@link java.sql.DriverManager#getConnection(String, Properties)}
    * @return the key that should be used for the given host and properties. An internal connection
    *     pool will be created for each unique key returned by this function.
    */

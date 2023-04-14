@@ -149,9 +149,9 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
    *                        HikariConfig passed to this method should be created via a
    *                        {@link HikariPoolConfigurator}, which allows the user to specify any
    *                        additional configuration properties.
-   * @param protocol        the driver protocol that should be used to form connections.
-   * @param hostSpec        the host details used to form the connection.
-   * @param connectionProps the connection properties.
+   * @param protocol        the driver protocol that should be used to form connections
+   * @param hostSpec        the host details used to form the connection
+   * @param connectionProps the connection properties
    */
   protected void configurePool(
       HikariConfig config, String protocol, HostSpec hostSpec, Properties connectionProps) {
@@ -182,7 +182,7 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
   /**
    * Returns the number of active connection pools.
    *
-   * @return the number of active connection pools.
+   * @return the number of active connection pools
    */
   public int getHostCount() {
     return databasePools.size();
@@ -191,7 +191,7 @@ public class HikariPooledConnectionProvider implements PooledConnectionProvider,
   /**
    * Returns a set containing every key associated with an active connection pool.
    *
-   * @return a set containing every key associated with an active connection pool.
+   * @return a set containing every key associated with an active connection pool
    */
   public Set<String> getHosts() {
     return Collections.unmodifiableSet(databasePools.keySet());

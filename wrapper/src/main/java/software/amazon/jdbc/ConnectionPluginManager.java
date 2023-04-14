@@ -148,10 +148,10 @@ public class ConnectionPluginManager implements CanReleaseResources {
    * <p>The {@link DefaultConnectionPlugin} will always be initialized and attached as the last
    * connection plugin in the chain.
    *
-   * @param pluginService        A reference to a plugin service that plugin can use.
-   * @param props                The configuration of the connection.
-   * @param pluginManagerService A reference to a plugin manager service.
-   * @throws SQLException if errors occurred during the execution.
+   * @param pluginService        a reference to a plugin service that plugin can use
+   * @param props                the configuration of the connection
+   * @param pluginManagerService a reference to a plugin manager service
+   * @throws SQLException if errors occurred during the execution
    */
   public void init(
       PluginService pluginService, Properties props, PluginManagerService pluginManagerService)
@@ -338,22 +338,26 @@ public class ConnectionPluginManager implements CanReleaseResources {
   }
 
   /**
-   * Establishes a connection to the given host using the given driver protocol and properties. If a non-default
-   * {@link ConnectionProvider} has been set with {@link ConnectionProviderManager#setConnectionProvider} and
-   * {@link ConnectionProvider#acceptsUrl(String, HostSpec, Properties)} returns true for the given protocol, host, and
-   * properties, the connection will be created by the non-default ConnectionProvider. Otherwise, the connection will be
-   * created by the default ConnectionProvider. The default ConnectionProvider will be {@link DriverConnectionProvider}
-   * for connections requested via the {@link java.sql.DriverManager} and {@link DataSourceConnectionProvider} for
-   * connections requested via an {@link software.amazon.jdbc.ds.AwsWrapperDataSource}.
+   * Establishes a connection to the given host using the given driver protocol and properties. If a
+   * non-default {@link ConnectionProvider} has been set with
+   * {@link ConnectionProviderManager#setConnectionProvider} and
+   * {@link ConnectionProvider#acceptsUrl(String, HostSpec, Properties)} returns true for the given
+   * protocol, host, and properties, the connection will be created by the non-default
+   * ConnectionProvider. Otherwise, the connection will be created by the default
+   * ConnectionProvider. The default ConnectionProvider will be {@link DriverConnectionProvider} for
+   * connections requested via the {@link java.sql.DriverManager} and
+   * {@link DataSourceConnectionProvider} for connections requested via an
+   * {@link software.amazon.jdbc.ds.AwsWrapperDataSource}.
    *
-   * @param driverProtocol      the driver protocol that should be used to establish the connection.
-   * @param hostSpec            the host details for the desired connection.
-   * @param props               the connection properties.
-   * @param isInitialConnection a boolean indicating whether the current {@link Connection} is establishing an initial
-   *                            physical connection to the database or has already established a physical connection in
-   *                            the past.
-   * @return a {@link Connection} to the requested host.
-   * @throws SQLException if there was an error establishing a {@link Connection} to the requested host.
+   * @param driverProtocol      the driver protocol that should be used to establish the connection
+   * @param hostSpec            the host details for the desired connection
+   * @param props               the connection properties
+   * @param isInitialConnection a boolean indicating whether the current {@link Connection} is
+   *                            establishing an initial physical connection to the database or has
+   *                            already established a physical connection in the past
+   * @return a {@link Connection} to the requested host
+   * @throws SQLException if there was an error establishing a {@link Connection} to the requested
+   *                      host
    */
   public Connection connect(
       final String driverProtocol,
@@ -378,22 +382,23 @@ public class ConnectionPluginManager implements CanReleaseResources {
   }
 
   /**
-   * Establishes a connection to the given host using the given driver protocol and properties. This call differs from
-   * {@link ConnectionPlugin#connect} in that the default {@link ConnectionProvider} will be used to establish the
-   * connection even if a non-default ConnectionProvider has been set via
-   * {@link ConnectionProviderManager#setConnectionProvider}. The default ConnectionProvider will be
-   * {@link DriverConnectionProvider} for connections requested via the {@link java.sql.DriverManager} and
-   * {@link DataSourceConnectionProvider} for connections requested via an
-   * {@link software.amazon.jdbc.ds.AwsWrapperDataSource}.
+   * Establishes a connection to the given host using the given driver protocol and properties. This
+   * call differs from {@link ConnectionPlugin#connect} in that the default
+   * {@link ConnectionProvider} will be used to establish the connection even if a non-default
+   * ConnectionProvider has been set via {@link ConnectionProviderManager#setConnectionProvider}.
+   * The default ConnectionProvider will be {@link DriverConnectionProvider} for connections
+   * requested via the {@link java.sql.DriverManager} and {@link DataSourceConnectionProvider} for
+   * connections requested via an {@link software.amazon.jdbc.ds.AwsWrapperDataSource}.
    *
-   * @param driverProtocol      the driver protocol that should be used to establish the connection.
-   * @param hostSpec            the host details for the desired connection.
-   * @param props               the connection properties.
-   * @param isInitialConnection a boolean indicating whether the current {@link Connection} is establishing an initial
-   *                            physical connection to the database or has already established a physical connection in
-   *                            the past.
-   * @return a {@link Connection} to the requested host.
-   * @throws SQLException if there was an error establishing a {@link Connection} to the requested host.
+   * @param driverProtocol      the driver protocol that should be used to establish the connection
+   * @param hostSpec            the host details for the desired connection
+   * @param props               the connection properties
+   * @param isInitialConnection a boolean indicating whether the current {@link Connection} is
+   *                            establishing an initial physical connection to the database or has
+   *                            already established a physical connection in the past
+   * @return a {@link Connection} to the requested host
+   * @throws SQLException if there was an error establishing a {@link Connection} to the requested
+   *                      host
    */
   public Connection forceConnect(
       final String driverProtocol,
@@ -418,14 +423,15 @@ public class ConnectionPluginManager implements CanReleaseResources {
   }
 
   /**
-   * Returns a boolean indicating if the available {@link ConnectionProvider} or {@link ConnectionPlugin} instances
-   * support the selection of a host with the requested role and strategy via {@link #getHostSpecByStrategy}.
+   * Returns a boolean indicating if the available {@link ConnectionProvider} or
+   * {@link ConnectionPlugin} instances support the selection of a host with the requested role and
+   * strategy via {@link #getHostSpecByStrategy}.
    *
-   * @param role     the desired host role.
-   * @param strategy the strategy that should be used to pick a host (eg "random").
-   * @return true if the available {@link ConnectionProvider} or {@link ConnectionPlugin} instances support the
-   *     selection of a host with the requested role and strategy via {@link #getHostSpecByStrategy}. Otherwise, return
-   *     false.
+   * @param role     the desired host role
+   * @param strategy the strategy that should be used to pick a host (eg "random")
+   * @return true if the available {@link ConnectionProvider} or {@link ConnectionPlugin} instances
+   *     support the selection of a host with the requested role and strategy via
+   *     {@link #getHostSpecByStrategy}. Otherwise, return false.
    */
   public boolean acceptsStrategy(HostRole role, String strategy) throws SQLException {
     try {
@@ -456,16 +462,16 @@ public class ConnectionPluginManager implements CanReleaseResources {
    * {@link ConnectionProvider} or {@link ConnectionPlugin} instances support the selection of a
    * host with the requested role and strategy.
    *
-   * @param role     the desired role of the host - either a writer or a reader.
+   * @param role     the desired role of the host - either a writer or a reader
    * @param strategy the strategy that should be used to select a {@link HostSpec} from the
-   *                 available hosts (eg "random").
-   * @return a {@link HostSpec} with the requested role.
+   *                 available hosts (eg "random")
+   * @return a {@link HostSpec} with the requested role
    * @throws SQLException                  if the available hosts do not contain any hosts matching
    *                                       the requested role or an error occurs while selecting a
-   *                                       host.
+   *                                       host
    * @throws UnsupportedOperationException if the available {@link ConnectionProvider} or
    *                                       {@link ConnectionPlugin} instances do not support the
-   *                                       requested strategy.
+   *                                       requested strategy
    */
   public HostSpec getHostSpecByStrategy(HostRole role, String strategy)
       throws SQLException, UnsupportedOperationException {
