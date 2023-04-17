@@ -56,6 +56,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.ds.AwsWrapperDataSource;
 import software.amazon.jdbc.hostlistprovider.AuroraHostListProvider;
+import software.amazon.jdbc.plugin.efm.HostMonitoringConnectionPlugin;
 import software.amazon.jdbc.plugin.failover.FailoverConnectionPlugin;
 import software.amazon.jdbc.plugin.failover.FailoverSQLException;
 import software.amazon.jdbc.plugin.failover.FailoverSuccessSQLException;
@@ -161,6 +162,59 @@ public class AuroraFailoverTest {
 
       assertNotEquals(initialWriterId, currentConnectionId);
     }
+  }
+
+  @TestTemplate
+  @EnableOnNumOfInstances(min = 3)
+  @EnableOnTestFeature(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)
+  public void test_failover_efm() throws SQLException {
+    ProxyHelper.disableAllConnectivity();
+
+    final List<TestInstanceInfo> instances = TestEnvironment.getCurrent()
+        .getInfo()
+        .getProxyDatabaseInfo()
+        .getInstances();
+
+    final TestInstanceInfo initialWriterInstanceInfo = instances.get(0);
+    final String writerIdentifier = instances.get(0).getInstanceId();
+    final String readerIdentifier = instances.get(1).getInstanceId();
+    LOGGER.fine("Instance to connect to: " + writerIdentifier);
+    LOGGER.fine("Instance to fail over to: " + readerIdentifier);
+
+    ProxyHelper.enableConnectivity(writerIdentifier);
+    final Properties props = initDefaultProps();
+    DriverHelper.setMonitoringConnectTimeout(props, 3, TimeUnit.SECONDS);
+    DriverHelper.setMonitoringSocketTimeout(props, 3, TimeUnit.SECONDS);
+    props.setProperty(HostMonitoringConnectionPlugin.FAILURE_DETECTION_TIME.name,
+        "2000");
+    props.setProperty(
+        HostMonitoringConnectionPlugin.FAILURE_DETECTION_INTERVAL.name, "1000");
+    props.setProperty(HostMonitoringConnectionPlugin.FAILURE_DETECTION_COUNT.name,
+        "1");
+    props.setProperty("clusterInstanceHostPattern", "?.cqehuo97evco.us-west-2.rds.amazonaws.com.proxied");
+    props.setProperty(FailoverConnectionPlugin.FAILOVER_READER_CONNECT_TIMEOUT_MS.name, "5000");
+
+    // Get a valid connection, then make it fail over to a different instance
+    try (final Connection conn =
+             DriverManager.getConnection(
+                 ConnectionStringHelper.getWrapperUrl(
+                     initialWriterInstanceInfo.getEndpoint(),
+                     initialWriterInstanceInfo.getEndpointPort(),
+                     TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getDefaultDbName()),
+                 props)) {
+      conn.setReadOnly(true);
+      assertTrue(conn.isValid(5));
+      String currentConnectionId = auroraUtil.queryInstanceId(conn);
+      assertTrue(currentConnectionId.equalsIgnoreCase(writerIdentifier));
+      LOGGER.fine("Connected to instance: " + currentConnectionId);
+
+      ProxyHelper.enableConnectivity(readerIdentifier);
+      ProxyHelper.disableConnectivity(writerIdentifier);
+
+      assertThrows(FailoverSuccessSQLException.class, () -> auroraUtil.queryInstanceId(conn));
+    }
+
+    ProxyHelper.enableAllConnectivity();
   }
 
   /**
@@ -614,7 +668,7 @@ public class AuroraFailoverTest {
 
   protected Properties initDefaultProps() {
     final Properties props = ConnectionStringHelper.getDefaultProperties();
-    props.setProperty(PropertyDefinition.PLUGINS.name, "failover");
+    props.setProperty(PropertyDefinition.PLUGINS.name, "failover,efm");
     return props;
   }
 
