@@ -168,7 +168,7 @@ public class ConnectionStringHelper {
     props.setProperty(
         PropertyDefinition.PASSWORD.name,
         TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getPassword());
-    DriverHelper.setTcpKeepAlive(TestEnvironment.getCurrent().getCurrentDriver(), props, false);
+    // DriverHelper.setTcpKeepAlive(TestEnvironment.getCurrent().getCurrentDriver(), props, false);
     return props;
   }
 
