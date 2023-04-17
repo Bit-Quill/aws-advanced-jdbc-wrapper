@@ -211,6 +211,9 @@ public class AuroraFailoverTest {
       ProxyHelper.enableConnectivity(readerIdentifier);
       ProxyHelper.disableConnectivity(writerIdentifier);
 
+      // The monitor thread correctly detects the broken connection, but when it tries to close
+      // it there is a ~5 minute period where nothing seems to happen. After ~5 minutes, failover is
+      // finally kicked off
       assertThrows(FailoverSuccessSQLException.class, () -> auroraUtil.queryInstanceId(conn));
     }
 
