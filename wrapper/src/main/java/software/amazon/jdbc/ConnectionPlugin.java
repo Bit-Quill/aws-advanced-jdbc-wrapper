@@ -102,8 +102,8 @@ public interface ConnectionPlugin {
       throws SQLException;
 
   /**
-   * Returns a boolean indicating if this {@link ConnectionPlugin} supports the selection of a host with the requested
-   * role and strategy via {@link #getHostSpecByStrategy}.
+   * Returns a boolean indicating if this {@link ConnectionPlugin} supports the specified host
+   * selection strategy for the given role in {@link #getHostSpecByStrategy}.
    *
    * @param role     the desired host role
    * @param strategy the strategy that should be used to pick a host (eg "random")
