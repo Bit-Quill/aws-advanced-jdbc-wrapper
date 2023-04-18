@@ -11,8 +11,8 @@ The plugin pipelines available in the driver are:
 - The host list provider pipeline.
 - The connection changed notification pipeline.
 - The node list changed notification pipeline.
-- The accepts strategy pipeline
-- The getHostSpecByStrategy pipeline
+- The accepts strategy pipeline.
+- The getHostSpecByStrategy pipeline.
 
 A plugin does not need to implement all pipelines. A plugin can implement one or more pipelines depending on its functionality.
 
@@ -20,7 +20,7 @@ For information on how to subscribe to these pipelines, please see the documenta
 
 ## Connect Pipeline
 
-The connect pipeline performs any additional setup or post connection steps required to establish a JDBC connection. By default, the connect pipeline will establish connections using the `DriverConnectionProvider` class for Connections requested through the DriverManager and `DataSourceConnectionProvider` class for Connections requested through an `AwsWrapperDataSource`. If you would like to use a non-default `ConnectionProvider` to create connections, you can do so by calling `ConnectionProviderManager.setConnectionProvider(ConnectionProvider)`.
+The connect pipeline performs any additional setup or post connection steps required to establish a JDBC connection. By default, the connect pipeline will establish connections using the `DriverConnectionProvider` class for Connections requested through the `DriverManager` and `DataSourceConnectionProvider` class for Connections requested through an `AwsWrapperDataSource`. If you would like to use a non-default `ConnectionProvider` to create connections, you can do so by calling `ConnectionProviderManager.setConnectionProvider(ConnectionProvider)`.
 
 The most common usage of the connect pipeline is to fetch extra credentials from external locations.
 
@@ -90,5 +90,4 @@ Plugins should subscribe to this pipeline and the getHostSpecByStrategy pipeline
 ## getHostSpecByStrategy pipeline
 
 Plugins should subscribe to this pipeline and the acceptsStrategy pipeline if they implement a host selection strategy. In this case, plugins should override both the `acceptsStrategy` method and the `getHostSpecByStrategy` method. The `acceptsStrategy` method should return true for each strategy that can be processed by the plugin in `getHostSpecByStrategy`. The `getHostSpecByStrategy` method should implement the desired logic for selecting a host using any plugin-accepted strategies. Host selection via a "random" strategy is supported by default.
-
 
