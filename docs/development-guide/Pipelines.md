@@ -28,7 +28,7 @@ An example would be the IAM connection plugin. The IAM connection plugin generat
 
 ## Force Connect Pipeline
 
-The force connect pipeline is similar to the connect pipeline except that it will use the default `DriverConnectionProvider` or `DataSourceConnectionProvider` classes to establish connections regardless of whether a non-default `ConnectionProvider` has been requested via `ConnectionProviderManager.setConnectionProvider(ConnectionProvider)`. For most plugins, the connect and force connect implementation will be equivalent. The main difference is in how the connection will be established at the end of the pipeline.
+The force connect pipeline is similar to the connect pipeline except that it will use the default `DriverConnectionProvider` or `DataSourceConnectionProvider` classes to establish connections regardless of whether a non-default `ConnectionProvider` has been requested via `ConnectionProviderManager.setConnectionProvider(ConnectionProvider)`. For most plugins, the connect and force connect implementation will be equivalent.
 
 ## Execute Pipeline
 

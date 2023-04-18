@@ -39,7 +39,7 @@ Whenever `setReadOnly(true)` is first called on a `Connection` object, the read-
 
 The wrapper driver currently uses [Hikari](https://github.com/brettwooldridge/HikariCP) to create and maintain its internal connection pools. The sample code [here](../../../examples/AWSDriverExample/src/main/java/software/amazon/ReadWriteSplittingPostgresExample.java) provides a useful example of how to enable this feature. The steps are as follows:
 
-1.  Create an instance of `HikariPooledConnectionProvider`. The `HikariPooledConnectionProvider` constructor requires you to pass in a `HikariPoolConfigurator` function. Inside this lambda, you should create a `HikariConfig`, configure any desired properties on it, and return it. Note that the Hikari properties below will be set by default and will override any values you set in your lambda. This is done to follow desired behavior and ensure that the read-write plugin can internally establish connections to new instances.
+1.  Create an instance of `HikariPooledConnectionProvider`. The `HikariPooledConnectionProvider` constructor requires you to pass in a `HikariPoolConfigurator` function. Inside this function, you should create a `HikariConfig`, configure any desired properties on it, and return it. Note that the Hikari properties below will be set by default and will override any values you set in your function. This is done to follow desired behavior and ensure that the read-write plugin can internally establish connections to new instances.
 
 - jdbcUrl (including the host, port, and database)
 - exception override class name
