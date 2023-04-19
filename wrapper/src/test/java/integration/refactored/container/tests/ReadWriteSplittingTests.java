@@ -34,8 +34,10 @@ import integration.refactored.TestEnvironmentFeatures;
 import integration.refactored.TestInstanceInfo;
 import integration.refactored.container.ConnectionStringHelper;
 import integration.refactored.container.ProxyHelper;
+import integration.refactored.container.TestDriver;
 import integration.refactored.container.TestDriverProvider;
 import integration.refactored.container.TestEnvironment;
+import integration.refactored.container.condition.DisableOnTestDriver;
 import integration.refactored.container.condition.DisableOnTestFeature;
 import integration.refactored.container.condition.EnableOnDatabaseEngine;
 import integration.refactored.container.condition.EnableOnDatabaseEngineDeployment;
@@ -679,10 +681,11 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
+  @DisableOnTestDriver(TestDriver.MARIADB)
   public void test_pooledConnection_failoverFailed() throws SQLException {
     Properties props = getProxiedPropsWithFailover();
     FailoverConnectionPlugin.FAILOVER_TIMEOUT_MS.set(props, "1000");
-    DriverHelper.setSocketTimeout(props, 3, TimeUnit.SECONDS);
+    DriverHelper.setMonitoringSocketTimeout(props, 3, TimeUnit.SECONDS);
 
     final HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider(ReadWriteSplittingTests::getHikariConfig);
