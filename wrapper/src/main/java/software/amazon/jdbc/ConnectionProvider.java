@@ -51,7 +51,7 @@ public interface ConnectionProvider {
   boolean acceptsStrategy(@NonNull HostRole role, @NonNull String strategy);
 
   /**
-   * Return a reader or a writer node using the specified strategy. This method should return an
+   * Return a reader or a writer node using the specified strategy. This method should raise an
    * {@link UnsupportedOperationException} if the specified strategy is unsupported.
    *
    * @param hosts    the list of {@link HostSpec} to select from

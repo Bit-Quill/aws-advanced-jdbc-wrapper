@@ -424,8 +424,8 @@ public class ConnectionPluginManager implements CanReleaseResources {
 
   /**
    * Returns a boolean indicating if the available {@link ConnectionProvider} or
-   * {@link ConnectionPlugin} instances support the selection of a host with the requested role and
-   * strategy via {@link #getHostSpecByStrategy}.
+   * {@link ConnectionPlugin} instances implement the selection of a host with the requested role
+   * and strategy via {@link #getHostSpecByStrategy}.
    *
    * @param role     the desired host role
    * @param strategy the strategy that should be used to pick a host (eg "random")

@@ -102,7 +102,7 @@ public interface ConnectionPlugin {
       throws SQLException;
 
   /**
-   * Returns a boolean indicating if this {@link ConnectionPlugin} supports the specified host
+   * Returns a boolean indicating if this {@link ConnectionPlugin} implements the specified host
    * selection strategy for the given role in {@link #getHostSpecByStrategy}.
    *
    * @param role     the desired host role
