@@ -33,7 +33,6 @@ public class MonitorConnectionContext {
   private static final Logger LOGGER = Logger.getLogger(MonitorConnectionContext.class.getName());
   private static final Executor ABORT_EXECUTOR = Executors.newSingleThreadExecutor();
 
-
   private final long failureDetectionIntervalMillis;
   private final long failureDetectionTimeMillis;
   private final long failureDetectionCount;
