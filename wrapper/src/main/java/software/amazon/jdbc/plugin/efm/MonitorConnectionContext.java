@@ -18,6 +18,7 @@ package software.amazon.jdbc.plugin.efm;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -30,6 +31,8 @@ import software.amazon.jdbc.util.Messages;
 public class MonitorConnectionContext {
 
   private static final Logger LOGGER = Logger.getLogger(MonitorConnectionContext.class.getName());
+  private static final Executor ABORT_EXECUTOR = Executors.newSingleThreadExecutor();
+
 
   private final long failureDetectionIntervalMillis;
   private final long failureDetectionTimeMillis;
@@ -136,7 +139,7 @@ public class MonitorConnectionContext {
     }
 
     try {
-      this.connectionToAbort.abort(Executors.newSingleThreadExecutor());
+      this.connectionToAbort.abort(ABORT_EXECUTOR);
     } catch (SQLException sqlEx) {
       // ignore
       LOGGER.finest(

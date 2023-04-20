@@ -681,7 +681,6 @@ public class ReadWriteSplittingTests {
 
   @TestTemplate
   @EnableOnTestFeature({TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED})
-  @DisableOnTestDriver(TestDriver.MARIADB)
   public void test_pooledConnection_failoverFailed() throws SQLException {
     Properties props = getProxiedPropsWithFailover();
     FailoverConnectionPlugin.FAILOVER_TIMEOUT_MS.set(props, "1000");
