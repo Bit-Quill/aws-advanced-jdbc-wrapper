@@ -155,4 +155,6 @@ public interface PluginService extends ExceptionHandler {
   HostSpec identifyConnection(final Connection connection) throws SQLException;
 
   void fillAliases(final Connection connection, final HostSpec hostSpec) throws SQLException;
+
+  ConnectionProvider getConnectionProvider();
 }

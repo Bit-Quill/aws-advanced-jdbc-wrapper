@@ -21,13 +21,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -97,6 +97,7 @@ public class ReadWriteSplittingPluginTest {
   @Mock private Statement mockStatement;
   @Mock private ResultSet mockResultSet;
   @Mock private EnumSet<NodeChangeOptions> mockChanges;
+  @Mock private DatabaseMetaData mockDatabaseMetaData;
 
   @BeforeEach
   public void init() throws SQLException {
@@ -136,6 +137,11 @@ public class ReadWriteSplittingPluginTest {
     when(mockStatement.executeQuery(any(String.class))).thenReturn(mockResultSet);
     when(mockResultSet.next()).thenReturn(true);
     when(mockClosedWriterConn.isClosed()).thenReturn(true);
+    when(mockReaderConn1.getMetaData()).thenReturn(mockDatabaseMetaData);
+    when(mockReaderConn2.getMetaData()).thenReturn(mockDatabaseMetaData);
+    when(mockReaderConn3.getMetaData()).thenReturn(mockDatabaseMetaData);
+    when(mockWriterConn.getMetaData()).thenReturn(mockDatabaseMetaData);
+    when(mockDatabaseMetaData.getURL()).thenReturn("jdbc:postgresql://testUrl");
   }
 
   @Test

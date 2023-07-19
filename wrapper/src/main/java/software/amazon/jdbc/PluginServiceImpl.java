@@ -66,6 +66,11 @@ public class PluginServiceImpl implements PluginService, CanReleaseResources,
   protected final DialectProvider dialectProvider;
   protected Dialect dialect;
 
+  @Override
+  public ConnectionProvider getConnectionProvider() {
+    return this.pluginManager.defaultConnProvider;
+  }
+
   public PluginServiceImpl(
       @NonNull final ConnectionPluginManager pluginManager,
       @NonNull final Properties props,
