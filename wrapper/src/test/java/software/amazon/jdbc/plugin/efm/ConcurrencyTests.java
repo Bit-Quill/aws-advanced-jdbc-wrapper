@@ -400,6 +400,11 @@ public class ConcurrencyTests {
     public ConnectionProvider getConnectionProvider() {
       return null;
     }
+
+    @Override
+    public String getDriverProtocol() {
+      return null;
+    }
   }
 
   public static class TestConnection implements Connection {

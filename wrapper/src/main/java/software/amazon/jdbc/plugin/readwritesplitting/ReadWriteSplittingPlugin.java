@@ -255,10 +255,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
 
   private void getNewWriterConnection(final HostSpec writerHostSpec) throws SQLException {
     final Connection conn = this.pluginService.connect(writerHostSpec, this.properties);
-    final String driverProtocol = conn.getMetaData().getURL().split("//", 2)[0];
-    this.isWriterConnFromInternalPool =
-        this.connProviderManager.getConnectionProvider(driverProtocol, writerHostSpec, this.properties)
-            instanceof PooledConnectionProvider;
+    this.isWriterConnFromInternalPool = this.connProviderManager.getConnectionProvider(
+        this.pluginService.getDriverProtocol(),
+        writerHostSpec,
+        this.properties)
+        instanceof PooledConnectionProvider;
     setWriterConnection(conn, writerHostSpec);
     switchCurrentConnectionTo(this.writerConnection, writerHostSpec);
   }
@@ -498,10 +499,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
       HostSpec hostSpec = this.pluginService.getHostSpecByStrategy(HostRole.READER, this.readerSelectorStrategy);
       try {
         conn = this.pluginService.connect(hostSpec, this.properties);
-        final String driverProtocol = conn.getMetaData().getURL().split("//", 2)[0];
-        this.isReaderConnFromInternalPool =
-            this.connProviderManager.getConnectionProvider(driverProtocol, hostSpec, this.properties)
-                instanceof PooledConnectionProvider;
+        this.isReaderConnFromInternalPool = this.connProviderManager.getConnectionProvider(
+            this.pluginService.getDriverProtocol(),
+            hostSpec,
+            this.properties)
+            instanceof PooledConnectionProvider;
         readerHost = hostSpec;
         break;
       } catch (final SQLException e) {
