@@ -55,9 +55,11 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
           add("connect");
           add("notifyConnectionChanged");
           add("Connection.setReadOnly");
+          add("Connection.clearWarnings");
         }
       });
   static final String METHOD_SET_READ_ONLY = "Connection.setReadOnly";
+  static final String METHOD_CLEAR_WARNINGS = "Connection.clearWarnings";
 
   private final PluginService pluginService;
   private final Properties properties;
@@ -209,6 +211,19 @@ public class ReadWriteSplittingPlugin extends AbstractConnectionPlugin
     if (methodName.equals(METHOD_SET_READ_ONLY) && args != null && args.length > 0) {
       try {
         switchConnectionIfRequired((Boolean) args[0]);
+      } catch (final SQLException e) {
+        throw WrapperUtils.wrapExceptionIfNeeded(exceptionClass, e);
+      }
+    }
+
+    if (methodName.equals(METHOD_CLEAR_WARNINGS)) {
+      try {
+        if (this.writerConnection != null && !this.writerConnection.isClosed()) {
+          this.writerConnection.clearWarnings();
+        }
+        if (this.readerConnection != null && !this.readerConnection.isClosed()) {
+          this.readerConnection.clearWarnings();
+        }
       } catch (final SQLException e) {
         throw WrapperUtils.wrapExceptionIfNeeded(exceptionClass, e);
       }
