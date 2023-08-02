@@ -84,7 +84,7 @@ public class TelemetryTracingXRayExample {
     properties.setProperty(PropertyDefinition.PASSWORD.name, PASSWORD);
 
     properties.setProperty(PropertyDefinition.ENABLE_TELEMETRY.name, String.valueOf(true));
-    properties.setProperty(PropertyDefinition.TELEMETRY_SUBMIT_TOPLEVEL.name, String.valueOf(true));
+    properties.setProperty(PropertyDefinition.TELEMETRY_SUBMIT_TOPLEVEL.name, String.valueOf(false));
     // Traces: Available values are XRAY, OTLP and NONE
     properties.setProperty(PropertyDefinition.TELEMETRY_TRACES_BACKEND.name, "XRAY");
     // Metrics: Available values are OTLP and NONE
