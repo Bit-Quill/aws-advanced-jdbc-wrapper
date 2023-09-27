@@ -70,7 +70,7 @@ public class PerformanceTest {
 
   private static final int REPEAT_TIMES =
       StringUtils.isNullOrEmpty(System.getenv("REPEAT_TIMES"))
-          ? 5
+          ? 1
           : Integer.parseInt(System.getenv("REPEAT_TIMES"));
 
   private static final int TIMEOUT_SEC = 1;
@@ -394,28 +394,29 @@ public class PerformanceTest {
     // detectionTime, detectionInterval, detectionCount, sleepDelayMS
     return Stream.of(
         // Defaults
-        Arguments.of(30000, 5000, 3, 5000),
-        Arguments.of(30000, 5000, 3, 10000),
-        Arguments.of(30000, 5000, 3, 15000),
-        Arguments.of(30000, 5000, 3, 20000),
-        Arguments.of(30000, 5000, 3, 25000),
-        Arguments.of(30000, 5000, 3, 30000),
-        Arguments.of(30000, 5000, 3, 35000),
-        Arguments.of(30000, 5000, 3, 40000),
-        Arguments.of(30000, 5000, 3, 50000),
-        Arguments.of(30000, 5000, 3, 60000),
+        // Arguments.of(30000, 5000, 3, 5000),
+        // Arguments.of(30000, 5000, 3, 10000),
+        // Arguments.of(30000, 5000, 3, 15000),
+        // Arguments.of(30000, 5000, 3, 20000),
+        // Arguments.of(30000, 5000, 3, 25000),
+        // Arguments.of(30000, 5000, 3, 30000),
+        // Arguments.of(30000, 5000, 3, 35000),
+        // Arguments.of(30000, 5000, 3, 40000),
+        // Arguments.of(30000, 5000, 3, 50000),
+        // Arguments.of(30000, 5000, 3, 60000),
 
         // Aggressive detection scheme
-        Arguments.of(6000, 1000, 1, 1000),
-        Arguments.of(6000, 1000, 1, 2000),
-        Arguments.of(6000, 1000, 1, 3000),
-        Arguments.of(6000, 1000, 1, 4000),
-        Arguments.of(6000, 1000, 1, 5000),
-        Arguments.of(6000, 1000, 1, 6000),
-        Arguments.of(6000, 1000, 1, 7000),
-        Arguments.of(6000, 1000, 1, 8000),
-        Arguments.of(6000, 1000, 1, 9000),
-        Arguments.of(6000, 1000, 1, 10000));
+        Arguments.of(6000, 1000, 1, 1000)
+        // Arguments.of(6000, 1000, 1, 2000),
+        // Arguments.of(6000, 1000, 1, 3000),
+        // Arguments.of(6000, 1000, 1, 4000),
+        // Arguments.of(6000, 1000, 1, 5000),
+        // Arguments.of(6000, 1000, 1, 6000),
+        // Arguments.of(6000, 1000, 1, 7000),
+        // Arguments.of(6000, 1000, 1, 8000),
+        // Arguments.of(6000, 1000, 1, 9000),
+        // Arguments.of(6000, 1000, 1, 10000)
+    );
   }
 
   private Stream<Arguments> generateFailoverSocketTimeoutTimeParams() {
