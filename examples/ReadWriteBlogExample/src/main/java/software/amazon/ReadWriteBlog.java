@@ -40,7 +40,7 @@ public class ReadWriteBlog {
   // 2: r/w splitting using r/w plugin
   // 3: r/w plugin with internal connection pools
   static final int APPROACH_ID = 1;
-  static final int NUM_THREADS = 1750;
+  static final int NUM_THREADS = 250;
   static final int NUM_WRITES = 2500;
   static final int NUM_READS = 5000;
   static final int MAX_SIMULTANEOUS = 40;
@@ -75,7 +75,7 @@ public class ReadWriteBlog {
   }
 
   public static void main(String[] args) throws SQLException {
-    LOGGER.config(String.format(
+    LOGGER.info(String.format(
         "Approach ID: %d, Total threads: %d, Total writes: %d, Total reads: %d, Max simultaneous: %d, Thread delay: %d",
         APPROACH_ID, NUM_THREADS, NUM_WRITES, NUM_READS, MAX_SIMULTANEOUS, THREAD_DELAY_MS));
 
@@ -100,7 +100,7 @@ public class ReadWriteBlog {
 
     long start = System.nanoTime();
     if (APPROACH_ID == 3) {
-      LOGGER.fine("Enabling internal connection pools...");
+      LOGGER.info("Enabling internal connection pools...");
       final HikariPooledConnectionProvider provider =
           new HikariPooledConnectionProvider(ReadWriteBlog::getHikariConfig);
       ConnectionProviderManager.setConnectionProvider(provider);
@@ -122,7 +122,7 @@ public class ReadWriteBlog {
       }
 
       executorService.shutdown();
-      LOGGER.fine("Awaiting termination...");
+      LOGGER.info("Awaiting termination...");
       boolean successfullyTerminated = executorService.awaitTermination(EXECUTOR_TIMEOUT_MINS, TimeUnit.MINUTES);
       if (!successfullyTerminated) {
         LOGGER.warning(String.format(
@@ -131,12 +131,12 @@ public class ReadWriteBlog {
       }
 
       if (APPROACH_ID == 3) {
-        LOGGER.fine("Closing internal connection pools...");
+        LOGGER.info("Closing internal connection pools...");
         ConnectionProviderManager.releaseResources();
       }
 
       long duration = System.nanoTime() - start;
-      LOGGER.info(String.format("Test completed in %d", TimeUnit.NANOSECONDS.toMillis(duration)));
+      LOGGER.info(String.format("Test completed in %dms", TimeUnit.NANOSECONDS.toMillis(duration)));
     } catch (InterruptedException e) {
       LOGGER.severe("The main thread was interrupted.");
       throw new RuntimeException(e);
