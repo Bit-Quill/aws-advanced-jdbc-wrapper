@@ -20,10 +20,11 @@ import java.lang.ref.WeakReference;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +59,8 @@ public class MonitorImpl implements Monitor {
   protected static final Executor ABORT_EXECUTOR = Executors.newSingleThreadExecutor();
 
   private final Queue<WeakReference<MonitorConnectionContext>> activeContexts = new ConcurrentLinkedQueue<>();
-  private final HashMap<Long, Queue<WeakReference<MonitorConnectionContext>>> newContexts = new HashMap<>();
+  private final Map<Long, Queue<WeakReference<MonitorConnectionContext>>> newContexts =
+      new ConcurrentHashMap<>();
   private final PluginService pluginService;
   private final TelemetryFactory telemetryFactory;
   private final Properties properties;
@@ -188,9 +190,9 @@ public class MonitorImpl implements Monitor {
 
   public void newContextRun() {
 
-    final TelemetryContext telemetryContext = telemetryFactory.openTelemetryContext(
-        "monitoring thread (new contexts)", TelemetryTraceLevel.TOP_LEVEL);
-    telemetryContext.setAttribute("url", this.hostSpec.getUrl());
+    LOGGER.finest(() -> Messages.get(
+        "MonitorImpl.startMonitoringThreadNewContext",
+        new Object[]{this.hostSpec.getHost()}));
 
     try {
       while (!this.stopped.get()) {
@@ -231,16 +233,19 @@ public class MonitorImpl implements Monitor {
                 new Object[]{this.hostSpec.getHost()}),
             ex); // We want to print full trace stack of the exception.
       }
-    } finally {
-      telemetryContext.closeContext();
     }
+
+    LOGGER.finest(() -> Messages.get(
+        "MonitorImpl.stopMonitoringThreadNewContext",
+        new Object[]{this.hostSpec.getHost()}));
   }
 
   @Override
   public void run() {
-    final TelemetryContext telemetryContext = telemetryFactory.openTelemetryContext(
-        "monitoring thread", TelemetryTraceLevel.TOP_LEVEL);
-    telemetryContext.setAttribute("url", hostSpec.getUrl());
+
+    LOGGER.finest(() -> Messages.get(
+        "MonitorImpl.startMonitoringThread",
+        new Object[]{this.hostSpec.getHost()}));
 
     try {
       while (!this.stopped.get()) {
@@ -318,8 +323,11 @@ public class MonitorImpl implements Monitor {
           // ignore
         }
       }
-      telemetryContext.closeContext();
     }
+
+    LOGGER.finest(() -> Messages.get(
+        "MonitorImpl.startMonitoringThread",
+        new Object[]{this.hostSpec.getHost()}));
   }
 
   /**
@@ -329,7 +337,9 @@ public class MonitorImpl implements Monitor {
    */
   boolean checkConnectionStatus() {
     TelemetryContext connectContext = telemetryFactory.openTelemetryContext(
-        "connection status check", TelemetryTraceLevel.NESTED);
+        "connection status check", TelemetryTraceLevel.FORCE_TOP_LEVEL);
+    connectContext.setAttribute("url", this.hostSpec.getHost());
+
     try {
       if (this.monitoringConn == null || this.monitoringConn.isClosed()) {
         // open a new connection

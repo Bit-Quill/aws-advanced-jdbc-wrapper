@@ -32,20 +32,20 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import software.amazon.jdbc.cleanup.CanReleaseResources;
 import software.amazon.jdbc.plugin.AuroraConnectionTrackerPlugin;
-import software.amazon.jdbc.plugin.AuroraHostListConnectionPlugin;
 import software.amazon.jdbc.plugin.AuroraInitialConnectionStrategyPlugin;
 import software.amazon.jdbc.plugin.AwsSecretsManagerConnectionPlugin;
 import software.amazon.jdbc.plugin.DataCacheConnectionPlugin;
 import software.amazon.jdbc.plugin.DefaultConnectionPlugin;
 import software.amazon.jdbc.plugin.ExecutionTimeConnectionPlugin;
-import software.amazon.jdbc.plugin.IamAuthConnectionPlugin;
 import software.amazon.jdbc.plugin.LogQueryConnectionPlugin;
 import software.amazon.jdbc.plugin.efm.HostMonitoringConnectionPlugin;
 import software.amazon.jdbc.plugin.failover.FailoverConnectionPlugin;
+import software.amazon.jdbc.plugin.iam.IamAuthConnectionPlugin;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
 import software.amazon.jdbc.plugin.staledns.AuroraStaleDnsPlugin;
 import software.amazon.jdbc.plugin.strategy.fastestresponse.FastestResponseStrategyPlugin;
 import software.amazon.jdbc.profile.ConfigurationProfile;
+import software.amazon.jdbc.util.AsynchronousMethodsHelper;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.SqlMethodAnalyzer;
 import software.amazon.jdbc.util.WrapperUtils;
@@ -60,7 +60,6 @@ import software.amazon.jdbc.wrapper.ConnectionWrapper;
  * <p>THIS CLASS IS NOT MULTI-THREADING SAFE IT'S EXPECTED TO HAVE ONE INSTANCE OF THIS MANAGER PER
  * JDBC CONNECTION
  */
-@SuppressWarnings("deprecation")
 public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
 
   protected static final Map<Class<? extends ConnectionPlugin>, String> pluginNameByClass =
@@ -68,7 +67,6 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
         {
           put(ExecutionTimeConnectionPlugin.class, "plugin:executionTime");
           put(AuroraConnectionTrackerPlugin.class, "plugin:auroraConnectionTracker");
-          put(AuroraHostListConnectionPlugin.class, "plugin:auroraHostList");
           put(LogQueryConnectionPlugin.class, "plugin:logQuery");
           put(DataCacheConnectionPlugin.class, "plugin:dataCache");
           put(HostMonitoringConnectionPlugin.class, "plugin:efm");
@@ -94,6 +92,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
   private static final String NOTIFY_CONNECTION_CHANGED_METHOD = "notifyConnectionChanged";
   private static final String NOTIFY_NODE_LIST_CHANGED_METHOD = "notifyNodeListChanged";
   private static final SqlMethodAnalyzer sqlMethodAnalyzer = new SqlMethodAnalyzer();
+
   private final ReentrantLock lock = new ReentrantLock();
 
   protected Properties props = new Properties();
@@ -157,6 +156,10 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
 
   public void unlock() {
     lock.unlock();
+  }
+
+  public boolean isHeldByCurrentThread() {
+    return lock.isHeldByCurrentThread();
   }
 
   /**
@@ -308,13 +311,17 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
       final Object[] jdbcMethodArgs)
       throws E {
 
-    final Connection conn = WrapperUtils.getConnectionFromSqlObject(methodInvokeOn);
-    if (conn != null && conn != this.pluginService.getCurrentConnection()
-        && !sqlMethodAnalyzer.isMethodClosingSqlObject(methodName)) {
-      final SQLException e =
-          new SQLException(Messages.get("ConnectionPluginManager.methodInvokedAgainstOldConnection",
-              new Object[] {methodInvokeOn}));
-      throw WrapperUtils.wrapExceptionIfNeeded(exceptionClass, e);
+    // The target driver may block on Statement.getConnection().
+    if (!AsynchronousMethodsHelper.ASYNCHRONOUS_METHODS.contains(methodName)) {
+      final Connection conn = WrapperUtils.getConnectionFromSqlObject(methodInvokeOn);
+      if (conn != null
+          && conn != this.pluginService.getCurrentConnection()
+          && !sqlMethodAnalyzer.isMethodClosingSqlObject(methodName)) {
+        throw WrapperUtils.wrapExceptionIfNeeded(
+            exceptionClass,
+            new SQLException(
+                Messages.get("ConnectionPluginManager.invokedAgainstOldConnection", new Object[] {methodInvokeOn})));
+      }
     }
 
     return executeWithSubscribedPlugins(

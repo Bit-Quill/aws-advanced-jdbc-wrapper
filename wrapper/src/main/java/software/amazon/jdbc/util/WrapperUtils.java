@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import software.amazon.jdbc.ConnectionPluginManager;
 import software.amazon.jdbc.JdbcCallable;
@@ -182,7 +183,9 @@ public class WrapperUtils {
       final JdbcCallable<T, RuntimeException> jdbcMethodFunc,
       final Object... jdbcMethodArgs) {
 
-    pluginManager.lock();
+    if (!AsynchronousMethodsHelper.ASYNCHRONOUS_METHODS.contains(methodName)) {
+      pluginManager.lock();
+    }
     TelemetryFactory telemetryFactory = pluginManager.getTelemetryFactory();
     TelemetryContext context = null;
 
@@ -208,7 +211,9 @@ public class WrapperUtils {
         throw new RuntimeException(e);
       }
     } finally {
-      pluginManager.unlock();
+      if (pluginManager.isHeldByCurrentThread()) {
+        pluginManager.unlock();
+      }
       if (context != null) {
         context.closeContext();
       }
@@ -225,7 +230,9 @@ public class WrapperUtils {
       final Object... jdbcMethodArgs)
       throws E {
 
-    pluginManager.lock();
+    if (!AsynchronousMethodsHelper.ASYNCHRONOUS_METHODS.contains(methodName)) {
+      pluginManager.lock();
+    }
     TelemetryFactory telemetryFactory = pluginManager.getTelemetryFactory();
     TelemetryContext context = null;
 
@@ -251,7 +258,9 @@ public class WrapperUtils {
       }
 
     } finally {
-      pluginManager.unlock();
+      if (pluginManager.isHeldByCurrentThread()) {
+        pluginManager.unlock();
+      }
       if (context != null) {
         context.closeContext();
       }

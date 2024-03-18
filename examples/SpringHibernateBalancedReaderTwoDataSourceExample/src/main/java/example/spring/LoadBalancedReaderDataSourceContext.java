@@ -14,16 +14,27 @@
  * limitations under the License.
  */
 
-package software.amazon.jdbc.plugin;
+package example.spring;
 
-import java.util.Properties;
-import software.amazon.jdbc.ConnectionPlugin;
-import software.amazon.jdbc.ConnectionPluginFactory;
-import software.amazon.jdbc.PluginService;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class IamAuthConnectionPluginFactory implements ConnectionPluginFactory {
-  @Override
-  public ConnectionPlugin getInstance(final PluginService pluginService, final Properties props) {
-    return new IamAuthConnectionPlugin(pluginService);
+public class LoadBalancedReaderDataSourceContext {
+
+  private static final ThreadLocal<AtomicInteger> READER_DATASOURCE_LEVEL =
+      ThreadLocal.withInitial(() -> new AtomicInteger(0));
+
+  private LoadBalancedReaderDataSourceContext() {
+  }
+
+  public static boolean isLoadBalancedReaderZone() {
+    return READER_DATASOURCE_LEVEL.get().get() > 0;
+  }
+
+  public static void enter() {
+    READER_DATASOURCE_LEVEL.get().incrementAndGet();
+  }
+
+  public static void exit() {
+    READER_DATASOURCE_LEVEL.get().decrementAndGet();
   }
 }

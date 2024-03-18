@@ -18,11 +18,15 @@ rootProject.name = "aws-advanced-jdbc-wrapper"
 
 include(
     "aws-advanced-jdbc-wrapper",
+    "aws-advanced-jdbc-wrapper-bundle",
     "benchmarks",
     "hibernate",
     "hikari",
+    "dbcp",
     "driverexample",
     "springhibernate",
+    "springhibernateonedatasource",
+    "springhibernatetwodatasource",
     "springwildfly",
     "springboothikariexample",
     "springtxfailover",
@@ -31,10 +35,14 @@ include(
 )
 
 project(":aws-advanced-jdbc-wrapper").projectDir = file("wrapper")
+project(":aws-advanced-jdbc-wrapper-bundle").projectDir = file("aws-advanced-jdbc-wrapper-bundle")
 project(":hibernate").projectDir = file("examples/HibernateExample")
 project(":hikari").projectDir = file("examples/HikariExample")
+project(":dbcp").projectDir = file("examples/DBCPExample")
 project(":driverexample").projectDir = file("examples/AWSDriverExample")
 project(":springhibernate").projectDir = file("examples/SpringHibernateExample")
+project(":springhibernateonedatasource").projectDir = file("examples/SpringHibernateBalancedReaderOneDataSourceExample")
+project(":springhibernatetwodatasource").projectDir = file("examples/SpringHibernateBalancedReaderTwoDataSourceExample")
 project(":springwildfly").projectDir = file("examples/SpringWildflyExample/spring")
 project(":springboothikariexample").projectDir = file("examples/SpringBootHikariExample")
 project(":springtxfailover").projectDir = file("examples/SpringTxFailoverExample")

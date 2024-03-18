@@ -50,7 +50,7 @@ import software.amazon.jdbc.util.StringUtils;
 
 public class ContainerHelper {
 
-  private static final String MYSQL_CONTAINER_IMAGE_NAME = "mysql:latest";
+  private static final String MYSQL_CONTAINER_IMAGE_NAME = "mysql:8.0.36";
   private static final String POSTGRES_CONTAINER_IMAGE_NAME = "postgres:latest";
   private static final String MARIADB_CONTAINER_IMAGE_NAME = "mariadb:10";
   private static final DockerImageName TOXIPROXY_IMAGE =
@@ -329,6 +329,7 @@ public class ContainerHelper {
         .withDatabaseName(testDbName)
         .withPassword(password)
         .withUsername(username)
+        .withEnv("MYSQL_ROOT_PASSWORD", password)
         .withCopyFileToContainer(
             MountableFile.forHostPath("./src/test/config/standard-mysql-grant-root.sql"),
             "/docker-entrypoint-initdb.d/standard-mysql-grant-root.sql")

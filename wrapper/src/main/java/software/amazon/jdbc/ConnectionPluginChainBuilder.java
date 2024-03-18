@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import software.amazon.jdbc.plugin.AuroraConnectionTrackerPluginFactory;
-import software.amazon.jdbc.plugin.AuroraHostListConnectionPluginFactory;
 import software.amazon.jdbc.plugin.AuroraInitialConnectionStrategyPluginFactory;
 import software.amazon.jdbc.plugin.AwsSecretsManagerConnectionPluginFactory;
 import software.amazon.jdbc.plugin.ConnectTimeConnectionPluginFactory;
@@ -35,12 +34,12 @@ import software.amazon.jdbc.plugin.DataCacheConnectionPluginFactory;
 import software.amazon.jdbc.plugin.DefaultConnectionPlugin;
 import software.amazon.jdbc.plugin.DriverMetaDataConnectionPluginFactory;
 import software.amazon.jdbc.plugin.ExecutionTimeConnectionPluginFactory;
-import software.amazon.jdbc.plugin.IamAuthConnectionPluginFactory;
 import software.amazon.jdbc.plugin.LogQueryConnectionPluginFactory;
 import software.amazon.jdbc.plugin.dev.DeveloperConnectionPluginFactory;
 import software.amazon.jdbc.plugin.efm.HostMonitoringConnectionPluginFactory;
 import software.amazon.jdbc.plugin.failover.FailoverConnectionPluginFactory;
 import software.amazon.jdbc.plugin.federatedauth.FederatedAuthPluginFactory;
+import software.amazon.jdbc.plugin.iam.IamAuthConnectionPluginFactory;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPluginFactory;
 import software.amazon.jdbc.plugin.staledns.AuroraStaleDnsPluginFactory;
 import software.amazon.jdbc.plugin.strategy.fastestresponse.FastestResponseStrategyPluginFactory;
@@ -60,7 +59,6 @@ public class ConnectionPluginChainBuilder {
       new HashMap<String, Class<? extends ConnectionPluginFactory>>() {
         {
           put("executionTime", ExecutionTimeConnectionPluginFactory.class);
-          put("auroraHostList", AuroraHostListConnectionPluginFactory.class);
           put("logQuery", LogQueryConnectionPluginFactory.class);
           put("dataCache", DataCacheConnectionPluginFactory.class);
           put("efm", HostMonitoringConnectionPluginFactory.class);
@@ -90,7 +88,6 @@ public class ConnectionPluginChainBuilder {
         {
           put(DriverMetaDataConnectionPluginFactory.class, 100);
           put(DataCacheConnectionPluginFactory.class, 200);
-          put(AuroraHostListConnectionPluginFactory.class, 300);
           put(AuroraInitialConnectionStrategyPluginFactory.class, 390);
           put(AuroraConnectionTrackerPluginFactory.class, 400);
           put(AuroraStaleDnsPluginFactory.class, 500);
@@ -109,7 +106,7 @@ public class ConnectionPluginChainBuilder {
         }
       };
 
-  protected static final String DEFAULT_PLUGINS = "auroraConnectionTracker,failover,efm";
+  protected static final String DEFAULT_PLUGINS = "auroraConnectionTracker,failover,efm2";
 
   /*
    Internal class used for plugin factory sorting. It holds a reference to a plugin

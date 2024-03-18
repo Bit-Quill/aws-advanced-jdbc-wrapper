@@ -3,6 +3,59 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/#semantic-versioning-200).
 
+## [2.3.5] - 2024-03-14
+
+### :magic_wand: Added
+- Sample code configuring the AWS JDBC Driver with DBCP ([PR #930](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/930)).
+
+### :crab: Changed
+- Fix issue with deadlock while using prepared transactions and PostgreSQL Explicit Locking ([PR #918](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/918)).
+- Removed `ConnectionStringHostListProvider#identifyConnection` since it is not used ([PR #920](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/920)).
+
+## [2.3.4] - 2024-03-01
+### :magic_wand: Added
+- Documentation:
+  - Bundled Uber Jar for Federated Authentication. See [UsingTheFederatedAuthPlugin](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheFederatedAuthPlugin.md#bundled-uber-jar).
+  - Using the Read Write Splitting Plugin's internal connection pool with Spring applications. See [UsingTheReadWriteSplittingPlugin](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheReadWriteSplittingPlugin.md#internal-connection-pools).
+- Spring Framework application code examples with load balanced access to database cluster reader instances ([PR #852](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/852)).
+- New configuration preset `SF_` optimized for Spring Framework applications ([PR #852](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/852)).
+- Lightweight alternative for IAM token generator that requires fewer dependencies ([PR #867](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/867)).
+
+### :bug: Fixed
+- Fixes to session state transfer ([PR #852](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/852)).
+- Enhanced Host Monitoring Plugin (EFM) v2 plugin to use `ConcurrentHashMap` instead of `HashMap` to avoid `ConcurrentModificationException` ([Issue #855](https://github.com/awslabs/aws-advanced-jdbc-wrapper/issues/855)).
+- Move lock location and skip executing `Statement.getConnection` when running `Statement.cancel` to fix `Statement.cancel` for MySQL ([PR #851](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/851))
+- Remove Telemetry trace associated with a Monitor thread because traces for long-running tasks is an anti-pattern ([PR #875](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/875)). 
+
+### :crab: Changed
+- HostSelector implementations to take into account HostAvailability ([PR #856](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/856)).
+- Reduced the number of Regular Expression checks with `Matcher.find` to improve performance ([PR #854](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/854)).
+- HostSpec class to not use a default lastUpdateTime and instead use null ([PR 877](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/877)).
+- Moved Reader Selection Strategies out of the `UsingTheReadWriteSplittingPlugin` doc and into its own page. See [ReaderSelectionStrategies](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/ReaderSelectionStrategies.md). 
+
+## [2.3.3] - 2024-01-23
+### :magic_wand: Added
+- Documentation:
+  - [Read Write Splitting Plugin Limitations with Spring Boot/Framework](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheReadWriteSplittingPlugin.md#limitations-when-using-spring-bootframework).
+  - AWS Profile configuration parameter. See [README](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/README.md#properties), [UsingTheJDBCDriver](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/UsingTheJdbcDriver.md#aws-advanced-jdbc-driver-parameters), and [AwsCredentialsConfiguration](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/custom-configuration/AwsCredentialsConfiguration.md).
+- Example code for ReadWriteSplitting Plugin ([PR #765](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/765)).
+- Enabling AWS Profile for IAM and AWS Secrets Manager authentication plugins ([PR #786](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/786)).
+
+### :bug: Fixed
+- SqlMethodAnalyzer to handle empty SQL query and not throw IndexOutOfBoundsException ([PR #798](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/798)).
+- Restructure try blocks in dialects for exception handling ([PR #799](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/799)).
+- Log message to communicate that an RDS Custom Cluster endpoint can't be used as the 'clusterInstanceHostPattern' configuration setting ([PR 801](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/801)).
+- Make a variable volatile in RdsHostListProvider ([Issue #486](https://github.com/awslabs/aws-advanced-jdbc-wrapper/issues/486)).
+- Transfer session state during failover ([Issue #812](https://github.com/awslabs/aws-advanced-jdbc-wrapper/issues/812)).
+- Release all stopped monitors so that they are not reused ([PR #831](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/831)).
+- Added update candidates for the MariaDB dialect in order to swap to MySQL dialects in the case of using a MySQL database with the protocol `jdbc:aws-wrapper:mariadb://`, and fixed the RDS MySQL dialect from incorrectly returning false in `isDialect` method ([Issue #789](https://github.com/awslabs/aws-advanced-jdbc-wrapper/issues/789)).
+
+### :crab: Changed
+- Session state tracking and transfer redesign ([PR #821](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/821)).
+- Improve Multi-AZ cluster detection ([PR #824](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/824)).
+- Enhanced Host Monitoring Plugin (EFM) v2 plugin is now a default plugin. The original EFM plugin can still be used by specifying `efm` in the `wrapperPlugins` parameter ([PR #825](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/825)). 
+- Update China endpoint patterns ([PR #832](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/832)).
+
 ## [2.3.2] - 2023-12-18
 ### :magic_wand: Added
 - [Federated Authentication Plugin](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheFederatedAuthPlugin.md), which supports SAML authentication through ADFS ([PR #741](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/741)).
@@ -239,6 +292,9 @@ The Amazon Web Services (AWS) Advanced JDBC Driver allows an application to take
 - The [AWS IAM Authentication Connection Plugin](./docs/using-the-jdbc-driver/using-plugins/UsingTheIamAuthenticationPlugin.md)
 - The [AWS Secrets Manager Connection Plugin](./docs/using-the-jdbc-driver/using-plugins/UsingTheAwsSecretsManagerPlugin.md)
 
+[2.3.5]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.4...2.3.5
+[2.3.4]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.3...2.3.4
+[2.3.3]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.2...2.3.3
 [2.3.2]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.1...2.3.2
 [2.3.1]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.0...2.3.1
 [2.3.0]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.2.5...2.3.0

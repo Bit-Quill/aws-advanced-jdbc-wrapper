@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 
-package software.amazon.jdbc.plugin;
+plugins {
+    id("org.springframework.boot") version "2.7.0"
+    id("io.spring.dependency-management") version "1.1.4"
+}
 
-import java.util.Properties;
-import software.amazon.jdbc.ConnectionPlugin;
-import software.amazon.jdbc.ConnectionPluginFactory;
-import software.amazon.jdbc.PluginService;
-
-@SuppressWarnings("deprecation")
-public class AuroraHostListConnectionPluginFactory implements ConnectionPluginFactory {
-
-  @Override
-  public ConnectionPlugin getInstance(final PluginService pluginService, final Properties props) {
-    return new AuroraHostListConnectionPlugin(pluginService, props);
-  }
+dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.retry:spring-retry")
+    implementation("org.postgresql:postgresql:42.7.2")
+    implementation("software.amazon.awssdk:rds:2.25.2")
+    implementation(project(":aws-advanced-jdbc-wrapper"))
 }

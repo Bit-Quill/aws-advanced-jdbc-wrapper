@@ -389,8 +389,16 @@ public class TestEnvironment implements AutoCloseable {
 
       try {
         String engine = getAuroraDbEngine(env.info.getRequest());
-        String engineVersion = getAuroraDbEngineVersion(env.info.getRequest());
+
+        String engineVersion = getAuroraDbEngineVersion(env);
+        if (StringUtils.isNullOrEmpty(engineVersion)) {
+          throw new RuntimeException("Failed to get engine version.");
+        }
+
         String instanceClass = getAuroraInstanceClass(env.info.getRequest());
+
+        LOGGER.finer(
+            "Using " + engine + " " + engineVersion);
 
         env.auroraClusterDomain =
             env.auroraUtil.createCluster(
@@ -470,14 +478,39 @@ public class TestEnvironment implements AutoCloseable {
     }
   }
 
-  private static String getAuroraDbEngineVersion(TestEnvironmentRequest request) {
+  private static String getAuroraDbEngineVersion(TestEnvironment env) {
+    String engineName;
+    String systemPropertyVersion;
+    TestEnvironmentRequest request = env.info.getRequest();
     switch (request.getDatabaseEngine()) {
       case MYSQL:
-        return "8.0.mysql_aurora.3.03.0";
+        engineName = "aurora-mysql";
+        systemPropertyVersion = config.auroraMySqlDbEngineVersion;
+        break;
       case PG:
-        return "15.2";
+        engineName = "aurora-postgresql";
+        systemPropertyVersion = config.auroraPgDbEngineVersion;
+        break;
       default:
         throw new NotImplementedException(request.getDatabaseEngine().toString());
+    }
+    return findAuroraDbEngineVersion(env, engineName, systemPropertyVersion.toLowerCase());
+  }
+
+  private static String findAuroraDbEngineVersion(
+      TestEnvironment env,
+      String engineName,
+      String systemPropertyVersion) {
+    if (systemPropertyVersion == null) {
+      return env.auroraUtil.getLTSVersion(engineName);
+    }
+    switch (systemPropertyVersion) {
+      case "lts":
+        return env.auroraUtil.getLTSVersion(engineName);
+      case "latest":
+        return env.auroraUtil.getLatestVersion(engineName);
+      default:
+        return systemPropertyVersion;
     }
   }
 
@@ -650,6 +683,7 @@ public class TestEnvironment implements AutoCloseable {
               .withCopyFileToContainer(MountableFile.forHostPath(
                       "src/test/resources/hibernate_files/collect_test_results.sh"),
                   "app/collect_test_results.sh");
+
     } else {
       env.testContainer = containerHelper.createTestContainer(
           "aws/rds-test-container",
