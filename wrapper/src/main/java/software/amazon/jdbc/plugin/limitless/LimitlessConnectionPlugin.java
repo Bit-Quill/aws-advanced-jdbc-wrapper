@@ -142,26 +142,25 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
     List<HostSpec> limitlessRouters = this.limitlessRouterService.getLimitlessRouters(
         this.pluginService.getHostListProvider().getClusterId(), props);
 
-    Connection conn = null;
     if (Utils.isNullOrEmpty(limitlessRouters)) {
-      conn = connectFunc.call();
       LOGGER.finest(Messages.get("LimitlessConnectionPlugin.limitlessRouterCacheEmpty"));
       final boolean waitForRouterInfo = WAIT_F0R_ROUTER_INFO.getBoolean(props);
       if (waitForRouterInfo) {
-        limitlessRouters = synchronouslyGetLimitlessRoutersWithRetry(conn, hostSpec.getPort(), props);
+        limitlessRouters = synchronouslyGetLimitlessRoutersWithRetry(null, connectFunc, hostSpec.getPort(), props);
       } else {
         LOGGER.finest(Messages.get("LimitlessConnectionPlugin.usingProvidedConnectUrl"));
-        return conn;
+        return connectFunc.call();
       }
     }
 
+    Connection conn = null;
     if (limitlessRouters.contains(hostSpec)) {
       LOGGER.finest(Messages.get("LimitlessConnectionPlugin.connectWithHost", new Object[] {hostSpec.getHost()}));
       if (conn == null  || conn.isClosed()) {
         try {
           conn = connectFunc.call();
         } catch (final SQLException e) {
-          return retryConnectWithLeastLoadedRouters(limitlessRouters, props, null, hostSpec);
+          return retryConnectWithLeastLoadedRouters(limitlessRouters, props, null, connectFunc, hostSpec);
         }
       }
       return conn;
@@ -180,7 +179,7 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
       if (conn == null  || conn.isClosed()) {
         conn = connectFunc.call();
       }
-      return retryConnectWithLeastLoadedRouters(limitlessRouters, props, conn, hostSpec);
+      return retryConnectWithLeastLoadedRouters(limitlessRouters, props, conn, connectFunc, hostSpec);
     }
 
     try {
@@ -196,7 +195,7 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
         conn = connectFunc.call();
       }
       // Retry connect prioritising healthiest router for best chance of connection over load-balancing with round-robin
-      return retryConnectWithLeastLoadedRouters(limitlessRouters, props, conn, hostSpec);
+      return retryConnectWithLeastLoadedRouters(limitlessRouters, props, conn, connectFunc, hostSpec);
     }
   }
 
@@ -227,7 +226,7 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
       LOGGER.finest(Messages.get("LimitlessConnectionPlugin.limitlessRouterCacheEmpty"));
       final boolean waitForRouterInfo = WAIT_F0R_ROUTER_INFO.getBoolean(props);
       if (waitForRouterInfo) {
-        synchronouslyGetLimitlessRoutersWithRetry(conn, hostSpec.getPort(), props);
+        synchronouslyGetLimitlessRoutersWithRetry(conn, connectFunc, hostSpec.getPort(), props);
       }
     }
 
@@ -244,6 +243,7 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
       final List<HostSpec> limitlessRouters,
       final Properties props,
       final Connection conn,
+      final JdbcCallable<Connection, SQLException> connectFunc,
       final HostSpec hostSpec) throws SQLException {
 
     List<HostSpec> currentRouters = limitlessRouters;
@@ -253,7 +253,7 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
     while (retryCount++ < maxRetries) {
       if (currentRouters.stream().noneMatch(h -> h.getAvailability().equals(HostAvailability.AVAILABLE))) {
         if (conn != null && !conn.isClosed()) {
-          currentRouters = synchronouslyGetLimitlessRoutersWithRetry(conn, hostSpec.getPort(), props);
+          currentRouters = synchronouslyGetLimitlessRoutersWithRetry(conn, connectFunc, hostSpec.getPort(), props);
         }
 
         if (currentRouters == null
@@ -302,15 +302,16 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
   }
 
   private List<HostSpec> synchronouslyGetLimitlessRoutersWithRetry(
-      final Connection conn, final int hostPort, final Properties props) throws SQLException {
+      final Connection conn, final JdbcCallable<Connection, SQLException> connectFunc, final int hostPort,
+      final Properties props) throws SQLException {
     LOGGER.finest(Messages.get("LimitlessConnectionPlugin.synchronouslyGetLimitlessRouters"));
     int retryCount = -1; // start at -1 since the first try is not a retry.
     int maxRetries = GET_ROUTER_MAX_RETRIES.getInteger(props);
     int retryIntervalMs = GET_ROUTER_RETRY_INTERVAL_MILLIS.getInteger(props);
     do {
       try {
-        List<HostSpec> newLimitlessRouters = this.limitlessRouterService.forceGetLimitlessRoutersWithConn(
-            conn, hostPort, props);
+        List<HostSpec> newLimitlessRouters = this.limitlessRouterService.forceGetLimitlessRouters(
+            conn, connectFunc, hostPort, props);
         if (newLimitlessRouters != null && !newLimitlessRouters.isEmpty()) {
           return newLimitlessRouters;
         }
