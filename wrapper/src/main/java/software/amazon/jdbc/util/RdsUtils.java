@@ -97,7 +97,7 @@ public class RdsUtils {
   private static final Pattern AURORA_CHINA_DNS_PATTERN =
       Pattern.compile(
           "^(?<instance>.+)\\."
-              + "(?<dns>proxy-|cluster-|cluster-ro-|cluster-custom-|shardgrp-)?"
+              + "(?<dns>proxy-|cluster-|cluster-ro-|cluster-custom-|shardgrpx-)?"
               + "(?<domain>[a-zA-Z0-9]+\\.rds\\.(?<region>[a-zA-Z0-9\\-]+)"
               + "\\.amazonaws\\.com\\.cn)$",
           Pattern.CASE_INSENSITIVE);
@@ -113,7 +113,7 @@ public class RdsUtils {
   private static final Pattern AURORA_OLD_CHINA_DNS_PATTERN =
       Pattern.compile(
           "^(?<instance>.+)\\."
-              + "(?<dns>proxy-|cluster-|cluster-ro-|cluster-custom-|shardgrp-)?"
+              + "(?<dns>proxy-|cluster-|cluster-ro-|cluster-custom-|shardgrpx-)?"
               + "(?<domain>[a-zA-Z0-9]+\\.(?<region>[a-zA-Z0-9\\-]+)"
               + "\\.rds\\.amazonaws\\.com\\.cn)$",
           Pattern.CASE_INSENSITIVE);
@@ -129,7 +129,7 @@ public class RdsUtils {
   private static final Pattern AURORA_GOV_DNS_PATTERN =
       Pattern.compile(
           "^(?<instance>.+)\\."
-              + "(?<dns>proxy-|cluster-|cluster-ro-|cluster-custom-|shardgrp-)?"
+              + "(?<dns>proxy-|cluster-|cluster-ro-|cluster-custom-|shardgrpx-)?"
               + "(?<domain>[a-zA-Z0-9]+\\.rds\\.(?<region>[a-zA-Z0-9\\-]+)"
               + "\\.(amazonaws\\.com|c2s\\.ic\\.gov|sc2s\\.sgov\\.gov))$",
           Pattern.CASE_INSENSITIVE);
@@ -272,7 +272,7 @@ public class RdsUtils {
 
   public boolean isLimitlessDbShardGroupDns(final String host) {
     final String dnsGroup = getDnsGroup(host);
-    return dnsGroup != null && dnsGroup.equalsIgnoreCase("shardgrp-");
+    return dnsGroup != null && dnsGroup.equalsIgnoreCase("shardgrpx-");
   }
 
   public String getRdsClusterHostUrl(final String host) {
