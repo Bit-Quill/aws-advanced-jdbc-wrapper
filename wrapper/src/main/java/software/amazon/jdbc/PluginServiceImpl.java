@@ -656,6 +656,18 @@ public class PluginServiceImpl implements PluginService, CanReleaseResources,
   }
 
   @Override
+  public Dialect refreshDialect() throws SQLException {
+    this.dialect = this.dialectProvider.getDialect(
+        this.driverProtocol,
+        this.originalUrl,
+        this.props
+    );
+    final HostListProviderSupplier supplier = this.dialect.getHostListProvider();
+    this.setHostListProvider(supplier.getProvider(props, this.originalUrl, this, this));
+    return this.dialect;
+  }
+
+  @Override
   public TargetDriverDialect getTargetDriverDialect() {
     return this.targetDriverDialect;
   }

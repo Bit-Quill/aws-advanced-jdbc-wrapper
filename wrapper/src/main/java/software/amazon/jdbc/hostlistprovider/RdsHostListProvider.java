@@ -29,11 +29,13 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -92,6 +94,7 @@ public class RdsHostListProvider implements DynamicHostListProvider {
   protected static final CacheMap<String, List<HostSpec>> topologyCache = new CacheMap<>();
   protected static final CacheMap<String, String> suggestedPrimaryClusterIdCache = new CacheMap<>();
   protected static final CacheMap<String, Boolean> primaryClusterIdCache = new CacheMap<>();
+  protected static final Map<String, String> originalUrlToClusterIdCache = new ConcurrentHashMap<>();
 
   protected final HostListProviderService hostListProviderService;
   protected final String originalUrl;
@@ -159,7 +162,10 @@ public class RdsHostListProvider implements DynamicHostListProvider {
       this.initialHostSpec = this.initialHostList.get(0);
       this.hostListProviderService.setInitialConnectionHostSpec(this.initialHostSpec);
 
-      this.clusterId = UUID.randomUUID().toString();
+      this.clusterId = originalUrlToClusterIdCache.containsKey(this.originalUrl)
+          ? originalUrlToClusterIdCache.get(this.originalUrl)
+          : UUID.randomUUID().toString();
+
       this.isPrimaryClusterId = false;
       this.refreshRateNano =
           TimeUnit.MILLISECONDS.toNanos(CLUSTER_TOPOLOGY_REFRESH_RATE_MS.getInteger(properties));
@@ -207,6 +213,7 @@ public class RdsHostListProvider implements DynamicHostListProvider {
           }
         }
       }
+      originalUrlToClusterIdCache.put(this.originalUrl, this.clusterId);
 
       this.isInitialized = true;
     } finally {

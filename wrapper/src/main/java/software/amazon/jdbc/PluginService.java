@@ -217,6 +217,8 @@ public interface PluginService extends ExceptionHandler {
 
   Dialect getDialect();
 
+  Dialect refreshDialect() throws SQLException;
+
   TargetDriverDialect getTargetDriverDialect();
 
   void updateDialect(final @NonNull Connection connection) throws SQLException;

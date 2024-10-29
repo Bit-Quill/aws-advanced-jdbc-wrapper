@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -68,9 +69,10 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
 
   protected final PluginService pluginService;
   protected final Properties properties;
-  private final Supplier<LimitlessRouterService> limitlessRouterServiceSupplier;
-  private LimitlessRouterService limitlessRouterService;
-  private static final Set<String> subscribedMethods =
+  protected final Supplier<LimitlessRouterService> limitlessRouterServiceSupplier;
+  protected LimitlessRouterService limitlessRouterService;
+  protected static final ReentrantLock connectNoDialectLock = new ReentrantLock();
+  protected static final Set<String> subscribedMethods =
       Collections.unmodifiableSet(new HashSet<String>() {
         {
           add("connect");
@@ -206,9 +208,39 @@ public class LimitlessConnectionPlugin extends AbstractConnectionPlugin {
       final boolean isInitialConnection,
       final JdbcCallable<Connection, SQLException> connectFunc) throws SQLException {
 
+    final boolean waitForRouterInfo = WAIT_F0R_ROUTER_INFO.getBoolean(props);
+    if (waitForRouterInfo) {
+      Connection conn;
+      connectNoDialectLock.lock();
+      try {
+        final Dialect dialect = this.pluginService.refreshDialect();
+        if (dialect instanceof AuroraLimitlessDialect) {
+          connectNoDialectLock.unlock();
+          return connectInternalWithDialect(driverProtocol, hostSpec, props, isInitialConnection, connectFunc);
+        } else {
+          conn = connectInternalWithoutDialectHelper(driverProtocol, hostSpec, props, isInitialConnection, connectFunc);
+          connectNoDialectLock.unlock();
+        }
+      } finally {
+        if (connectNoDialectLock.isLocked()) {
+          connectNoDialectLock.unlock();
+        }
+      }
+      return conn;
+    }
+    return connectInternalWithoutDialectHelper(driverProtocol, hostSpec, props, isInitialConnection, connectFunc);
+  }
+
+  private Connection connectInternalWithoutDialectHelper(
+      final @NonNull String driverProtocol,
+      final @NonNull HostSpec hostSpec,
+      final @NonNull Properties props,
+      final boolean isInitialConnection,
+      final JdbcCallable<Connection, SQLException> connectFunc) throws SQLException {
+
     final Connection conn = connectFunc.call();
 
-    final Dialect dialect = this.pluginService.getDialect();
+    final Dialect dialect = this.pluginService.refreshDialect();
     if (!(dialect instanceof AuroraLimitlessDialect)) {
       throw new UnsupportedOperationException(Messages.get("LimitlessConnectionPlugin.unsupportedDialectOrDatabase",
           new Object[] {dialect}));
