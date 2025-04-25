@@ -58,6 +58,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
@@ -76,6 +77,7 @@ import software.amazon.jdbc.util.StringUtils;
   TestEnvironmentFeatures.FAILOVER_SUPPORTED
 })
 @Tag("advanced")
+@Order(1)
 public class AdvancedPerformanceTest {
 
   private static final Logger LOGGER = Logger.getLogger(AdvancedPerformanceTest.class.getName());
@@ -97,8 +99,7 @@ public class AdvancedPerformanceTest {
 
   private static final ConcurrentLinkedQueue<PerfStat> perfDataList = new ConcurrentLinkedQueue<>();
 
-  protected static final AuroraTestUtility auroraUtil =
-      new AuroraTestUtility(TestEnvironment.getCurrent().getInfo().getAuroraRegion());
+  protected static final AuroraTestUtility auroraUtil = AuroraTestUtility.getUtility();
 
   private static void doWritePerfDataToFile(
       String fileName, ConcurrentLinkedQueue<PerfStat> dataList) throws IOException {
@@ -682,12 +683,12 @@ public class AdvancedPerformanceTest {
     TestEnvironment.getCurrent().getInfo().getDatabaseInfo().moveInstanceFirst(currentWriter);
     TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo().moveInstanceFirst(currentWriter);
 
-    auroraUtil.makeSureInstancesUp(latestTopology);
+    auroraUtil.makeSureInstancesUp(TimeUnit.MINUTES.toSeconds(5));
 
     TestAuroraHostListProvider.clearCache();
     TestPluginServiceImpl.clearHostAvailabilityCache();
     MonitorThreadContainer.releaseInstance();
-    MonitorServiceImpl.clearCache();
+    MonitorServiceImpl.closeAllMonitors();
   }
 
   private static Stream<Arguments> generateParams() {

@@ -23,9 +23,11 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import software.amazon.jdbc.HostRole;
 import software.amazon.jdbc.HostSpec;
@@ -41,17 +43,25 @@ import software.amazon.jdbc.util.SubscribedMethodHelper;
 public class AuroraConnectionTrackerPlugin extends AbstractConnectionPlugin implements
     CanReleaseResources {
 
+  private static final Logger LOGGER = Logger.getLogger(AuroraConnectionTrackerPlugin.class.getName());
+
+  // Check topology changes 3 min after last failover
+  private static final long TOPOLOGY_CHANGES_EXPECTED_TIME_NANO = TimeUnit.MINUTES.toNanos(3);
+
   static final String METHOD_ABORT = "Connection.abort";
   static final String METHOD_CLOSE = "Connection.close";
   private static final Set<String> subscribedMethods =
       Collections.unmodifiableSet(new HashSet<String>() {
         {
           addAll(SubscribedMethodHelper.NETWORK_BOUND_METHODS);
+          add(METHOD_CLOSE);
+          add(METHOD_ABORT);
           add("connect");
-          add("forceConnect");
           add("notifyNodeListChanged");
         }
       });
+
+  private static final AtomicLong hostListRefreshEndTimeNano = new AtomicLong(0);
 
   private final PluginService pluginService;
   private final RdsUtils rdsHelper;
@@ -81,32 +91,19 @@ public class AuroraConnectionTrackerPlugin extends AbstractConnectionPlugin impl
   @Override
   public Connection connect(final String driverProtocol, final HostSpec hostSpec, final Properties props,
       final boolean isInitialConnection, final JdbcCallable<Connection, SQLException> connectFunc) throws SQLException {
-    return connectInternal(hostSpec, connectFunc);
-  }
-
-  public Connection connectInternal(
-      final HostSpec hostSpec, final JdbcCallable<Connection, SQLException> connectFunc)
-      throws SQLException {
 
     final Connection conn = connectFunc.call();
 
     if (conn != null) {
       final RdsUrlType type = this.rdsHelper.identifyRdsType(hostSpec.getHost());
-      if (type.isRdsCluster()) {
+      if (type.isRdsCluster() || type == RdsUrlType.OTHER || type == RdsUrlType.IP_ADDRESS) {
         hostSpec.resetAliases();
         this.pluginService.fillAliases(conn, hostSpec);
       }
       tracker.populateOpenedConnectionQueue(hostSpec, conn);
-      tracker.logOpenedConnections();
     }
 
     return conn;
-  }
-
-  @Override
-  public Connection forceConnect(String driverProtocol, HostSpec hostSpec, Properties props,
-      boolean isInitialConnection, JdbcCallable<Connection, SQLException> forceConnectFunc) throws SQLException {
-    return connectInternal(hostSpec, forceConnectFunc);
   }
 
   @Override
@@ -118,24 +115,51 @@ public class AuroraConnectionTrackerPlugin extends AbstractConnectionPlugin impl
     this.rememberWriter();
 
     try {
+      if (!methodName.equals(METHOD_CLOSE) && !methodName.equals(METHOD_ABORT)) {
+        long localHostListRefreshEndTimeNano = hostListRefreshEndTimeNano.get();
+        boolean needRefreshHostLists = false;
+        if (localHostListRefreshEndTimeNano > 0) {
+          if (localHostListRefreshEndTimeNano > System.nanoTime()) {
+            // The time specified in hostListRefreshThresholdTimeNano isn't yet reached.
+            // Need to continue to refresh host list.
+            needRefreshHostLists = true;
+          } else {
+            // The time specified in hostListRefreshThresholdTimeNano is reached, and we can stop further refreshes
+            // of host list. If hostListRefreshThresholdTimeNano has changed while this thread processes the code,
+            // we can't override a new value in hostListRefreshThresholdTimeNano.
+            hostListRefreshEndTimeNano.compareAndSet(localHostListRefreshEndTimeNano, 0);
+          }
+        }
+        if (this.needUpdateCurrentWriter || needRefreshHostLists) {
+          // Calling this method may effectively close/abort a current connection
+          this.checkWriterChanged(needRefreshHostLists);
+        }
+      }
       final T result = jdbcMethodFunc.call();
       if ((methodName.equals(METHOD_CLOSE) || methodName.equals(METHOD_ABORT))) {
-        tracker.invalidateCurrentConnection(currentHostSpec, this.pluginService.getCurrentConnection());
-      } else if (this.needUpdateCurrentWriter) {
-        this.checkWriterChanged();
+        tracker.removeConnectionTracking(currentHostSpec, this.pluginService.getCurrentConnection());
       }
       return result;
 
     } catch (final Exception e) {
       if (e instanceof FailoverSQLException) {
-        this.checkWriterChanged();
+        hostListRefreshEndTimeNano.set(System.nanoTime() + TOPOLOGY_CHANGES_EXPECTED_TIME_NANO);
+        // Calling this method may effectively close/abort a current connection
+        this.checkWriterChanged(true);
       }
       throw e;
     }
   }
 
-  private void checkWriterChanged() {
-    final HostSpec hostSpecAfterFailover = this.getWriter(this.pluginService.getHosts());
+  private void checkWriterChanged(boolean needRefreshHostLists) {
+    if (needRefreshHostLists) {
+      try {
+        this.pluginService.refreshHostList();
+      } catch (SQLException ex) {
+        // do nothing
+      }
+    }
+    final HostSpec hostSpecAfterFailover = this.getWriter(this.pluginService.getAllHosts());
 
     if (this.currentWriter == null) {
       this.currentWriter = hostSpecAfterFailover;
@@ -147,12 +171,13 @@ public class AuroraConnectionTrackerPlugin extends AbstractConnectionPlugin impl
       tracker.logOpenedConnections();
       this.currentWriter = hostSpecAfterFailover;
       this.needUpdateCurrentWriter = false;
+      hostListRefreshEndTimeNano.set(0);
     }
   }
 
   private void rememberWriter() {
     if (this.currentWriter == null || this.needUpdateCurrentWriter) {
-      this.currentWriter = this.getWriter(this.pluginService.getHosts());
+      this.currentWriter = this.getWriter(this.pluginService.getAllHosts());
       this.needUpdateCurrentWriter = false;
     }
   }

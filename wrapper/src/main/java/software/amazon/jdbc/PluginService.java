@@ -62,9 +62,30 @@ public interface PluginService extends ExceptionHandler {
       @Nullable ConnectionPlugin skipNotificationForThisPlugin)
       throws SQLException;
 
+  /**
+   * Get host information for all hosts in the cluster.
+   *
+   * @return host information for all hosts in the cluster.
+   */
+  List<HostSpec> getAllHosts();
+
+  /**
+   * Get host information for allowed hosts in the cluster. Certain hosts in the cluster may be disallowed, and these
+   * hosts will not be returned by this function. For example, if a custom endpoint is being used, hosts outside the
+   * custom endpoint will not be returned.
+   *
+   * @return host information for allowed hosts in the cluster.
+   */
   List<HostSpec> getHosts();
 
   HostSpec getInitialConnectionHostSpec();
+
+  /**
+   * Set the collection of hosts that should be allowed and/or blocked for connections.
+   *
+   * @param allowedAndBlockedHosts An object defining the allowed and blocked sets of hosts.
+   */
+  void setAllowedAndBlockedHosts(AllowedAndBlockedHosts allowedAndBlockedHosts);
 
   /**
    * Returns a boolean indicating if the available {@link ConnectionProvider} or
@@ -101,6 +122,28 @@ public interface PluginService extends ExceptionHandler {
       throws SQLException, UnsupportedOperationException;
 
   /**
+   * Selects a {@link HostSpec} with the requested role from available hosts using the requested
+   * strategy. {@link #acceptsStrategy} should be called first to evaluate if the available
+   * {@link ConnectionProvider} or {@link ConnectionPlugin} instances support the selection of a
+   * host with the requested role and strategy.
+   *
+   * @param hosts    the list of {@link HostSpec} from which a {@link HostSpec} will be selected from
+   * @param role     the desired role of the host - either a writer or a reader
+   * @param strategy the strategy that should be used to select a {@link HostSpec} from the
+   *                 available hosts (eg "random")
+   * @return a {@link HostSpec} with the requested role
+   * @throws SQLException                  if the available {@link ConnectionProvider} or
+   *                                       {@link ConnectionPlugin} instances do not cannot find a
+   *                                       host matching the requested role or an error occurs while
+   *                                       selecting a host
+   * @throws UnsupportedOperationException if the available {@link ConnectionProvider} or
+   *                                       {@link ConnectionPlugin} instances do not support the
+   *                                       requested strategy
+   */
+  HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy)
+      throws SQLException, UnsupportedOperationException;
+
+  /**
    * Evaluates the host role of the given connection - either a writer or a reader.
    *
    * @param conn a connection to the database instance whose role should be determined
@@ -125,9 +168,23 @@ public interface PluginService extends ExceptionHandler {
   void forceRefreshHostList(Connection connection) throws SQLException;
 
   /**
+   * Initiates a topology update.
+   *
+   * @param shouldVerifyWriter true, if a caller expects to get topology with the latest confirmed writer
+   * @param timeoutMs timeout in msec to wait until topology gets refreshed and a new (or existing) writer is
+   *                  confirmed (if shouldVerifyWriter has a value of <code>true</code>).
+   * @return true, if successful. False, if operation is unsuccessful or timeout is reached
+   * @throws SQLException if there was an error establishing a connection or fetching a topology
+   */
+  boolean forceRefreshHostList(final boolean shouldVerifyWriter, final long timeoutMs) throws SQLException;
+
+  Connection connect(HostSpec hostSpec, Properties props, final @Nullable ConnectionPlugin pluginToSkip)
+      throws SQLException;
+
+  /**
    * Establishes a connection to the given host using the given properties. If a non-default
    * {@link ConnectionProvider} has been set with
-   * {@link ConnectionProviderManager#setConnectionProvider} and
+   * {@link Driver#setCustomConnectionProvider(ConnectionProvider)} and
    * {@link ConnectionProvider#acceptsUrl(String, HostSpec, Properties)} returns true for the
    * desired protocol, host, and properties, the connection will be created by the non-default
    * ConnectionProvider. Otherwise, the connection will be created by the default
@@ -148,7 +205,7 @@ public interface PluginService extends ExceptionHandler {
    * Establishes a connection to the given host using the given properties. This call differs from
    * {@link ConnectionPlugin#connect} in that the default {@link ConnectionProvider} will be used to
    * establish the connection even if a non-default ConnectionProvider has been set via
-   * {@link ConnectionProviderManager#setConnectionProvider}. The default ConnectionProvider will be
+   * {@link Driver#setCustomConnectionProvider(ConnectionProvider)}. The default ConnectionProvider will be
    * {@link DriverConnectionProvider} for connections requested via the
    * {@link java.sql.DriverManager} and {@link DataSourceConnectionProvider} for connections
    * requested via an {@link software.amazon.jdbc.ds.AwsWrapperDataSource}.
@@ -161,19 +218,25 @@ public interface PluginService extends ExceptionHandler {
    */
   Connection forceConnect(HostSpec hostSpec, Properties props) throws SQLException;
 
+  Connection forceConnect(
+      HostSpec hostSpec, Properties props, final @Nullable ConnectionPlugin pluginToSkip) throws SQLException;
+
   Dialect getDialect();
 
   TargetDriverDialect getTargetDriverDialect();
 
   void updateDialect(final @NonNull Connection connection) throws SQLException;
 
-  HostSpec identifyConnection(final Connection connection) throws SQLException;
+  @Nullable HostSpec identifyConnection(final Connection connection) throws SQLException;
 
   void fillAliases(final Connection connection, final HostSpec hostSpec) throws SQLException;
 
   HostSpecBuilder getHostSpecBuilder();
 
+  @Deprecated
   ConnectionProvider getConnectionProvider();
+
+  boolean isPooledConnectionProvider(HostSpec host, Properties props);
 
   String getDriverProtocol();
 
@@ -184,4 +247,6 @@ public interface PluginService extends ExceptionHandler {
   String getTargetName();
 
   @NonNull SessionStateService getSessionStateService();
+
+  <T> T getPlugin(final Class<T> pluginClazz);
 }

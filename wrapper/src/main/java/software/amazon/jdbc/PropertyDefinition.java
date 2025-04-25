@@ -29,6 +29,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class PropertyDefinition {
 
+  public static final AwsWrapperProperty CASE_SENSITIVE =
+      new AwsWrapperProperty(
+          "wrapperCaseSensitive", "true",
+          "Allows the driver to change case sensitivity for parameter names in the connection string.");
+
   public static final AwsWrapperProperty LOG_UNCLOSED_CONNECTIONS =
       new AwsWrapperProperty(
           "wrapperLogUnclosedConnections", "false",
@@ -156,7 +161,20 @@ public class PropertyDefinition {
               "true", "false"
           });
 
+  public static final AwsWrapperProperty ENABLE_GREEN_NODE_REPLACEMENT =
+      new AwsWrapperProperty(
+          "enableGreenNodeReplacement",
+          "false",
+          "Enables replacing a green node host name with the original hostname after"
+            + " a blue/green switchover and the green name no longer resolves.",
+          false,
+          new String[] {
+              "true", "false"
+          });
+
   private static final Map<String, AwsWrapperProperty> PROPS_BY_NAME =
+      new ConcurrentHashMap<>();
+  private static final Map<String, AwsWrapperProperty> PROPS_BY_NAME_LOWERCASE =
       new ConcurrentHashMap<>();
   private static final Set<String> KNOWN_PROPS_BY_PREFIX = ConcurrentHashMap.newKeySet();
 
@@ -166,6 +184,16 @@ public class PropertyDefinition {
 
   public static @Nullable AwsWrapperProperty byName(final String name) {
     return PROPS_BY_NAME.get(name);
+  }
+
+  /**
+   * The usage of the method should be restricted. In most cases the {@link #byName(String)} method should be used
+   * since the driver internally treats all properties in case-sensitive manner.
+   *
+   * <p></p>For the moment only {@link software.amazon.jdbc.util.ConnectionUrlParser} uses this method.
+   */
+  public static @Nullable AwsWrapperProperty byNameIgnoreCase(final String name) {
+    return PROPS_BY_NAME_LOWERCASE.get(name.toLowerCase());
   }
 
   public static Collection<AwsWrapperProperty> allProperties() {
@@ -233,6 +261,7 @@ public class PropertyDefinition {
 
               if (prop != null) {
                 PROPS_BY_NAME.put(prop.name, prop);
+                PROPS_BY_NAME_LOWERCASE.put(prop.name.toLowerCase(), prop);
               }
             });
 

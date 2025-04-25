@@ -42,12 +42,12 @@ jobs:
           ./gradlew --no-parallel --no-daemon test-aurora-pg-performance
         env:
           AURORA_CLUSTER_DOMAIN: ${{ secrets.DB_CONN_SUFFIX }}
-          AURORA_DB_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          RDS_DB_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
           AWS_ACCESS_KEY_ID: ${{ env.TEMP_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.TEMP_AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ env.TEMP_AWS_SESSION_TOKEN }}
-          AURORA_MYSQL_DB_ENGINE_VERSION: "lts"
-          AURORA_PG_ENGINE_VERSION: "lts"
+          MYSQL_VERSION: "default"
+          PG_VERSION: "default"
       - name: 'Archive Performance Results'
         if: always()
         uses: actions/upload-artifact@v4

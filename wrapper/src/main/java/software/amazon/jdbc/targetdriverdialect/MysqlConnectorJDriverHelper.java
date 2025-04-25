@@ -16,6 +16,7 @@
 
 package software.amazon.jdbc.targetdriverdialect;
 
+import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -43,7 +44,9 @@ public class MysqlConnectorJDriverHelper {
     if (!(dataSource instanceof MysqlDataSource)) {
       throw new SQLException(Messages.get(
           "TargetDriverDialectManager.unexpectedClass",
-          new Object[] {"com.mysql.cj.jdbc.MysqlDataSource", dataSource.getClass().getName()}));
+          new Object[] {
+              "com.mysql.cj.jdbc.MysqlDataSource, com.mysql.cj.jdbc.MysqlConnectionPoolDataSource",
+              dataSource.getClass().getName()}));
     }
 
     final MysqlDataSource baseDataSource = (MysqlDataSource) dataSource;
@@ -89,5 +92,9 @@ public class MysqlConnectorJDriverHelper {
     } catch (SQLException e) {
       throw new SQLException(Messages.get("MysqlConnectorJDriverHelper.canNotRegister"), e);
     }
+  }
+
+  public String getSQLState(final Throwable throwable) {
+    return throwable instanceof CJException ? ((CJException) throwable).getSQLState() : null;
   }
 }

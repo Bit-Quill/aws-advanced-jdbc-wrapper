@@ -22,6 +22,8 @@ public class TestEnvironmentConfiguration {
       Boolean.parseBoolean(System.getProperty("test-no-docker", "false"));
   public boolean noAurora =
       Boolean.parseBoolean(System.getProperty("test-no-aurora", "false"));
+  public boolean noMultiAz =
+      Boolean.parseBoolean(System.getProperty("test-no-multi-az", "false"));
   public boolean noPerformance =
       Boolean.parseBoolean(System.getProperty("test-no-performance", "false"));
   public boolean noMysqlEngine =
@@ -61,6 +63,8 @@ public class TestEnvironmentConfiguration {
       Boolean.parseBoolean(System.getProperty("test-no-instances-1", "false"));
   public boolean noInstances2 =
       Boolean.parseBoolean(System.getProperty("test-no-instances-2", "false"));
+  public boolean noInstances3 =
+      Boolean.parseBoolean(System.getProperty("test-no-instances-3", "false"));
   public boolean noInstances5 =
       Boolean.parseBoolean(System.getProperty("test-no-instances-5", "false"));
 
@@ -72,19 +76,21 @@ public class TestEnvironmentConfiguration {
   public String includeTags = System.getProperty("test-include-tags");
   public String excludeTags = System.getProperty("test-exclude-tags");
 
-  public String auroraDbRegion = System.getenv("AURORA_DB_REGION");
+  public String rdsDbRegion = System.getenv("RDS_DB_REGION");
 
-  public String reuseAuroraCluster = System.getenv("REUSE_AURORA_CLUSTER");
-  public String auroraClusterName = System.getenv("AURORA_CLUSTER_NAME"); // "cluster-mysql"
-  public String auroraClusterDomain =
-      System.getenv("AURORA_CLUSTER_DOMAIN"); // "XYZ.us-west-2.rds.amazonaws.com"
+  public boolean reuseRdsCluster = Boolean.parseBoolean(System.getenv("REUSE_RDS_CLUSTER"));
+  public String rdsClusterName = System.getenv("RDS_CLUSTER_NAME"); // "cluster-mysql"
+  public String rdsClusterDomain =
+      System.getenv("RDS_CLUSTER_DOMAIN"); // "XYZ.us-west-2.rds.amazonaws.com"
+  public String rdsEndpoint =
+      System.getenv("RDS_ENDPOINT"); // "https://rds-int.amazon.com"
 
-  // Expected values: "latest", "lts", or engine version, for example, "15.4"
-  // If left as empty, will use LTS version
-  public String auroraMySqlDbEngineVersion =
-      System.getenv("AURORA_MYSQL_DB_ENGINE_VERSION");
-  public String auroraPgDbEngineVersion =
-      System.getenv("AURORA_PG_ENGINE_VERSION");
+  // Expected values: "latest", "default", or engine version, for example, "15.4"
+  // If left as empty, will use default version
+  public String mysqlVersion =
+      System.getenv("MYSQL_VERSION");
+  public String pgVersion =
+      System.getenv("PG_VERSION");
 
   public String dbName = System.getenv("DB_DATABASE_NAME");
   public String dbUsername = System.getenv("DB_USERNAME");

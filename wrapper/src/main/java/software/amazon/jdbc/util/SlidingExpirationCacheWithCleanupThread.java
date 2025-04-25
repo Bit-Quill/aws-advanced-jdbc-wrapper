@@ -19,6 +19,7 @@ package software.amazon.jdbc.util;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 public class SlidingExpirationCacheWithCleanupThread<K, V> extends SlidingExpirationCache<K, V> {
@@ -26,11 +27,13 @@ public class SlidingExpirationCacheWithCleanupThread<K, V> extends SlidingExpira
   private static final Logger LOGGER =
       Logger.getLogger(SlidingExpirationCacheWithCleanupThread.class.getName());
 
-  protected static final ExecutorService cleanupThreadPool = Executors.newFixedThreadPool(1, runnableTarget -> {
+  protected final ExecutorService cleanupThreadPool = Executors.newFixedThreadPool(1, runnableTarget -> {
     final Thread monitoringThread = new Thread(runnableTarget);
     monitoringThread.setDaemon(true);
     return monitoringThread;
   });
+  protected final ReentrantLock initLock = new ReentrantLock();
+  protected boolean isInitialized = false;
 
   public SlidingExpirationCacheWithCleanupThread() {
     super();
@@ -53,22 +56,32 @@ public class SlidingExpirationCacheWithCleanupThread<K, V> extends SlidingExpira
   }
 
   protected void initCleanupThread() {
-    cleanupThreadPool.submit(() -> {
-      while (true) {
-        TimeUnit.NANOSECONDS.sleep(this.cleanupIntervalNanos);
+    if (!isInitialized) {
+      initLock.lock();
+      try {
+        if (!isInitialized) {
+          cleanupThreadPool.submit(() -> {
+            while (true) {
+              TimeUnit.NANOSECONDS.sleep(this.cleanupIntervalNanos);
 
-        LOGGER.finest("Cleaning up...");
-        this.cleanupTimeNanos.set(System.nanoTime() + cleanupIntervalNanos);
-        cache.forEach((key, value) -> {
-          try {
-            removeIfExpired(key);
-          } catch (Exception ex) {
-            // ignore
-          }
-        });
+              LOGGER.finest("Cleaning up...");
+              this.cleanupTimeNanos.set(System.nanoTime() + cleanupIntervalNanos);
+              cache.forEach((key, value) -> {
+                try {
+                  removeIfExpired(key);
+                } catch (Exception ex) {
+                  // ignore
+                }
+              });
+            }
+          });
+          cleanupThreadPool.shutdown();
+          isInitialized = true;
+        }
+      } finally {
+        initLock.unlock();
       }
-    });
-    cleanupThreadPool.shutdown();
+    }
   }
 
   @Override

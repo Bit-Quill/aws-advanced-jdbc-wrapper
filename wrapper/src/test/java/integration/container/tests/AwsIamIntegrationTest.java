@@ -33,17 +33,21 @@ import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Properties;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.rds.RdsUtilities;
+import software.amazon.awssdk.services.rds.TestDefaultRdsUtilities;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.HostSpecBuilder;
 import software.amazon.jdbc.PropertyDefinition;
@@ -61,6 +65,7 @@ import software.amazon.jdbc.plugin.iam.RegularRdsUtility;
     TestEnvironmentFeatures.PERFORMANCE,
     TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY,
     TestEnvironmentFeatures.RUN_AUTOSCALING_TESTS_ONLY})
+@Order(3)
 // MariaDb driver has no configuration parameters to force using 'mysql_clear_password'
 // authentication that is essential for IAM. A proper user name and IAM token are passed to MariaDb
 // driver however 'mysql_native_password' authentication is chosen by default.
@@ -249,30 +254,46 @@ public class AwsIamIntegrationTest {
   @TestTemplate
   void test_TokenGenerators() {
 
+    // This test could be a simple unit test since it requires AWS credentials.
+
+    final String clusterEndpoint = "test-cluster.cluster-xyz.us-west-2.rds.amazonaws.com";
+    final int clusterEndpointPort = 5432;
+    final String region = "us-west-2";
+    final String iamUsername = "jane_doe";
+
     final HostAvailabilityStrategy mockHostAvailabilityStrategy = Mockito.mock(HostAvailabilityStrategy.class);
 
-    final Properties awsIamProp =
-        initAwsIamProps(TestEnvironment.getCurrent().getInfo().getIamUsername(), "<anything>");
+    final Properties awsIamProp = new Properties();
+    awsIamProp.setProperty(IamAuthConnectionPlugin.IAM_REGION.name, region);
+    awsIamProp.setProperty(PropertyDefinition.USER.name, "<anything>");
 
     final HostSpec hostSpec = new HostSpecBuilder(mockHostAvailabilityStrategy)
-        .host(TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getClusterEndpoint())
+        .host(clusterEndpoint)
         .build();
 
     final AwsCredentialsProvider credentialsProvider = AwsCredentialsManager.getProvider(hostSpec, awsIamProp);
 
-    final String regularToken = new RegularRdsUtility().generateAuthenticationToken(
-        credentialsProvider,
-        Region.of(TestEnvironment.getCurrent().getInfo().getAuroraRegion()),
-        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getClusterEndpoint(),
-        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getClusterReadOnlyEndpointPort(),
-        TestEnvironment.getCurrent().getInfo().getIamUsername());
+    final Instant fixedInstant = Instant.parse("2024-10-20T00:00:00Z");
 
-    final String lightToken = new LightRdsUtility().generateAuthenticationToken(
+    final RdsUtilities rdsUtilities = TestDefaultRdsUtilities.getDefaultRdsUtilities(
         credentialsProvider,
-        Region.of(TestEnvironment.getCurrent().getInfo().getAuroraRegion()),
-        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getClusterEndpoint(),
-        TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getClusterReadOnlyEndpointPort(),
-        TestEnvironment.getCurrent().getInfo().getIamUsername());
+        Region.of(region),
+        fixedInstant);
+    final RegularRdsUtility regularRdsUtility = new RegularRdsUtility(rdsUtilities);
+
+    final String regularToken = regularRdsUtility.generateAuthenticationToken(
+        credentialsProvider,
+        Region.of(region),
+        clusterEndpoint,
+        clusterEndpointPort,
+        iamUsername);
+
+    final String lightToken = new LightRdsUtility(fixedInstant).generateAuthenticationToken(
+        credentialsProvider,
+        Region.of(region),
+        clusterEndpoint,
+        clusterEndpointPort,
+        iamUsername);
 
     assertEquals(regularToken, lightToken);
   }
@@ -280,9 +301,12 @@ public class AwsIamIntegrationTest {
   protected Properties initAwsIamProps(String user, String password) {
     final Properties props = ConnectionStringHelper.getDefaultProperties();
     props.setProperty(PropertyDefinition.PLUGINS.name, "iam");
+    props.setProperty(
+        IamAuthConnectionPlugin.IAM_REGION.name,
+        TestEnvironment.getCurrent().getInfo().getRegion());
     props.setProperty(PropertyDefinition.USER.name, user);
     props.setProperty(PropertyDefinition.PASSWORD.name, password);
-    DriverHelper.setTcpKeepAlive(TestEnvironment.getCurrent().getCurrentDriver(), props, false);
+    props.setProperty(PropertyDefinition.TCP_KEEP_ALIVE.name, "false");
     return props;
   }
 

@@ -26,10 +26,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -42,7 +40,6 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
-import software.amazon.awssdk.utils.Pair;
 import software.amazon.jdbc.AwsWrapperProperty;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.JdbcCallable;
@@ -50,6 +47,8 @@ import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.authentication.AwsCredentialsManager;
 import software.amazon.jdbc.util.Messages;
+import software.amazon.jdbc.util.Pair;
+import software.amazon.jdbc.util.RegionUtils;
 import software.amazon.jdbc.util.StringUtils;
 import software.amazon.jdbc.util.telemetry.TelemetryContext;
 import software.amazon.jdbc.util.telemetry.TelemetryCounter;
@@ -79,12 +78,11 @@ public class AwsSecretsManagerConnectionPlugin extends AbstractConnectionPlugin 
       "secretsManagerEndpoint", null,
       "The endpoint of the secret to retrieve.");
 
-  protected static final Map<Pair<String, Region>, Secret> secretsCache = new ConcurrentHashMap<>();
-
+  protected static final RegionUtils regionUtils = new RegionUtils();
   private static final Pattern SECRETS_ARN_PATTERN =
       Pattern.compile("^arn:aws:secretsmanager:(?<region>[^:\\n]*):[^:\\n]*:([^:/\\n]*[:/])?(.*)$");
 
-  final Pair<String, Region> secretKey;
+  final Pair<String /* secretId */, String /* region */> secretKey;
   private final BiFunction<HostSpec, Region, SecretsManagerClient>
       secretsManagerClientFunc;
   private final Function<String, GetSecretValueRequest> getSecretValueRequestFunc;
@@ -156,28 +154,22 @@ public class AwsSecretsManagerConnectionPlugin extends AbstractConnectionPlugin 
               new Object[] {SECRET_ID_PROPERTY.name}));
     }
 
-    String regionString;
-    if (StringUtils.isNullOrEmpty(props.getProperty(REGION_PROPERTY.name))) {
+    Region region = regionUtils.getRegion(props, REGION_PROPERTY.name);
+    if (region == null) {
       final Matcher matcher = SECRETS_ARN_PATTERN.matcher(secretId);
       if (matcher.matches()) {
-        regionString = matcher.group("region");
-      } else {
-        throw new RuntimeException(
-            Messages.get(
-                "AwsSecretsManagerConnectionPlugin.missingRequiredConfigParameter",
-                new Object[] {REGION_PROPERTY.name}));
+        region = regionUtils.getRegionFromRegionString(matcher.group("region"));
       }
-    } else {
-      regionString = REGION_PROPERTY.getString(props);
     }
 
-    final Region region = Region.of(regionString);
-    if (!Region.regions().contains(region)) {
-      throw new RuntimeException(Messages.get(
-          "AwsSdk.unsupportedRegion",
-          new Object[] {regionString}));
+    if (region == null) {
+      throw new RuntimeException(
+          Messages.get(
+              "AwsSecretsManagerConnectionPlugin.missingRequiredConfigParameter",
+              new Object[] {REGION_PROPERTY.name}));
     }
-    this.secretKey = Pair.of(secretId, region);
+
+    this.secretKey = Pair.create(secretId, region.id());
 
     this.secretsManagerClientFunc = secretsManagerClientFunc;
     this.getSecretValueRequestFunc = getSecretValueRequestFunc;
@@ -210,7 +202,8 @@ public class AwsSecretsManagerConnectionPlugin extends AbstractConnectionPlugin 
       return connectFunc.call();
 
     } catch (final SQLException exception) {
-      if (this.pluginService.isLoginException(exception) && !secretWasFetched) {
+      if (this.pluginService.isLoginException(exception, this.pluginService.getTargetDriverDialect())
+          && !secretWasFetched) {
         // Login unsuccessful with cached credentials
         // Try to re-fetch credentials and try again
 
@@ -257,14 +250,14 @@ public class AwsSecretsManagerConnectionPlugin extends AbstractConnectionPlugin 
 
     try {
       boolean fetched = false;
-      this.secret = secretsCache.get(this.secretKey);
+      this.secret = AwsSecretsManagerCacheHolder.secretsCache.get(this.secretKey);
 
       if (secret == null || forceReFetch) {
         try {
           this.secret = fetchLatestCredentials(hostSpec);
           if (this.secret != null) {
             fetched = true;
-            secretsCache.put(this.secretKey, this.secret);
+            AwsSecretsManagerCacheHolder.secretsCache.put(this.secretKey, this.secret);
           }
         } catch (final SecretsManagerException | JsonProcessingException exception) {
           LOGGER.log(
@@ -326,8 +319,8 @@ public class AwsSecretsManagerConnectionPlugin extends AbstractConnectionPlugin 
       throws SecretsManagerException, JsonProcessingException {
     final SecretsManagerClient client = secretsManagerClientFunc.apply(
         hostSpec,
-        this.secretKey.right());
-    final GetSecretValueRequest request = getSecretValueRequestFunc.apply(this.secretKey.left());
+        Region.of(this.secretKey.getValue2()));
+    final GetSecretValueRequest request = getSecretValueRequestFunc.apply(this.secretKey.getValue1());
 
     final GetSecretValueResponse valueResponse;
     try {
@@ -351,6 +344,10 @@ public class AwsSecretsManagerConnectionPlugin extends AbstractConnectionPlugin 
       PropertyDefinition.USER.set(properties, secret.getUsername());
       PropertyDefinition.PASSWORD.set(properties, secret.getPassword());
     }
+  }
+
+  public static void clearCache() {
+    AwsSecretsManagerCacheHolder.clearCache();
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)

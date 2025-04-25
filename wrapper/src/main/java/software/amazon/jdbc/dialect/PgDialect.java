@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -28,6 +29,7 @@ import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.exceptions.ExceptionHandler;
 import software.amazon.jdbc.exceptions.PgExceptionHandler;
 import software.amazon.jdbc.hostlistprovider.ConnectionStringHostListProvider;
+import software.amazon.jdbc.plugin.failover.FailoverRestriction;
 
 /**
  * Generic dialect for any Postgresql database.
@@ -40,6 +42,8 @@ public class PgDialect implements Dialect {
       DialectCodes.RDS_PG);
 
   private static PgExceptionHandler pgExceptionHandler;
+
+  private static final EnumSet<FailoverRestriction> NO_RESTRICTIONS = EnumSet.noneOf(FailoverRestriction.class);
 
   @Override
   public int getDefaultPort() {
@@ -102,12 +106,18 @@ public class PgDialect implements Dialect {
 
   @Override
   public HostListProviderSupplier getHostListProvider() {
-    return ConnectionStringHostListProvider::new;
+    return (properties, initialUrl, hostListProviderService, pluginService) ->
+        new ConnectionStringHostListProvider(properties, initialUrl, hostListProviderService);
   }
 
   @Override
   public void prepareConnectProperties(
       final @NonNull Properties connectProperties, final @NonNull String protocol, final @NonNull HostSpec hostSpec) {
     // do nothing
+  }
+
+  @Override
+  public EnumSet<FailoverRestriction> getFailoverRestrictions() {
+    return NO_RESTRICTIONS;
   }
 }

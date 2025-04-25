@@ -53,7 +53,7 @@ import software.amazon.jdbc.util.telemetry.TelemetryTraceLevel;
 public class MonitorImpl implements Monitor {
 
   private static final Logger LOGGER = Logger.getLogger(MonitorImpl.class.getName());
-  private static final long THREAD_SLEEP_NANO = TimeUnit.SECONDS.toNanos(1);
+  private static final long THREAD_SLEEP_NANO = TimeUnit.MILLISECONDS.toNanos(100);
   private static final String MONITORING_PROPERTY_PREFIX = "monitoring-";
 
   protected static final Executor ABORT_EXECUTOR = Executors.newSingleThreadExecutor();
@@ -95,6 +95,10 @@ public class MonitorImpl implements Monitor {
    *                                  instance is monitoring.
    * @param properties                The {@link Properties} containing additional monitoring
    *                                  configuration.
+   * @param failureDetectionTimeMillis A failure detection time in millis.
+   * @param failureDetectionIntervalMillis A failure detection interval in millis.
+   * @param failureDetectionCount A failure detection count.
+   * @param abortedConnectionsCounter Aborted connection telemetry counter.
    */
   public MonitorImpl(
       final @NonNull PluginService pluginService,
@@ -250,7 +254,7 @@ public class MonitorImpl implements Monitor {
     try {
       while (!this.stopped.get()) {
 
-        if (this.activeContexts.isEmpty()) {
+        if (this.activeContexts.isEmpty() && !this.nodeUnhealthy) {
           TimeUnit.NANOSECONDS.sleep(THREAD_SLEEP_NANO);
           continue;
         }
@@ -326,7 +330,7 @@ public class MonitorImpl implements Monitor {
     }
 
     LOGGER.finest(() -> Messages.get(
-        "MonitorImpl.startMonitoringThread",
+        "MonitorImpl.stopMonitoringThread",
         new Object[]{this.hostSpec.getHost()}));
   }
 
@@ -361,8 +365,10 @@ public class MonitorImpl implements Monitor {
         return true;
       }
 
-      final boolean isValid = this.monitoringConn.isValid(
-          (int) TimeUnit.NANOSECONDS.toSeconds(this.failureDetectionIntervalNano));
+      // Some drivers, like MySQL Connector/J, execute isValid() in a double of specified timeout time.
+      final int validTimeout = (int) TimeUnit.NANOSECONDS.toSeconds(
+          this.failureDetectionIntervalNano - THREAD_SLEEP_NANO) / 2;
+      final boolean isValid = this.monitoringConn.isValid(validTimeout);
       return isValid;
 
     } catch (final SQLException sqlEx) {
@@ -387,7 +393,7 @@ public class MonitorImpl implements Monitor {
 
       final long invalidNodeDurationNano = statusCheckEndNano - this.invalidNodeStartTimeNano;
       final long maxInvalidNodeDurationNano =
-          this.failureDetectionIntervalNano * Math.max(0, this.failureDetectionCount);
+          this.failureDetectionIntervalNano * Math.max(0, this.failureDetectionCount - 1);
 
       if (invalidNodeDurationNano >= maxInvalidNodeDurationNano) {
         LOGGER.fine(() -> Messages.get("MonitorConnectionContext.hostDead", new Object[] {this.hostSpec.getHost()}));

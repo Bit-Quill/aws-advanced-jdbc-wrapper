@@ -55,7 +55,7 @@ pluginManagement {
         fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
 
         id("biz.aQute.bnd.builder") version "6.4.0"
-        id("com.github.spotbugs") version "6.0.+"
+        id("com.github.spotbugs") version "6.1.+"
         id("com.diffplug.spotless") version "6.13.0" // 6.13.0 is the last version that is compatible with Java 8
         id("com.github.vlsi.gradle-extensions") version "1.+"
         id("com.github.vlsi.stage-vote-release") version "1.+"
@@ -64,4 +64,8 @@ pluginManagement {
         id("org.checkerframework") version "0.+"
         id("com.kncept.junit.reporter") version "2.1.0"
     }
+}
+
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0" // Does not get imported correctly in pluginManagement
 }

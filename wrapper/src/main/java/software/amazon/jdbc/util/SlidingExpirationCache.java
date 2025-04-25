@@ -16,11 +16,14 @@
 
 package software.amazon.jdbc.util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 public class SlidingExpirationCache<K, V> {
@@ -28,7 +31,7 @@ public class SlidingExpirationCache<K, V> {
   protected final Map<K, CacheItem> cache = new ConcurrentHashMap<>();
   protected long cleanupIntervalNanos = TimeUnit.MINUTES.toNanos(10);
   protected final AtomicLong cleanupTimeNanos = new AtomicLong(System.nanoTime() + cleanupIntervalNanos);
-  protected final ShouldDisposeFunc<V> shouldDisposeFunc;
+  protected final AtomicReference<ShouldDisposeFunc<V>> shouldDisposeFunc = new AtomicReference<>(null);
   protected final ItemDisposalFunc<V> itemDisposalFunc;
 
   /**
@@ -36,7 +39,7 @@ public class SlidingExpirationCache<K, V> {
    * as not-expired and renews its expiration time.
    */
   public SlidingExpirationCache() {
-    this.shouldDisposeFunc = null;
+    this.shouldDisposeFunc.set(null);
     this.itemDisposalFunc = null;
   }
 
@@ -54,7 +57,7 @@ public class SlidingExpirationCache<K, V> {
   public SlidingExpirationCache(
       final ShouldDisposeFunc<V> shouldDisposeFunc,
       final ItemDisposalFunc<V> itemDisposalFunc) {
-    this.shouldDisposeFunc = shouldDisposeFunc;
+    this.shouldDisposeFunc.set(shouldDisposeFunc);
     this.itemDisposalFunc = itemDisposalFunc;
   }
 
@@ -62,9 +65,13 @@ public class SlidingExpirationCache<K, V> {
       final ShouldDisposeFunc<V> shouldDisposeFunc,
       final ItemDisposalFunc<V> itemDisposalFunc,
       final long cleanupIntervalNanos) {
-    this.shouldDisposeFunc = shouldDisposeFunc;
+    this.shouldDisposeFunc.set(shouldDisposeFunc);
     this.itemDisposalFunc = itemDisposalFunc;
     this.cleanupIntervalNanos = cleanupIntervalNanos;
+  }
+
+  public void setShouldDisposeFunc(final ShouldDisposeFunc<V> shouldDisposeFunc) {
+    this.shouldDisposeFunc.set(shouldDisposeFunc);
   }
 
   /**
@@ -93,6 +100,18 @@ public class SlidingExpirationCache<K, V> {
     return cacheItem.withExtendExpiration(itemExpirationNano).item;
   }
 
+  public V put(
+      final K key,
+      final V value,
+      final long itemExpirationNano) {
+    cleanUp();
+    final CacheItem cacheItem = cache.put(key, new CacheItem(value, System.nanoTime() + itemExpirationNano));
+    if (cacheItem == null) {
+      return null;
+    }
+    return cacheItem.withExtendExpiration(itemExpirationNano).item;
+  }
+
   public V get(final K key, final long itemExpirationNano) {
     cleanUp();
     final CacheItem cacheItem = cache.get(key);
@@ -118,9 +137,27 @@ public class SlidingExpirationCache<K, V> {
   }
 
   protected void removeIfExpired(K key) {
-    final CacheItem cacheItem = cache.get(key);
-    if (cacheItem == null || cacheItem.shouldCleanup()) {
-      removeAndDispose(key);
+    // A list is used to store the cached item for later disposal since lambdas require references to outer variables
+    // to be final. This allows us to dispose of the item after it has been removed and the cache has been unlocked,
+    // which is important because the disposal function may be long-running.
+    final List<V> itemList = new ArrayList<>(1);
+    cache.computeIfPresent(key, (k, cacheItem) -> {
+      if (cacheItem.shouldCleanup()) {
+        itemList.add(cacheItem.item);
+        // Removes the item from the cache map.
+        return null;
+      }
+
+      return cacheItem;
+    });
+
+    if (itemList.isEmpty()) {
+      return;
+    }
+
+    V item = itemList.get(0);
+    if (item != null && itemDisposalFunc != null) {
+      itemDisposalFunc.dispose(item);
     }
   }
 
@@ -225,8 +262,9 @@ public class SlidingExpirationCache<K, V> {
      *     false.
      */
     boolean shouldCleanup() {
-      if (shouldDisposeFunc != null) {
-        return System.nanoTime() > expirationTimeNano && shouldDisposeFunc.shouldDispose(this.item);
+      final ShouldDisposeFunc<V> tempShouldDisposeFunc = shouldDisposeFunc.get();
+      if (tempShouldDisposeFunc != null) {
+        return System.nanoTime() > expirationTimeNano && tempShouldDisposeFunc.shouldDispose(this.item);
       }
       return System.nanoTime() > expirationTimeNano;
     }

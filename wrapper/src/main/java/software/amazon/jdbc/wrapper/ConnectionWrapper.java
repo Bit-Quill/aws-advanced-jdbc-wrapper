@@ -146,7 +146,8 @@ public class ConnectionWrapper implements Connection, CanReleaseResources {
 
     final HostListProviderSupplier supplier = this.pluginService.getDialect().getHostListProvider();
     if (supplier != null) {
-      final HostListProvider provider = supplier.getProvider(props, this.originalUrl, hostListProviderService);
+      final HostListProvider provider = supplier.getProvider(
+          props, this.originalUrl, this.hostListProviderService, this.pluginService);
       hostListProviderService.setHostListProvider(provider);
     }
 
@@ -158,13 +159,18 @@ public class ConnectionWrapper implements Connection, CanReleaseResources {
     if (this.pluginService.getCurrentConnection() == null) {
       final Connection conn =
           this.pluginManager.connect(
-              this.targetDriverProtocol, this.pluginService.getInitialConnectionHostSpec(), props, true);
+              this.targetDriverProtocol,
+              this.pluginService.getInitialConnectionHostSpec(),
+              props,
+              true,
+              null);
 
       if (conn == null) {
         throw new SQLException(Messages.get("ConnectionWrapper.connectionNotOpen"), SqlState.UNKNOWN_STATE.getState());
       }
 
       this.pluginService.setCurrentConnection(conn, this.pluginService.getInitialConnectionHostSpec());
+      this.pluginService.refreshHostList();
     }
   }
 
@@ -191,7 +197,7 @@ public class ConnectionWrapper implements Connection, CanReleaseResources {
   }
 
   @Override
-  public synchronized void clearWarnings() throws SQLException {
+  public void clearWarnings() throws SQLException {
     WrapperUtils.runWithPlugins(
         SQLException.class,
         this.pluginManager,
@@ -498,7 +504,7 @@ public class ConnectionWrapper implements Connection, CanReleaseResources {
   }
 
   @Override
-  public synchronized SQLWarning getWarnings() throws SQLException {
+  public SQLWarning getWarnings() throws SQLException {
     return WrapperUtils.executeWithPlugins(
         SQLWarning.class,
         SQLException.class,
@@ -927,11 +933,11 @@ public class ConnectionWrapper implements Connection, CanReleaseResources {
 
   @Override
   public <T> T unwrap(final Class<T> iface) throws SQLException {
-    T result = this.pluginService.getCurrentConnection().unwrap(iface);
+    T result = this.pluginManager.unwrap(iface);
     if (result != null) {
       return result;
     }
-    return this.pluginManager.unwrap(iface);
+    return this.pluginService.getCurrentConnection().unwrap(iface);
   }
 
   @Override

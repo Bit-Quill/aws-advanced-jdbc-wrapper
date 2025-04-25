@@ -51,6 +51,8 @@ public class FastestResponseStrategyPlugin extends AbstractConnectionPlugin {
   private static final Set<String> subscribedMethods =
       Collections.unmodifiableSet(new HashSet<String>() {
         {
+          add("connect");
+          add("forceConnect");
           add("notifyNodeListChanged");
           add("acceptsStrategy");
           add("getHostSpecByStrategy");
@@ -121,22 +123,6 @@ public class FastestResponseStrategyPlugin extends AbstractConnectionPlugin {
   }
 
   @Override
-  public Connection forceConnect(
-      final String driverProtocol,
-      final HostSpec hostSpec,
-      final Properties props,
-      final boolean isInitialConnection,
-      final JdbcCallable<Connection, SQLException> forceConnectFunc)
-      throws SQLException {
-
-    Connection conn = forceConnectFunc.call();
-    if (isInitialConnection) {
-      this.hostResponseTimeService.setHosts(this.pluginService.getHosts());
-    }
-    return conn;
-  }
-
-  @Override
   public boolean acceptsStrategy(HostRole role, String strategy) {
     return FASTEST_RESPONSE_STRATEGY_NAME.equalsIgnoreCase(strategy);
   }
@@ -154,7 +140,7 @@ public class FastestResponseStrategyPlugin extends AbstractConnectionPlugin {
     final HostSpec fastestResponseHost = cachedFastestResponseHostByRole.get(role.name());
 
     if (fastestResponseHost != null) {
-      // Found a fastest host. Let find it in the the latest topology.
+      // Found a fastest host. Let find it in the latest topology.
       HostSpec foundHostSpec = this.pluginService.getHosts().stream()
           .filter(x -> x.equals(fastestResponseHost))
           .findAny()
@@ -194,6 +180,10 @@ public class FastestResponseStrategyPlugin extends AbstractConnectionPlugin {
   public void notifyNodeListChanged(final Map<String, EnumSet<NodeChangeOptions>> changes) {
     this.hosts = this.pluginService.getHosts();
     this.hostResponseTimeService.setHosts(this.hosts);
+  }
+
+  public static void clearCache() {
+    cachedFastestResponseHostByRole.clear();
   }
 
   private static class ResponseTimeTuple {

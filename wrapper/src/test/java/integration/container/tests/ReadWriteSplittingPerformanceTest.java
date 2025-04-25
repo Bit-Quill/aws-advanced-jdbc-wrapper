@@ -17,7 +17,6 @@
 package integration.container.tests;
 
 import com.zaxxer.hikari.HikariConfig;
-import integration.DriverHelper;
 import integration.TestEnvironmentFeatures;
 import integration.container.ConnectionStringHelper;
 import integration.container.TestDriverProvider;
@@ -41,11 +40,13 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import software.amazon.jdbc.ConnectionProviderManager;
+import software.amazon.jdbc.Driver;
 import software.amazon.jdbc.HikariPooledConnectionProvider;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.plugin.ConnectTimeConnectionPlugin;
@@ -57,6 +58,7 @@ import software.amazon.jdbc.util.StringUtils;
 @EnableOnTestFeature(TestEnvironmentFeatures.PERFORMANCE)
 @EnableOnNumOfInstances(min = 5)
 @Tag("rw-splitting")
+@Order(11)
 public class ReadWriteSplittingPerformanceTest {
 
   private static final Logger LOGGER =
@@ -85,10 +87,10 @@ public class ReadWriteSplittingPerformanceTest {
 
     final HikariPooledConnectionProvider connProvider =
         new HikariPooledConnectionProvider((hostSpec, props) -> new HikariConfig());
-    ConnectionProviderManager.setConnectionProvider(connProvider);
+    Driver.setCustomConnectionProvider(connProvider);
     final Result resultsWithPools = getSetReadOnlyResults(propsWithPlugin);
     ConnectionProviderManager.releaseResources();
-    ConnectionProviderManager.resetProvider();
+    Driver.resetCustomConnectionProvider();
 
     final long switchToReaderMinOverhead =
         resultsWithPlugin.switchToReaderMin - resultsWithoutPlugin.switchToReaderMin;
@@ -209,8 +211,9 @@ public class ReadWriteSplittingPerformanceTest {
 
   protected Properties initNoPluginPropsWithTimeouts() {
     final Properties props = ConnectionStringHelper.getDefaultProperties();
-    DriverHelper.setConnectTimeout(props, CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS);
-    DriverHelper.setSocketTimeout(props, TIMEOUT_SEC, TimeUnit.SECONDS);
+    PropertyDefinition.CONNECT_TIMEOUT.set(props, String.valueOf(TimeUnit.SECONDS.toMillis(CONNECT_TIMEOUT_SEC)));
+    PropertyDefinition.SOCKET_TIMEOUT.set(props, String.valueOf(TimeUnit.SECONDS.toMillis(TIMEOUT_SEC)));
+
     return props;
   }
 

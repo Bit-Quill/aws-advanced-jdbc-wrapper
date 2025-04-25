@@ -16,7 +16,7 @@
 
 plugins {
     id("biz.aQute.bnd.builder")
-    id("com.github.johnrengelman.shadow") version "7.0.0"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
@@ -24,8 +24,9 @@ repositories {
 }
 
 dependencies {
-    implementation("software.amazon.awssdk:rds:2.25.12")
-    implementation("software.amazon.awssdk:sts:2.25.17")
+    implementation("org.apache.httpcomponents:httpclient:4.5.14")
+    implementation("software.amazon.awssdk:rds:2.31.12")
+    implementation("software.amazon.awssdk:sts:2.30.27")
     implementation(project(":aws-advanced-jdbc-wrapper"))
 }
 
@@ -33,7 +34,7 @@ tasks.shadowJar {
 
     archiveBaseName.set("aws-advanced-jdbc-wrapper")
     archiveClassifier.set("bundle-federated-auth")
-    destinationDirectory.set(project(":aws-advanced-jdbc-wrapper").buildDir.resolve("libs"))
+    destinationDirectory.set(project(":aws-advanced-jdbc-wrapper").layout.buildDirectory.get().asFile.resolve("libs"))
 
     mergeServiceFiles("META-INF")
 

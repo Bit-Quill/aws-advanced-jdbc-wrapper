@@ -40,7 +40,6 @@ import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.RdsUrlType;
 import software.amazon.jdbc.util.RdsUtils;
 import software.amazon.jdbc.util.SubscribedMethodHelper;
-import software.amazon.jdbc.util.telemetry.TelemetryFactory;
 
 /**
  * Monitor the server while the connection is executing methods for more sophisticated failure
@@ -181,7 +180,8 @@ public class HostMonitoringConnectionPlugin extends AbstractConnectionPlugin
 
     } finally {
       if (monitorContext != null) {
-        synchronized (monitorContext) {
+        monitorContext.getLock().lock();
+        try {
           this.monitorService.stopMonitoring(monitorContext);
 
           if (monitorContext.isNodeUnhealthy()) {
@@ -206,6 +206,8 @@ public class HostMonitoringConnectionPlugin extends AbstractConnectionPlugin
                           new Object[] {this.pluginService.getCurrentHostSpec().asAlias()})));
             }
           }
+        } finally {
+          monitorContext.getLock().unlock();
         }
 
         LOGGER.finest(
@@ -274,11 +276,7 @@ public class HostMonitoringConnectionPlugin extends AbstractConnectionPlugin
       final boolean isInitialConnection,
       final @NonNull JdbcCallable<Connection, SQLException> connectFunc)
       throws SQLException {
-    return connectInternal(driverProtocol, hostSpec, connectFunc);
-  }
 
-  private Connection connectInternal(String driverProtocol, HostSpec hostSpec,
-      JdbcCallable<Connection, SQLException> connectFunc) throws SQLException {
     final Connection conn = connectFunc.call();
 
     if (conn != null) {
@@ -290,17 +288,6 @@ public class HostMonitoringConnectionPlugin extends AbstractConnectionPlugin
     }
 
     return conn;
-  }
-
-  @Override
-  public Connection forceConnect(
-      final @NonNull String driverProtocol,
-      final @NonNull HostSpec hostSpec,
-      final @NonNull Properties props,
-      final boolean isInitialConnection,
-      final @NonNull JdbcCallable<Connection, SQLException> forceConnectFunc)
-      throws SQLException {
-    return connectInternal(driverProtocol, hostSpec, forceConnectFunc);
   }
 
   public HostSpec getMonitoringHostSpec() {

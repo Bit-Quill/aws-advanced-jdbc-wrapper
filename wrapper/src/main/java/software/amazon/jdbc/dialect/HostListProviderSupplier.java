@@ -20,11 +20,13 @@ import java.util.Properties;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import software.amazon.jdbc.HostListProvider;
 import software.amazon.jdbc.HostListProviderService;
+import software.amazon.jdbc.PluginService;
 
 @FunctionalInterface
 public interface HostListProviderSupplier {
   @NonNull HostListProvider getProvider(
       final @NonNull Properties properties,
       final String initialUrl,
-      final @NonNull HostListProviderService hostListProviderService);
+      final @NonNull HostListProviderService hostListProviderService,
+      final @NonNull PluginService pluginService);
 }

@@ -16,21 +16,46 @@
 
 package software.amazon.jdbc.exceptions;
 
-import com.mysql.cj.exceptions.CJException;
 import java.sql.SQLException;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import software.amazon.jdbc.targetdriverdialect.TargetDriverDialect;
+import software.amazon.jdbc.util.StringUtils;
 
 public class MySQLExceptionHandler implements ExceptionHandler {
   public static final String SQLSTATE_ACCESS_ERROR = "28000";
+  public static final String SQLSTATE_SYNTAX_ERROR_OR_ACCESS_VIOLATION = "42000";
+  public static final String SET_NETWORK_TIMEOUT_ON_CLOSED_CONNECTION =
+      "setNetworkTimeout cannot be called on a closed connection";
 
   @Override
-  public boolean isNetworkException(final Throwable throwable) {
+  public boolean isNetworkException(Throwable throwable) {
+    return this.isNetworkException(throwable, null);
+  }
+
+  @Override
+  public boolean isNetworkException(final Throwable throwable, @Nullable TargetDriverDialect targetDriverDialect) {
     Throwable exception = throwable;
 
     while (exception != null) {
       if (exception instanceof SQLException) {
-        return isNetworkException(((SQLException) exception).getSQLState());
-      } else if (exception instanceof CJException) {
-        return isNetworkException(((CJException) exception).getSQLState());
+        SQLException sqlException = (SQLException) exception;
+
+        // Hikari throws a network exception with SQL state 42000 if all the following points are true:
+        // - HikariDataSource#getConnection is called and the cached connection that was grabbed is broken due to server
+        // failover.
+        // - the MariaDB driver is being used (the underlying driver determines the SQL state of the Hikari exception).
+        //
+        // The check for the Hikari MariaDB exception is added here because the exception handler is determined by the
+        // database dialect. Consequently, this exception handler is used when using the MariaDB driver against a MySQL
+        // database engine.
+        if (isNetworkException(sqlException.getSQLState()) || isHikariMariaDbNetworkException(sqlException)) {
+          return true;
+        }
+      } else if (targetDriverDialect != null) {
+        String sqlState = targetDriverDialect.getSQLState(throwable);
+        if (!StringUtils.isNullOrEmpty(sqlState)) {
+          return isNetworkException(sqlState);
+        }
       }
 
       exception = exception.getCause();
@@ -49,17 +74,28 @@ public class MySQLExceptionHandler implements ExceptionHandler {
   }
 
   @Override
-  public boolean isLoginException(final Throwable throwable) {
+  public boolean isLoginException(Throwable throwable) {
+    return this.isLoginException(throwable, null);
+  }
+
+  @Override
+  public boolean isLoginException(final Throwable throwable, @Nullable TargetDriverDialect targetDriverDialect) {
     Throwable exception = throwable;
 
     while (exception != null) {
       if (exception instanceof SQLLoginException) {
         return true;
       }
+
+      String sqlState = null;
       if (exception instanceof SQLException) {
-        return isLoginException(((SQLException) exception).getSQLState());
-      } else if (exception instanceof CJException) {
-        return isLoginException(((CJException) exception).getSQLState());
+        sqlState = ((SQLException) exception).getSQLState();
+      } else if (targetDriverDialect != null) {
+        sqlState = targetDriverDialect.getSQLState(throwable);
+      }
+
+      if (isLoginException(sqlState)) {
+        return true;
       }
 
       exception = exception.getCause();
@@ -75,5 +111,10 @@ public class MySQLExceptionHandler implements ExceptionHandler {
     }
 
     return SQLSTATE_ACCESS_ERROR.equals(sqlState);
+  }
+
+  private boolean isHikariMariaDbNetworkException(final SQLException sqlException) {
+    return sqlException.getSQLState().equals(SQLSTATE_SYNTAX_ERROR_OR_ACCESS_VIOLATION)
+        && sqlException.getMessage().contains(SET_NETWORK_TIMEOUT_ON_CLOSED_CONNECTION);
   }
 }

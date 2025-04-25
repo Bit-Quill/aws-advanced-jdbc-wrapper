@@ -26,8 +26,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import software.amazon.jdbc.AwsWrapperProperty;
+import software.amazon.jdbc.Driver;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.PluginService;
+import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.util.CacheMap;
 import software.amazon.jdbc.util.ConnectionUrlParser;
 import software.amazon.jdbc.util.Messages;
@@ -39,8 +41,6 @@ import software.amazon.jdbc.util.Utils;
 public class DialectManager implements DialectProvider {
 
   private static final Logger LOGGER = Logger.getLogger(DialectManager.class.getName());
-
-  protected static Dialect customDialect;
 
   public static final AwsWrapperProperty DIALECT = new AwsWrapperProperty(
       "wrapperDialect", "",
@@ -82,18 +82,34 @@ public class DialectManager implements DialectProvider {
   private Dialect dialect = null;
   private String dialectCode;
 
-  private PluginService pluginService;
+  private final PluginService pluginService;
+
+  static {
+    PropertyDefinition.registerPluginProperties(DialectManager.class);
+  }
 
   public DialectManager(PluginService pluginService) {
     this.pluginService = pluginService;
   }
 
+  /**
+   * Sets a custom dialect handler.
+   *
+   * @deprecated Use software.amazon.jdbc.Driver instead
+   */
+  @Deprecated
   public static void setCustomDialect(final @NonNull Dialect dialect) {
-    customDialect = dialect;
+    Driver.setCustomDialect(dialect);
   }
 
+  /**
+   * Resets a custom dialect handler.
+   *
+   * @deprecated Use software.amazon.jdbc.Driver instead
+   */
+  @Deprecated
   public static void resetCustomDialect() {
-    customDialect = null;
+    Driver.resetCustomDialect();
   }
 
   public static void resetEndpointCache() {
@@ -110,6 +126,7 @@ public class DialectManager implements DialectProvider {
     this.canUpdate = false;
     this.dialect = null;
 
+    final Dialect customDialect = Driver.getCustomDialect();
     if (customDialect != null) {
       this.dialectCode = DialectCodes.CUSTOM;
       this.dialect = customDialect;
@@ -170,6 +187,12 @@ public class DialectManager implements DialectProvider {
 
     if (driverProtocol.contains("postgresql")) {
       RdsUrlType type = this.rdsHelper.identifyRdsType(host);
+      if (RdsUrlType.RDS_AURORA_LIMITLESS_DB_SHARD_GROUP.equals(type)) {
+        this.canUpdate = false;
+        this.dialectCode = DialectCodes.AURORA_PG;
+        this.dialect = knownDialectsByCode.get(DialectCodes.AURORA_PG);
+        return this.dialect;
+      }
       if (type.isRdsCluster()) {
         this.canUpdate = true;
         this.dialectCode = DialectCodes.AURORA_PG;
@@ -255,7 +278,7 @@ public class DialectManager implements DialectProvider {
   private void logCurrentDialect() {
     LOGGER.finest(() -> String.format("Current dialect: %s, %s, canUpdate: %b",
         this.dialectCode,
-        this.dialect == null ? "<null>" : this.dialect.getClass().getName(),
+        this.dialect == null ? "<null>" : this.dialect,
         this.canUpdate));
   }
 }

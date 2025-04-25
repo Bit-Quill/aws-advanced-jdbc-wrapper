@@ -19,7 +19,9 @@ package software.amazon.jdbc.plugin;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +48,6 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
         {
           add("initHostProvider");
           add("connect");
-          add("forceConnect");
         }
       });
 
@@ -68,9 +69,37 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
           "1000",
           "Time between each retry of opening a connection.");
 
+  public static final AwsWrapperProperty VERIFY_OPENED_CONNECTION_TYPE =
+      new AwsWrapperProperty(
+          "verifyOpenedConnectionType",
+          null,
+          "Force to verify an opened connection to be either a writer or a reader.");
+
+  private enum VerifyOpenedConnectionType {
+    WRITER,
+    READER;
+
+    private static final Map<String, VerifyOpenedConnectionType> nameToValue =
+        new HashMap<String, VerifyOpenedConnectionType>() {
+          {
+            put("writer", WRITER);
+            put("reader", READER);
+          }
+        };
+
+    public static VerifyOpenedConnectionType fromValue(String value) {
+      if (value == null) {
+        return null;
+      }
+      return nameToValue.get(value.toLowerCase());
+    }
+  }
+
   private final PluginService pluginService;
   private HostListProviderService hostListProviderService;
   private final RdsUtils rdsUtils = new RdsUtils();
+
+  private VerifyOpenedConnectionType verifyOpenedConnectionType = null;
 
   static {
     PropertyDefinition.registerPluginProperties(AuroraInitialConnectionStrategyPlugin.class);
@@ -78,6 +107,8 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
 
   public AuroraInitialConnectionStrategyPlugin(final PluginService pluginService, final Properties properties) {
     this.pluginService = pluginService;
+    this.verifyOpenedConnectionType =
+        VerifyOpenedConnectionType.fromValue(VERIFY_OPENED_CONNECTION_TYPE.getString(properties));
   }
 
   @Override
@@ -109,36 +140,10 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
       final JdbcCallable<Connection, SQLException> connectFunc)
       throws SQLException {
 
-    return this.connectInternal(hostSpec, props, isInitialConnection, connectFunc);
-  }
-
-  @Override
-  public Connection forceConnect(
-      final String driverProtocol,
-      final HostSpec hostSpec,
-      final Properties props,
-      final boolean isInitialConnection,
-      final JdbcCallable<Connection, SQLException> forceConnectFunc)
-      throws SQLException {
-
-    return this.connectInternal(hostSpec, props, isInitialConnection, forceConnectFunc);
-  }
-
-  private Connection connectInternal(
-      final HostSpec hostSpec,
-      final Properties props,
-      final boolean isInitialConnection,
-      final JdbcCallable<Connection, SQLException> connectFunc)
-      throws SQLException {
-
     final RdsUrlType type = this.rdsUtils.identifyRdsType(hostSpec.getHost());
 
-    if (!type.isRdsCluster()) {
-      // It's not a cluster endpoint. Continue with a normal workflow.
-      return connectFunc.call();
-    }
-
-    if (type == RdsUrlType.RDS_WRITER_CLUSTER) {
+    if (type == RdsUrlType.RDS_WRITER_CLUSTER
+        || isInitialConnection && this.verifyOpenedConnectionType == VerifyOpenedConnectionType.WRITER) {
       Connection writerCandidateConn = this.getVerifiedWriterConnection(props, isInitialConnection, connectFunc);
       if (writerCandidateConn == null) {
         // Can't get writer connection. Continue with a normal workflow.
@@ -147,7 +152,8 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
       return writerCandidateConn;
     }
 
-    if (type == RdsUrlType.RDS_READER_CLUSTER) {
+    if (type == RdsUrlType.RDS_READER_CLUSTER
+        || isInitialConnection && this.verifyOpenedConnectionType == VerifyOpenedConnectionType.READER) {
       Connection readerCandidateConn = this.getVerifiedReaderConnection(props, isInitialConnection, connectFunc);
       if (readerCandidateConn == null) {
         // Can't get a reader connection. Continue with a normal workflow.
@@ -190,7 +196,7 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
           this.pluginService.forceRefreshHostList(writerCandidateConn);
           writerCandidate = this.pluginService.identifyConnection(writerCandidateConn);
 
-          if (writerCandidate.getRole() != HostRole.WRITER) {
+          if (writerCandidate == null || writerCandidate.getRole() != HostRole.WRITER) {
             // Shouldn't be here. But let's try again.
             this.closeConnection(writerCandidateConn);
             this.delay(retryDelayMs);
@@ -203,7 +209,7 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
           return writerCandidateConn;
         }
 
-        writerCandidateConn = this.pluginService.connect(writerCandidate, props);
+        writerCandidateConn = this.pluginService.connect(writerCandidate, props, this);
 
         if (this.pluginService.getHostRole(writerCandidateConn) != HostRole.WRITER) {
           // If the new connection resolves to a reader instance, this means the topology is outdated.
@@ -222,7 +228,7 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
 
       } catch (SQLException ex) {
         this.closeConnection(writerCandidateConn);
-        if (this.pluginService.isLoginException(ex)) {
+        if (this.pluginService.isLoginException(ex, this.pluginService.getTargetDriverDialect())) {
           throw WrapperUtils.wrapExceptionIfNeeded(SQLException.class, ex);
         } else {
           if (writerCandidate != null) {
@@ -267,6 +273,12 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
           this.pluginService.forceRefreshHostList(readerCandidateConn);
           readerCandidate = this.pluginService.identifyConnection(readerCandidateConn);
 
+          if (readerCandidate == null) {
+            this.closeConnection(readerCandidateConn);
+            this.delay(retryDelayMs);
+            continue;
+          }
+
           if (readerCandidate.getRole() != HostRole.READER) {
             if (this.hasNoReaders()) {
               // It seems that cluster has no readers. Simulate Aurora reader cluster endpoint logic
@@ -287,7 +299,7 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
           return readerCandidateConn;
         }
 
-        readerCandidateConn = this.pluginService.connect(readerCandidate, props);
+        readerCandidateConn = this.pluginService.connect(readerCandidate, props, this);
 
         if (this.pluginService.getHostRole(readerCandidateConn) != HostRole.READER) {
           // If the new connection resolves to a writer instance, this means the topology is outdated.
@@ -316,7 +328,7 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
 
       } catch (SQLException ex) {
         this.closeConnection(readerCandidateConn);
-        if (this.pluginService.isLoginException(ex)) {
+        if (this.pluginService.isLoginException(ex, this.pluginService.getTargetDriverDialect())) {
           throw WrapperUtils.wrapExceptionIfNeeded(SQLException.class, ex);
         } else {
           if (readerCandidate != null) {
@@ -351,7 +363,7 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
   }
 
   private HostSpec getWriter() {
-    for (final HostSpec host : this.pluginService.getHosts()) {
+    for (final HostSpec host : this.pluginService.getAllHosts()) {
       if (host.getRole() == HostRole.WRITER) {
         return host;
       }
@@ -380,12 +392,12 @@ public class AuroraInitialConnectionStrategyPlugin extends AbstractConnectionPlu
   }
 
   private boolean hasNoReaders() {
-    if (this.pluginService.getHosts().isEmpty()) {
+    if (this.pluginService.getAllHosts().isEmpty()) {
       // Topology inconclusive/corrupted.
       return false;
     }
 
-    for (HostSpec hostSpec : this.pluginService.getHosts()) {
+    for (HostSpec hostSpec : this.pluginService.getAllHosts()) {
       if (hostSpec.getRole() == HostRole.WRITER) {
         continue;
       }

@@ -19,15 +19,12 @@ package integration.container.tests;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import integration.DatabaseEngineDeployment;
-import integration.DriverHelper;
 import integration.TestEnvironmentFeatures;
 import integration.container.ConnectionStringHelper;
 import integration.container.TestDriver;
 import integration.container.TestDriverProvider;
 import integration.container.TestEnvironment;
 import integration.container.condition.DisableOnTestFeature;
-import integration.container.condition.EnableOnDatabaseEngineDeployment;
 import integration.container.condition.EnableOnNumOfInstances;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -35,9 +32,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,14 +43,14 @@ import software.amazon.jdbc.PropertyDefinition;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @ExtendWith(TestDriverProvider.class)
 @EnableOnNumOfInstances(min = 2)
-@EnableOnDatabaseEngineDeployment(DatabaseEngineDeployment.AURORA)
 @DisableOnTestFeature({
     TestEnvironmentFeatures.PERFORMANCE,
     TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY,
     TestEnvironmentFeatures.RUN_AUTOSCALING_TESTS_ONLY})
-public class AuroraConnectivityTests {
+@Order(2)
+public class RdsConnectivityTests {
 
-  private static final Logger LOGGER = Logger.getLogger(AuroraConnectivityTests.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(RdsConnectivityTests.class.getName());
 
   @TestTemplate
   @ExtendWith(TestDriverProvider.class)
@@ -67,8 +64,8 @@ public class AuroraConnectivityTests {
     props.setProperty(
         PropertyDefinition.PASSWORD.name,
         TestEnvironment.getCurrent().getInfo().getDatabaseInfo().getPassword());
-    DriverHelper.setConnectTimeout(testDriver, props, 10, TimeUnit.SECONDS);
-    DriverHelper.setSocketTimeout(testDriver, props, 10, TimeUnit.SECONDS);
+    props.setProperty(PropertyDefinition.CONNECT_TIMEOUT.name, "10000");
+    props.setProperty(PropertyDefinition.SOCKET_TIMEOUT.name, "10000");
     props.setProperty(PropertyDefinition.PLUGINS.name, "efm");
 
     String url = ConnectionStringHelper.getWrapperReaderClusterUrl();

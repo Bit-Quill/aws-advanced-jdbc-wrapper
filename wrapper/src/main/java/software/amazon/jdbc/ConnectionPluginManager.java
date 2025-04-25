@@ -19,7 +19,6 @@ package software.amazon.jdbc;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Wrapper;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -38,9 +37,13 @@ import software.amazon.jdbc.plugin.DataCacheConnectionPlugin;
 import software.amazon.jdbc.plugin.DefaultConnectionPlugin;
 import software.amazon.jdbc.plugin.ExecutionTimeConnectionPlugin;
 import software.amazon.jdbc.plugin.LogQueryConnectionPlugin;
+import software.amazon.jdbc.plugin.customendpoint.CustomEndpointPlugin;
 import software.amazon.jdbc.plugin.efm.HostMonitoringConnectionPlugin;
 import software.amazon.jdbc.plugin.failover.FailoverConnectionPlugin;
+import software.amazon.jdbc.plugin.federatedauth.FederatedAuthPlugin;
+import software.amazon.jdbc.plugin.federatedauth.OktaAuthPlugin;
 import software.amazon.jdbc.plugin.iam.IamAuthConnectionPlugin;
+import software.amazon.jdbc.plugin.limitless.LimitlessConnectionPlugin;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPlugin;
 import software.amazon.jdbc.plugin.staledns.AuroraStaleDnsPlugin;
 import software.amazon.jdbc.plugin.strategy.fastestresponse.FastestResponseStrategyPlugin;
@@ -48,6 +51,7 @@ import software.amazon.jdbc.profile.ConfigurationProfile;
 import software.amazon.jdbc.util.AsynchronousMethodsHelper;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.SqlMethodAnalyzer;
+import software.amazon.jdbc.util.Utils;
 import software.amazon.jdbc.util.WrapperUtils;
 import software.amazon.jdbc.util.telemetry.TelemetryContext;
 import software.amazon.jdbc.util.telemetry.TelemetryFactory;
@@ -65,6 +69,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
   protected static final Map<Class<? extends ConnectionPlugin>, String> pluginNameByClass =
       new HashMap<Class<? extends ConnectionPlugin>, String>() {
         {
+          put(LimitlessConnectionPlugin.class, "plugin:limitless");
           put(ExecutionTimeConnectionPlugin.class, "plugin:executionTime");
           put(AuroraConnectionTrackerPlugin.class, "plugin:auroraConnectionTracker");
           put(LogQueryConnectionPlugin.class, "plugin:logQuery");
@@ -72,22 +77,26 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
           put(HostMonitoringConnectionPlugin.class, "plugin:efm");
           put(software.amazon.jdbc.plugin.efm2.HostMonitoringConnectionPlugin.class, "plugin:efm2");
           put(FailoverConnectionPlugin.class, "plugin:failover");
+          put(software.amazon.jdbc.plugin.failover2.FailoverConnectionPlugin.class, "plugin:failover2");
           put(IamAuthConnectionPlugin.class, "plugin:iam");
           put(AwsSecretsManagerConnectionPlugin.class, "plugin:awsSecretsManager");
+          put(FederatedAuthPlugin.class, "plugin:federatedAuth");
+          put(OktaAuthPlugin.class, "plugin:okta");
           put(AuroraStaleDnsPlugin.class, "plugin:auroraStaleDns");
           put(ReadWriteSplittingPlugin.class, "plugin:readWriteSplitting");
           put(FastestResponseStrategyPlugin.class, "plugin:fastestResponseStrategy");
           put(DefaultConnectionPlugin.class, "plugin:targetDriver");
           put(AuroraInitialConnectionStrategyPlugin.class, "plugin:initialConnection");
+          put(CustomEndpointPlugin.class, "plugin:customEndpoint");
         }
       };
 
   private static final Logger LOGGER = Logger.getLogger(ConnectionPluginManager.class.getName());
-  private static final String ALL_METHODS = "*";
-  private static final String CONNECT_METHOD = "connect";
+  protected static final String ALL_METHODS = "*";
+  protected static final String CONNECT_METHOD = "connect";
   private static final String FORCE_CONNECT_METHOD = "forceConnect";
   private static final String ACCEPTS_STRATEGY_METHOD = "acceptsStrategy";
-  private static final String GET_HOST_SPEC_BY_STRATEGY_METHOD = "getHostSpecByStrategy";
+  protected static final String GET_HOST_SPEC_BY_STRATEGY_METHOD = "getHostSpecByStrategy";
   private static final String INIT_HOST_PROVIDER_METHOD = "initHostProvider";
   private static final String NOTIFY_CONNECTION_CHANGED_METHOD = "notifyConnectionChanged";
   private static final String NOTIFY_NODE_LIST_CHANGED_METHOD = "notifyNodeListChanged";
@@ -124,7 +133,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
       final @NonNull ConnectionProvider defaultConnProvider,
       final @Nullable ConnectionProvider effectiveConnProvider,
       final Properties props,
-      final ArrayList<ConnectionPlugin> plugins,
+      final List<ConnectionPlugin> plugins,
       final ConnectionWrapper connectionWrapper,
       final PluginService pluginService,
       final TelemetryFactory telemetryFactory) {
@@ -139,7 +148,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
       final @NonNull ConnectionProvider defaultConnProvider,
       final @Nullable ConnectionProvider effectiveConnProvider,
       final Properties props,
-      final ArrayList<ConnectionPlugin> plugins,
+      final List<ConnectionPlugin> plugins,
       final ConnectionWrapper connectionWrapper,
       final TelemetryFactory telemetryFactory) {
     this.defaultConnProvider = defaultConnProvider;
@@ -200,7 +209,8 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
   protected <T, E extends Exception> T executeWithSubscribedPlugins(
       final String methodName,
       final PluginPipeline<T, E> pluginPipeline,
-      final JdbcCallable<T, E> jdbcMethodFunc)
+      final JdbcCallable<T, E> jdbcMethodFunc,
+      final @Nullable ConnectionPlugin pluginToSkip)
       throws E {
 
     if (pluginPipeline == null) {
@@ -223,7 +233,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
       throw new RuntimeException("Error processing this JDBC call.");
     }
 
-    return pluginChainFunc.call(pluginPipeline, jdbcMethodFunc);
+    return pluginChainFunc.call(pluginPipeline, jdbcMethodFunc, pluginToSkip);
   }
 
 
@@ -249,20 +259,28 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
       final ConnectionPlugin plugin = this.plugins.get(i);
       final Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
       final String pluginName = pluginNameByClass.getOrDefault(plugin.getClass(), plugin.getClass().getSimpleName());
-      final boolean isSubscribed =
-          pluginSubscribedMethods.contains(ALL_METHODS)
-              || pluginSubscribedMethods.contains(methodName);
+      final boolean isSubscribed = pluginSubscribedMethods.contains(ALL_METHODS)
+          || pluginSubscribedMethods.contains(methodName);
 
       if (isSubscribed) {
         if (pluginChainFunc == null) {
-          pluginChainFunc = (pipelineFunc, jdbcFunc) ->
+          // This case is for DefaultConnectionPlugin that always terminates the list of plugins.
+          // Default plugin can't be skipped.
+          pluginChainFunc = (pipelineFunc, jdbcFunc, pluginToSkip) ->
               executeWithTelemetry(() -> pipelineFunc.call(plugin, jdbcFunc), pluginName);
         } else {
           final PluginChainJdbcCallable<T, E> finalPluginChainFunc = pluginChainFunc;
-          pluginChainFunc = (pipelineFunc, jdbcFunc) ->
-              executeWithTelemetry(() -> pipelineFunc.call(
-                  plugin, () -> finalPluginChainFunc.call(pipelineFunc, jdbcFunc)),
+          pluginChainFunc = (pipelineFunc, jdbcFunc, pluginToSkip) -> {
+            if (pluginToSkip == plugin) {
+              return finalPluginChainFunc.call(pipelineFunc, jdbcFunc, pluginToSkip);
+            } else {
+              return executeWithTelemetry(
+                  () -> pipelineFunc.call(
+                      plugin,
+                      () -> finalPluginChainFunc.call(pipelineFunc, jdbcFunc, pluginToSkip)),
                   pluginName);
+            }
+          };
         }
       }
     }
@@ -329,13 +347,14 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
         (plugin, func) ->
             plugin.execute(
                 resultType, exceptionClass, methodInvokeOn, methodName, func, jdbcMethodArgs),
-        jdbcMethodFunc);
+        jdbcMethodFunc,
+        null);
   }
 
   /**
    * Establishes a connection to the given host using the given driver protocol and properties. If a
    * non-default {@link ConnectionProvider} has been set with
-   * {@link ConnectionProviderManager#setConnectionProvider} and
+   * {@link Driver#setCustomConnectionProvider(ConnectionProvider)} and
    * {@link ConnectionProvider#acceptsUrl(String, HostSpec, Properties)} returns true for the given
    * protocol, host, and properties, the connection will be created by the non-default
    * ConnectionProvider. Otherwise, the connection will be created by the default
@@ -350,6 +369,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
    * @param isInitialConnection a boolean indicating whether the current {@link Connection} is
    *                            establishing an initial physical connection to the database or has
    *                            already established a physical connection in the past
+   * @param pluginToSkip        the plugin that needs to be skipped while executing this pipeline
    * @return a {@link Connection} to the requested host
    * @throws SQLException if there was an error establishing a {@link Connection} to the requested
    *                      host
@@ -358,7 +378,8 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
       final String driverProtocol,
       final HostSpec hostSpec,
       final Properties props,
-      final boolean isInitialConnection)
+      final boolean isInitialConnection,
+      final @Nullable ConnectionPlugin pluginToSkip)
       throws SQLException {
 
     TelemetryContext context = telemetryFactory.openTelemetryContext("connect", TelemetryTraceLevel.NESTED);
@@ -369,7 +390,8 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
               plugin.connect(driverProtocol, hostSpec, props, isInitialConnection, func),
           () -> {
             throw new SQLException("Shouldn't be called.");
-          });
+          },
+          pluginToSkip);
     } catch (final SQLException | RuntimeException e) {
       throw e;
     } catch (final Exception e) {
@@ -383,7 +405,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
    * Establishes a connection to the given host using the given driver protocol and properties. This
    * call differs from {@link ConnectionPlugin#connect} in that the default
    * {@link ConnectionProvider} will be used to establish the connection even if a non-default
-   * ConnectionProvider has been set via {@link ConnectionProviderManager#setConnectionProvider}.
+   * ConnectionProvider has been set via {@link Driver#setCustomConnectionProvider(ConnectionProvider)}.
    * The default ConnectionProvider will be {@link DriverConnectionProvider} for connections
    * requested via the {@link java.sql.DriverManager} and {@link DataSourceConnectionProvider} for
    * connections requested via an {@link software.amazon.jdbc.ds.AwsWrapperDataSource}.
@@ -394,6 +416,7 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
    * @param isInitialConnection a boolean indicating whether the current {@link Connection} is
    *                            establishing an initial physical connection to the database or has
    *                            already established a physical connection in the past
+   * @param pluginToSkip        the plugin that needs to be skipped while executing this pipeline
    * @return a {@link Connection} to the requested host
    * @throws SQLException if there was an error establishing a {@link Connection} to the requested
    *                      host
@@ -402,7 +425,8 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
       final String driverProtocol,
       final HostSpec hostSpec,
       final Properties props,
-      final boolean isInitialConnection)
+      final boolean isInitialConnection,
+      final @Nullable ConnectionPlugin pluginToSkip)
       throws SQLException {
 
     try {
@@ -412,7 +436,8 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
               plugin.forceConnect(driverProtocol, hostSpec, props, isInitialConnection, func),
           () -> {
             throw new SQLException("Shouldn't be called.");
-          });
+          },
+          pluginToSkip);
     } catch (SQLException | RuntimeException e) {
       throw e;
     } catch (Exception e) {
@@ -473,6 +498,11 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
    */
   public HostSpec getHostSpecByStrategy(HostRole role, String strategy)
       throws SQLException, UnsupportedOperationException {
+    return getHostSpecByStrategy(null, role, strategy);
+  }
+
+  public HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy)
+      throws SQLException, UnsupportedOperationException {
     try {
       for (ConnectionPlugin plugin : this.plugins) {
         Set<String> pluginSubscribedMethods = plugin.getSubscribedMethods();
@@ -482,7 +512,10 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
 
         if (isSubscribed) {
           try {
-            final HostSpec host = plugin.getHostSpecByStrategy(role, strategy);
+            final HostSpec host = Utils.isNullOrEmpty(hosts)
+                ? plugin.getHostSpecByStrategy(role, strategy)
+                : plugin.getHostSpecByStrategy(hosts, role, strategy);
+
             if (host != null) {
               return host;
             }
@@ -494,8 +527,6 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
 
       throw new UnsupportedOperationException(
           "The driver does not support the requested host selection strategy: " + strategy);
-    } catch (RuntimeException e) {
-      throw e;
     } catch (Exception e) {
       throw new SQLException(e);
     }
@@ -520,7 +551,8 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
               },
           () -> {
             throw new SQLException("Shouldn't be called.");
-          });
+          },
+          null);
     } finally {
       context.closeContext();
     }
@@ -577,6 +609,12 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
+    if (iface == ConnectionPluginManager.class) {
+      return iface.cast(this);
+    }
+    if (iface == PluginService.class) {
+      return iface.cast(this.pluginService);
+    }
     if (this.plugins == null) {
       return null;
     }
@@ -607,13 +645,20 @@ public class ConnectionPluginManager implements CanReleaseResources, Wrapper {
     return this.defaultConnProvider;
   }
 
-  private interface PluginPipeline<T, E extends Exception> {
+  public ConnectionProvider getEffectiveConnProvider() {
+    return this.effectiveConnProvider;
+  }
+
+  protected interface PluginPipeline<T, E extends Exception> {
 
     T call(final @NonNull ConnectionPlugin plugin, final @Nullable JdbcCallable<T, E> jdbcMethodFunc) throws E;
   }
 
-  private interface PluginChainJdbcCallable<T, E extends Exception> {
+  protected interface PluginChainJdbcCallable<T, E extends Exception> {
 
-    T call(final @NonNull PluginPipeline<T, E> pipelineFunc, final @NonNull JdbcCallable<T, E> jdbcMethodFunc) throws E;
+    T call(
+        final @NonNull PluginPipeline<T, E> pipelineFunc,
+        final @NonNull JdbcCallable<T, E> jdbcMethodFunc,
+        final @Nullable ConnectionPlugin pluginToSkip) throws E;
   }
 }

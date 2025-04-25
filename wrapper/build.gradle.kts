@@ -27,61 +27,67 @@ plugins {
 }
 
 dependencies {
-    implementation("org.checkerframework:checker-qual:3.42.0")
+    implementation("org.checkerframework:checker-qual:3.49.2")
     compileOnly("org.apache.httpcomponents:httpclient:4.5.14")
-    compileOnly("software.amazon.awssdk:rds:2.25.12")
-    compileOnly("software.amazon.awssdk:auth:2.25.2") // Required for IAM (light implementation)
-    compileOnly("software.amazon.awssdk:http-client-spi:2.25.2") // Required for IAM (light implementation)
-    compileOnly("software.amazon.awssdk:sts:2.25.17")
+    compileOnly("software.amazon.awssdk:rds:2.31.12")
+    compileOnly("software.amazon.awssdk:auth:2.31.16") // Required for IAM (light implementation)
+    compileOnly("software.amazon.awssdk:http-client-spi:2.31.17") // Required for IAM (light implementation)
+    compileOnly("software.amazon.awssdk:sts:2.30.27")
     compileOnly("com.zaxxer:HikariCP:4.0.3") // Version 4.+ is compatible with Java 8
-    compileOnly("software.amazon.awssdk:secretsmanager:2.25.2")
-    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.16.1")
-    compileOnly("mysql:mysql-connector-java:8.0.33")
-    compileOnly("org.postgresql:postgresql:42.7.2")
-    compileOnly("org.mariadb.jdbc:mariadb-java-client:3.3.3")
+    compileOnly("com.mchange:c3p0:0.10.2")
+    compileOnly("software.amazon.awssdk:secretsmanager:2.31.12")
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.18.3")
+    compileOnly("com.mysql:mysql-connector-j:9.2.0")
+    compileOnly("org.postgresql:postgresql:42.7.5")
+    compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.3")
     compileOnly("org.osgi:org.osgi.core:6.0.0")
     compileOnly("org.osgi:org.osgi.core:6.0.0")
-    compileOnly("com.amazonaws:aws-xray-recorder-sdk-core:2.15.0")
-    compileOnly("io.opentelemetry:opentelemetry-api:1.36.0")
-    compileOnly("io.opentelemetry:opentelemetry-sdk:1.35.0")
-    compileOnly("io.opentelemetry:opentelemetry-sdk-metrics:1.35.0")
+    compileOnly("com.amazonaws:aws-xray-recorder-sdk-core:2.18.2")
+    compileOnly("io.opentelemetry:opentelemetry-api:1.49.0")
+    compileOnly("io.opentelemetry:opentelemetry-sdk:1.49.0")
+    compileOnly("io.opentelemetry:opentelemetry-sdk-metrics:1.49.0")
+    compileOnly("org.jsoup:jsoup:1.19.1")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib:2.1.20")
 
-    testImplementation("org.junit.platform:junit-platform-commons:1.10.2")
-    testImplementation("org.junit.platform:junit-platform-engine:1.10.1")
-    testImplementation("org.junit.platform:junit-platform-launcher:1.10.2")
-    testImplementation("org.junit.platform:junit-platform-suite-engine:1.10.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.1")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
+    testImplementation("org.junit.platform:junit-platform-commons:1.12.2")
+    testImplementation("org.junit.platform:junit-platform-engine:1.11.0")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.12.2")
+    testImplementation("org.junit.platform:junit-platform-suite-engine:1.12.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.12.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.12.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 
-    testImplementation("org.apache.commons:commons-dbcp2:2.11.0")
-    testImplementation("org.postgresql:postgresql:42.7.2")
-    testImplementation("mysql:mysql-connector-java:8.0.33")
-    testImplementation("org.mariadb.jdbc:mariadb-java-client:3.3.3")
+    testImplementation("org.apache.commons:commons-dbcp2:2.13.0")
+    testImplementation("org.postgresql:postgresql:42.7.5")
+    testImplementation("com.mysql:mysql-connector-j:9.2.0")
+    testImplementation("org.mariadb.jdbc:mariadb-java-client:3.5.3")
     testImplementation("com.zaxxer:HikariCP:4.0.3") // Version 4.+ is compatible with Java 8
+    testImplementation("com.mchange:c3p0:0.10.2")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc:2.7.13") // 2.7.13 is the last version compatible with Java 8
     testImplementation("org.mockito:mockito-inline:4.11.0") // 4.11.0 is the last version compatible with Java 8
-    testImplementation("software.amazon.awssdk:rds:2.25.12")
-    testImplementation("software.amazon.awssdk:auth:2.25.2") // Required for IAM (light implementation)
-    testImplementation("software.amazon.awssdk:http-client-spi:2.25.2") // Required for IAM (light implementation)
-    testImplementation("software.amazon.awssdk:ec2:2.25.2")
-    testImplementation("software.amazon.awssdk:secretsmanager:2.25.2")
-    testImplementation("software.amazon.awssdk:sts:2.25.17")
-    testImplementation("org.testcontainers:testcontainers:1.19.7")
-    testImplementation("org.testcontainers:mysql:1.19.7")
-    testImplementation("org.testcontainers:postgresql:1.19.7")
-    testImplementation("org.testcontainers:mariadb:1.19.7")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.7")
-    testImplementation("org.testcontainers:toxiproxy:1.19.7")
+    testImplementation("software.amazon.awssdk:rds:2.31.12")
+    testImplementation("software.amazon.awssdk:auth:2.31.16") // Required for IAM (light implementation)
+    testImplementation("software.amazon.awssdk:http-client-spi:2.31.17") // Required for IAM (light implementation)
+    testImplementation("software.amazon.awssdk:ec2:2.31.26")
+    testImplementation("software.amazon.awssdk:secretsmanager:2.31.12")
+    testImplementation("software.amazon.awssdk:sts:2.30.27")
+    // Note: all org.testcontainers dependencies should have the same version
+    testImplementation("org.testcontainers:testcontainers:1.20.6")
+    testImplementation("org.testcontainers:mysql:1.20.6")
+    testImplementation("org.testcontainers:postgresql:1.20.6")
+    testImplementation("org.testcontainers:mariadb:1.20.6")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.6")
+    testImplementation("org.testcontainers:toxiproxy:1.20.6")
     testImplementation("eu.rekawek.toxiproxy:toxiproxy-java:2.1.7")
-    testImplementation("org.apache.poi:poi-ooxml:5.2.5")
-    testImplementation("org.slf4j:slf4j-simple:2.0.12")
-    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
-    testImplementation("com.amazonaws:aws-xray-recorder-sdk-core:2.15.0")
-    testImplementation("io.opentelemetry:opentelemetry-api:1.36.0")
-    testImplementation("io.opentelemetry:opentelemetry-sdk:1.35.0")
-    testImplementation("io.opentelemetry:opentelemetry-sdk-metrics:1.35.0")
-    testImplementation("io.opentelemetry:opentelemetry-exporter-otlp:1.36.0")
+    testImplementation("org.apache.poi:poi-ooxml:5.4.1")
+    testImplementation("org.slf4j:slf4j-simple:2.0.17")
+    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.18.3")
+    testImplementation("com.amazonaws:aws-xray-recorder-sdk-core:2.18.2")
+    testImplementation("io.opentelemetry:opentelemetry-api:1.49.0")
+    testImplementation("io.opentelemetry:opentelemetry-sdk:1.49.0")
+    testImplementation("io.opentelemetry:opentelemetry-sdk-metrics:1.49.0")
+    testImplementation("io.opentelemetry:opentelemetry-exporter-otlp:1.48.0")
+    testImplementation("org.jsoup:jsoup:1.19.1")
 }
 
 repositories {
@@ -102,6 +108,16 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(8))
     }
+}
+
+tasks.named("sourcesJar") {
+    dependsOn("preprocessVersion")
+}
+
+tasks.named("jacocoTestCoverageVerification") {
+    dependsOn("preprocessVersion")
+    dependsOn("compileJava")
+    dependsOn("processResources")
 }
 
 checkstyle {
@@ -140,14 +156,14 @@ spotbugs {
 tasks.spotbugsMain {
     reports.create("html") {
         required.set(true)
-        outputLocation.set(file("$buildDir/reports/spotbugsMain.html"))
+        outputLocation.set(file("${layout.buildDirectory.get()}/reports/spotbugsMain.html"))
         setStylesheet("fancy-hist.xsl")
     }
 }
 tasks.spotbugsTest {
     reports.create("html") {
         required.set(true)
-        outputLocation.set(file("$buildDir/reports/spotbugsTest.html"))
+        outputLocation.set(file("${layout.buildDirectory.get()}/reports/spotbugsTest.html"))
         setStylesheet("fancy-hist.xsl")
     }
 }
@@ -165,10 +181,10 @@ tasks.withType<JacocoCoverageVerification> {
         classDirectories.setFrom(files(classDirectories.files.map {
             fileTree(it).apply {
                 exclude(
-                        "software/amazon/jdbc/wrapper/*",
-                        "software/amazon/jdbc/util/*",
-                        "software/amazon/jdbc/profile/*",
-                        "software/amazon/jdbc/plugin/DataCacheConnectionPlugin*"
+                    "software/amazon/jdbc/wrapper/*",
+                    "software/amazon/jdbc/util/*",
+                    "software/amazon/jdbc/profile/*",
+                    "software/amazon/jdbc/plugin/DataCacheConnectionPlugin*"
                 )
             }
         }))
@@ -180,10 +196,10 @@ tasks.withType<JacocoReport> {
         classDirectories.setFrom(files(classDirectories.files.map {
             fileTree(it).apply {
                 exclude(
-                        "software/amazon/jdbc/wrapper/*",
-                        "software/amazon/jdbc/util/*",
-                        "software/amazon/jdbc/profile/*",
-                        "software/amazon/jdbc/plugin/DataCacheConnectionPlugin*"
+                    "software/amazon/jdbc/wrapper/*",
+                    "software/amazon/jdbc/util/*",
+                    "software/amazon/jdbc/profile/*",
+                    "software/amazon/jdbc/plugin/DataCacheConnectionPlugin*"
                 )
             }
         }))
@@ -198,7 +214,7 @@ tasks.jar {
         into("META-INF/")
     }
 
-    from("${buildDir}/META-INF/services/") {
+    from("${layout.buildDirectory.get()}/META-INF/services/") {
         into("META-INF/services/")
     }
 
@@ -221,8 +237,8 @@ tasks.jar {
     }
 
     doFirst {
-        mkdir("${buildDir}/META-INF/services/")
-        val driverFile = File("${buildDir}/META-INF/services/java.sql.Driver")
+        mkdir("${layout.buildDirectory.get()}/META-INF/services/")
+        val driverFile = File("${layout.buildDirectory.get()}/META-INF/services/java.sql.Driver")
         if (driverFile.createNewFile()) {
             driverFile.writeText("software.amazon.jdbc.Driver")
         }
@@ -258,7 +274,8 @@ tasks.withType<Test> {
     System.getProperties().forEach {
         if (it.key.toString().startsWith("test-no-")
             || it.key.toString() == "test-include-tags"
-            || it.key.toString() == "test-exclude-tags") {
+            || it.key.toString() == "test-exclude-tags"
+        ) {
             systemProperty(it.key.toString(), it.value.toString())
         }
     }
@@ -267,16 +284,28 @@ tasks.withType<Test> {
     reports.junitXml.required.set(true)
     reports.html.required.set(false)
 
-    systemProperty("java.util.logging.config.file", "${project.buildDir}/resources/test/logging-test.properties")
+    systemProperty("java.util.logging.config.file", "${project.layout.buildDirectory.get()}/resources/test/logging-test.properties")
 
     if (!name.contains("performance")) {
         finalizedBy("junitHtmlReport")
     }
 
-    val testReportsPath = "${buildDir}/test-results"
+    val testReportsPath = "${layout.buildDirectory.get()}/test-results"
     val testReportsDir: File = file(testReportsPath)
     doFirst {
         testReportsDir.deleteRecursively()
+    }
+}
+
+tasks.register("maskJunitHtmlReport") {
+    doLast {
+        if (project.file("${layout.buildDirectory.get()}/report/data.js").exists()) {
+            val jsFile = project.file("${layout.buildDirectory.get()}/report/data.js")
+            var text = jsFile.readText()
+            var regex = "\"([^\"]*(AWS_ACCESS_|AWS_SECRET_|AWS_SESSION_)[^\"]*)\", value: \"([^\"]*)\"".toRegex(setOf(RegexOption.MULTILINE, RegexOption.IGNORE_CASE))
+            val maskedText = regex.replace(text, "\"$1\", value: \"*****\"")
+            jsFile.writeText(maskedText)
+        }
     }
 }
 
@@ -293,6 +322,7 @@ tasks.register<Test>("test-all-docker") {
     filter.includeTestsMatching("integration.host.TestRunner.runTests")
     doFirst {
         systemProperty("test-no-aurora", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-performance", "true")
     }
 }
@@ -302,6 +332,7 @@ tasks.register<Test>("test-hibernate-only") {
     filter.includeTestsMatching("integration.host.TestRunner.runTests")
     doFirst {
         systemProperty("test-no-aurora", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-performance", "true")
         systemProperty("test-no-mariadb-driver", "true")
         systemProperty("test-no-mariadb-engine", "true")
@@ -316,11 +347,23 @@ tasks.register<Test>("test-all-aurora") {
     doFirst {
         systemProperty("test-no-docker", "true")
         systemProperty("test-no-performance", "true")
-        systemProperty("test-no-mysql-driver", "true")
-        systemProperty("test-no-mysql-engine", "true")
-        systemProperty("test-no-mariadb-driver", "true")
         systemProperty("test-no-mariadb-engine", "true")
         systemProperty("test-no-graalvm", "true")
+        systemProperty("test-no-openjdk8", "true")
+        systemProperty("test-no-multi-az", "true")
+    }
+}
+
+tasks.register<Test>("test-all-multi-az") {
+    group = "verification"
+    filter.includeTestsMatching("integration.host.TestRunner.runTests")
+    doFirst {
+        systemProperty("test-no-docker", "true")
+        systemProperty("test-no-performance", "true")
+        systemProperty("test-no-mariadb-engine", "true")
+        systemProperty("test-no-graalvm", "true")
+        systemProperty("test-no-openjdk8", "true")
+        systemProperty("test-no-aurora", "true")
     }
 }
 
@@ -334,6 +377,25 @@ tasks.register<Test>("test-all-pg-aurora") {
         systemProperty("test-no-mysql-engine", "true")
         systemProperty("test-no-mariadb-driver", "true")
         systemProperty("test-no-mariadb-engine", "true")
+        systemProperty("test-no-multi-az", "true")
+        systemProperty("test-no-graalvm", "true")
+        systemProperty("test-no-openjdk8", "true")
+    }
+}
+
+tasks.register<Test>("test-all-pg-multi-az") {
+    group = "verification"
+    filter.includeTestsMatching("integration.host.TestRunner.runTests")
+    doFirst {
+        systemProperty("test-no-docker", "true")
+        systemProperty("test-no-performance", "true")
+        systemProperty("test-no-mysql-driver", "true")
+        systemProperty("test-no-mysql-engine", "true")
+        systemProperty("test-no-mariadb-driver", "true")
+        systemProperty("test-no-mariadb-engine", "true")
+        systemProperty("test-no-graalvm", "true")
+        systemProperty("test-no-openjdk8", "true")
+        systemProperty("test-no-aurora", "true")
     }
 }
 
@@ -345,6 +407,25 @@ tasks.register<Test>("test-all-mysql-aurora") {
         systemProperty("test-no-performance", "true")
         systemProperty("test-no-pg-driver", "true")
         systemProperty("test-no-pg-engine", "true")
+        systemProperty("test-no-mariadb-engine", "true")
+        systemProperty("test-no-graalvm", "true")
+        systemProperty("test-no-openjdk8", "true")
+        systemProperty("test-no-multi-az", "true")
+    }
+}
+
+tasks.register<Test>("test-all-mysql-multi-az") {
+    group = "verification"
+    filter.includeTestsMatching("integration.host.TestRunner.runTests")
+    doFirst {
+        systemProperty("test-no-docker", "true")
+        systemProperty("test-no-performance", "true")
+        systemProperty("test-no-pg-driver", "true")
+        systemProperty("test-no-pg-engine", "true")
+        systemProperty("test-no-mariadb-engine", "true")
+        systemProperty("test-no-graalvm", "true")
+        systemProperty("test-no-openjdk8", "true")
+        systemProperty("test-no-aurora", "true")
     }
 }
 
@@ -363,6 +444,7 @@ tasks.register<Test>("debug-all-docker") {
     filter.includeTestsMatching("integration.host.TestRunner.debugTests")
     doFirst {
         systemProperty("test-no-aurora", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-performance", "true")
     }
 }
@@ -381,6 +463,7 @@ tasks.register<Test>("debug-hibernate-only") {
     filter.includeTestsMatching("integration.host.TestRunner.debugTests")
     doFirst {
         systemProperty("test-no-aurora", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-performance", "true")
         systemProperty("test-no-mariadb-driver", "true")
         systemProperty("test-no-mariadb-engine", "true")
@@ -395,6 +478,7 @@ tasks.register<Test>("test-all-aurora-performance") {
     filter.includeTestsMatching("integration.host.TestRunner.runTests")
     doFirst {
         systemProperty("test-no-docker", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-iam", "true")
         systemProperty("test-no-hikari", "true")
         systemProperty("test-no-secrets-manager", "true")
@@ -411,6 +495,7 @@ tasks.register<Test>("test-aurora-pg-performance") {
     filter.includeTestsMatching("integration.host.TestRunner.runTests")
     doFirst {
         systemProperty("test-no-docker", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-iam", "true")
         systemProperty("test-no-hikari", "true")
         systemProperty("test-no-secrets-manager", "true")
@@ -431,6 +516,7 @@ tasks.register<Test>("debug-aurora-pg-performance") {
     filter.includeTestsMatching("integration.host.TestRunner.debugTests")
     doFirst {
         systemProperty("test-no-docker", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-iam", "true")
         systemProperty("test-no-hikari", "true")
         systemProperty("test-no-secrets-manager", "true")
@@ -451,6 +537,7 @@ tasks.register<Test>("test-aurora-mysql-performance") {
     filter.includeTestsMatching("integration.host.TestRunner.runTests")
     doFirst {
         systemProperty("test-no-docker", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-iam", "true")
         systemProperty("test-no-hikari", "true")
         systemProperty("test-no-secrets-manager", "true")
@@ -471,6 +558,7 @@ tasks.register<Test>("debug-aurora-mysql-performance") {
     filter.includeTestsMatching("integration.host.TestRunner.debugTests")
     doFirst {
         systemProperty("test-no-docker", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-iam", "true")
         systemProperty("test-no-hikari", "true")
         systemProperty("test-no-secrets-manager", "true")
@@ -491,6 +579,7 @@ tasks.register<Test>("test-aurora-pg-advanced-performance") {
     filter.includeTestsMatching("integration.host.TestRunner.runTests")
     doFirst {
         systemProperty("test-no-docker", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-iam", "true")
         systemProperty("test-no-hikari", "true")
         systemProperty("test-no-secrets-manager", "true")
@@ -511,6 +600,7 @@ tasks.register<Test>("test-aurora-mysql-advanced-performance") {
     filter.includeTestsMatching("integration.host.TestRunner.runTests")
     doFirst {
         systemProperty("test-no-docker", "true")
+        systemProperty("test-no-multi-az", "true")
         systemProperty("test-no-iam", "true")
         systemProperty("test-no-hikari", "true")
         systemProperty("test-no-secrets-manager", "true")

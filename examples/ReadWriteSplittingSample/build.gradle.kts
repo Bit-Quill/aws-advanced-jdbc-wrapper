@@ -15,12 +15,12 @@
  */
 
 dependencies {
-    implementation("org.postgresql:postgresql:42.7.2")
-    implementation("mysql:mysql-connector-java:8.0.33")
+    implementation("org.postgresql:postgresql:42.7.5")
+    implementation("com.mysql:mysql-connector-j:9.2.0")
     implementation("com.zaxxer:HikariCP:4.0.3")
     implementation(project(":aws-advanced-jdbc-wrapper"))
 }
 
 tasks.withType<JavaExec> {
-    systemProperty("java.util.logging.config.file", "${project.buildDir}/resources/main/logging.properties")
+    systemProperty("java.util.logging.config.file", "${project.layout.buildDirectory.get()}/resources/main/logging.properties")
 }

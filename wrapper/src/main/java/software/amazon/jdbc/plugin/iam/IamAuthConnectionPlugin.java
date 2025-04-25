@@ -22,13 +22,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.jdbc.AwsWrapperProperty;
 import software.amazon.jdbc.HostSpec;
@@ -41,17 +38,15 @@ import software.amazon.jdbc.plugin.TokenInfo;
 import software.amazon.jdbc.util.IamAuthUtils;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.RdsUtils;
+import software.amazon.jdbc.util.RegionUtils;
 import software.amazon.jdbc.util.StringUtils;
-import software.amazon.jdbc.util.telemetry.TelemetryContext;
 import software.amazon.jdbc.util.telemetry.TelemetryCounter;
 import software.amazon.jdbc.util.telemetry.TelemetryFactory;
 import software.amazon.jdbc.util.telemetry.TelemetryGauge;
-import software.amazon.jdbc.util.telemetry.TelemetryTraceLevel;
 
 public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
 
   private static final Logger LOGGER = Logger.getLogger(IamAuthConnectionPlugin.class.getName());
-  private static final String TELEMETRY_FETCH_TOKEN = "fetch IAM token";
   private static final Set<String> subscribedMethods =
       Collections.unmodifiableSet(new HashSet<String>() {
         {
@@ -59,7 +54,6 @@ public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
           add("forceConnect");
         }
       });
-  static final ConcurrentHashMap<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
   private static final int DEFAULT_TOKEN_EXPIRATION_SEC = 15 * 60 - 30;
 
   public static final AwsWrapperProperty IAM_HOST = new AwsWrapperProperty(
@@ -78,6 +72,7 @@ public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
       "iamExpiration", String.valueOf(DEFAULT_TOKEN_EXPIRATION_SEC),
       "IAM token cache expiration in seconds");
 
+  protected static final RegionUtils regionUtils = new RegionUtils();
   protected final PluginService pluginService;
   protected final RdsUtils rdsUtils = new RdsUtils();
 
@@ -89,37 +84,19 @@ public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
   private final TelemetryGauge cacheSizeGauge;
   private final TelemetryCounter fetchTokenCounter;
 
-  private IamTokenUtility iamTokenUtility = new RegularRdsUtility();
+  private final IamTokenUtility iamTokenUtility;
 
   public IamAuthConnectionPlugin(final @NonNull PluginService pluginService) {
-
-    this.checkRequiredDependencies();
-
-    this.pluginService = pluginService;
-    this.telemetryFactory = pluginService.getTelemetryFactory();
-    this.cacheSizeGauge = telemetryFactory.createGauge("iam.tokenCache.size", () -> (long) tokenCache.size());
-    this.fetchTokenCounter = telemetryFactory.createCounter("iam.fetchToken.count");
+    this(pluginService, IamAuthUtils.getTokenUtility());
   }
 
-  private void checkRequiredDependencies() {
-    try {
-      // RegularRdsUtility requires AWS Java SDK RDS v2.x to be presented in classpath.
-      Class.forName("software.amazon.awssdk.services.rds.RdsUtilities");
-    } catch (final ClassNotFoundException e) {
-      // If SDK RDS isn't presented, try to check required dependency for LightRdsUtility.
-      try {
-        // LightRdsUtility requires "software.amazon.awssdk.auth"
-        // and "software.amazon.awssdk.http-client-spi" libraries.
-        Class.forName("software.amazon.awssdk.http.SdkHttpFullRequest");
-        Class.forName("software.amazon.awssdk.auth.signer.params.Aws4PresignerParams");
-
-        // Required libraries are presented. Use lighter version of RDS utility.
-        iamTokenUtility = new LightRdsUtility();
-
-      } catch (final ClassNotFoundException ex) {
-        throw new RuntimeException(Messages.get("IamAuthConnectionPlugin.javaSdkNotInClasspath"), ex);
-      }
-    }
+  IamAuthConnectionPlugin(final @NonNull PluginService pluginService, IamTokenUtility utility) {
+    this.iamTokenUtility = utility;
+    this.pluginService = pluginService;
+    this.telemetryFactory = pluginService.getTelemetryFactory();
+    this.cacheSizeGauge = telemetryFactory.createGauge("iam.tokenCache.size",
+        () -> (long) IamAuthCacheHolder.tokenCache.size());
+    this.fetchTokenCounter = telemetryFactory.createCounter("iam.fetchToken.count");
   }
 
   @Override
@@ -151,41 +128,45 @@ public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
         hostSpec,
         this.pluginService.getDialect().getDefaultPort());
 
-    final String iamRegion = IAM_REGION.getString(props);
-    final Region region = StringUtils.isNullOrEmpty(iamRegion)
-        ? getRdsRegion(host)
-        : Region.of(iamRegion);
+    final Region region = regionUtils.getRegion(host, props, IAM_REGION.name);
+    if (region == null) {
+      throw new SQLException(
+          Messages.get("IamAuthConnectionPlugin.unableToDetermineRegion", new Object[]{ IAM_REGION.name }));
+    }
 
     final int tokenExpirationSec = IAM_EXPIRATION.getInteger(props);
 
-    final String cacheKey = getCacheKey(
+    final String cacheKey = IamAuthUtils.getCacheKey(
         PropertyDefinition.USER.getString(props),
         host,
         port,
         region);
-    final TokenInfo tokenInfo = tokenCache.get(cacheKey);
+    final TokenInfo tokenInfo = IamAuthCacheHolder.tokenCache.get(cacheKey);
     final boolean isCachedToken = tokenInfo != null && !tokenInfo.isExpired();
 
     if (isCachedToken) {
       LOGGER.finest(
           () -> Messages.get(
-              "IamAuthConnectionPlugin.useCachedIamToken",
+              "AuthenticationToken.useCachedToken",
               new Object[] {tokenInfo.getToken()}));
       PropertyDefinition.PASSWORD.set(props, tokenInfo.getToken());
     } else {
       final Instant tokenExpiry = Instant.now().plus(tokenExpirationSec, ChronoUnit.SECONDS);
-      final String token = generateAuthenticationToken(
-          hostSpec,
-          props,
+      this.fetchTokenCounter.inc();
+      final String token = IamAuthUtils.generateAuthenticationToken(
+          iamTokenUtility,
+          pluginService,
+          PropertyDefinition.USER.getString(props),
           host,
           port,
-          region);
+          region,
+          AwsCredentialsManager.getProvider(hostSpec, props));
       LOGGER.finest(
           () -> Messages.get(
-              "IamAuthConnectionPlugin.generatedNewIamToken",
+              "AuthenticationToken.generatedNewToken",
               new Object[] {token}));
       PropertyDefinition.PASSWORD.set(props, token);
-      tokenCache.put(
+      IamAuthCacheHolder.tokenCache.put(
           cacheKey,
           new TokenInfo(token, tokenExpiry));
     }
@@ -199,7 +180,8 @@ public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
               "IamAuthConnectionPlugin.connectException",
               new Object[] {exception}));
 
-      if (!this.pluginService.isLoginException(exception) || !isCachedToken) {
+      if (!this.pluginService.isLoginException(exception, this.pluginService.getTargetDriverDialect())
+          || !isCachedToken) {
         throw exception;
       }
 
@@ -207,18 +189,21 @@ public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
       // Try to generate a new token and try to connect again
 
       final Instant tokenExpiry = Instant.now().plus(tokenExpirationSec, ChronoUnit.SECONDS);
-      final String token = generateAuthenticationToken(
-          hostSpec,
-          props,
+      this.fetchTokenCounter.inc();
+      final String token = IamAuthUtils.generateAuthenticationToken(
+          iamTokenUtility,
+          pluginService,
+          PropertyDefinition.USER.getString(props),
           host,
           port,
-          region);
+          region,
+          AwsCredentialsManager.getProvider(hostSpec, props));
       LOGGER.finest(
           () -> Messages.get(
-              "IamAuthConnectionPlugin.generatedNewIamToken",
+              "AuthenticationToken.generatedNewToken",
               new Object[] {token}));
       PropertyDefinition.PASSWORD.set(props, token);
-      tokenCache.put(
+      IamAuthCacheHolder.tokenCache.put(
           cacheKey,
           new TokenInfo(token, tokenExpiry));
 
@@ -244,81 +229,7 @@ public class IamAuthConnectionPlugin extends AbstractConnectionPlugin {
     return connectInternal(driverProtocol, hostSpec, props, forceConnectFunc);
   }
 
-  String generateAuthenticationToken(
-      final HostSpec originalHostSpec,
-      final Properties props,
-      final String hostname,
-      final int port,
-      final Region region) {
-
-    TelemetryFactory telemetryFactory = this.pluginService.getTelemetryFactory();
-    TelemetryContext telemetryContext = telemetryFactory.openTelemetryContext(
-        TELEMETRY_FETCH_TOKEN, TelemetryTraceLevel.NESTED);
-    this.fetchTokenCounter.inc();
-
-    try {
-      final String user = PropertyDefinition.USER.getString(props);
-      if (StringUtils.isNullOrEmpty(user)) {
-        throw new RuntimeException(
-            Messages.get(
-                "IamAuthConnectionPlugin.missingRequiredConfigParameter",
-                new Object[] {PropertyDefinition.USER.name}));
-      }
-
-      final AwsCredentialsProvider credentialsProvider = AwsCredentialsManager.getProvider(originalHostSpec, props);
-      return this.iamTokenUtility.generateAuthenticationToken(credentialsProvider, region, hostname, port, user);
-
-    } catch (Exception ex) {
-      telemetryContext.setSuccess(false);
-      telemetryContext.setException(ex);
-      throw ex;
-    } finally {
-      telemetryContext.closeContext();
-    }
-  }
-
-  private String getCacheKey(
-      final String user,
-      final String hostname,
-      final int port,
-      final Region region) {
-
-    return String.format("%s:%s:%d:%s", region, hostname, port, user);
-  }
-
   public static void clearCache() {
-    tokenCache.clear();
-  }
-
-  private Region getRdsRegion(final String hostname) throws SQLException {
-
-    // Get Region
-    final String rdsRegion = rdsUtils.getRdsRegion(hostname);
-
-    if (StringUtils.isNullOrEmpty(rdsRegion)) {
-      // Does not match Amazon's Hostname, throw exception
-      final String exceptionMessage = Messages.get(
-          "IamAuthConnectionPlugin.unsupportedHostname",
-          new Object[] {hostname});
-
-      LOGGER.fine(() -> exceptionMessage);
-      throw new SQLException(exceptionMessage);
-    }
-
-    // Check Region
-    final Optional<Region> regionOptional = Region.regions().stream()
-        .filter(r -> r.id().equalsIgnoreCase(rdsRegion))
-        .findFirst();
-
-    if (!regionOptional.isPresent()) {
-      final String exceptionMessage = Messages.get(
-          "AwsSdk.unsupportedRegion",
-          new Object[] {rdsRegion});
-
-      LOGGER.fine(() -> exceptionMessage);
-      throw new SQLException((exceptionMessage));
-    }
-
-    return regionOptional.get();
+    IamAuthCacheHolder.clearCache();
   }
 }

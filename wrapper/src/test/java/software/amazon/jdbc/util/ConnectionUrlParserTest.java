@@ -17,6 +17,7 @@
 package software.amazon.jdbc.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,9 +32,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.jdbc.HostRole;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.HostSpecBuilder;
+import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.hostavailability.SimpleHostAvailabilityStrategy;
 
 class ConnectionUrlParserTest {
+
   @ParameterizedTest
   @MethodSource("testGetHostsFromConnectionUrlArguments")
   void testGetHostsFromConnectionUrl_returnCorrectHostList(String testUrl, List<HostSpec> expected) {
@@ -101,6 +104,62 @@ class ConnectionUrlParserTest {
     assertEquals(expected, props.getProperty("param"));
   }
 
+  @ParameterizedTest
+  @MethodSource("urlWithNestedParams")
+  void testParsingUrlWithNestedParams(final String url, final String expected) {
+    Properties props = new Properties();
+    ConnectionUrlParser.parsePropertiesFromUrl(url, props);
+    assertEquals(expected, props.getProperty("param"));
+  }
+
+  @Test
+  void testParsingCaseSensitiveParam() {
+    Properties props = new Properties();
+
+    // proper (camel case) parameter name
+    ConnectionUrlParser.parsePropertiesFromUrl("protocol//url/db?wrapperPlugins=somePlugin", props);
+    assertEquals("somePlugin", props.getProperty("wrapperPlugins"));
+  }
+
+  @Test
+  void testParsingParamWrongCase() {
+    Properties props = new Properties();
+
+    // lower case parameter
+    ConnectionUrlParser.parsePropertiesFromUrl("protocol//url/db?wrapperplugins=somePlugin", props);
+    assertNull(props.getProperty("wrapperPlugins"));
+  }
+
+  @Test
+  void testParsingCaseInsensitiveParam() {
+    Properties props = new Properties();
+
+    // proper (camel case) parameter name
+    ConnectionUrlParser.parsePropertiesFromUrl(
+        "protocol//url/db?wrapperPlugins=somePlugin&wrapperCaseSensitive=false", props);
+    assertEquals("somePlugin", props.getProperty("wrapperPlugins"));
+  }
+
+  @Test
+  void testParsingCaseInsensitiveParam2() {
+    Properties props = new Properties();
+
+    // lower case parameter
+    ConnectionUrlParser.parsePropertiesFromUrl(
+        "protocol//url/db?wrapperplugins=somePlugin&wrapperCaseSensitive=false", props);
+    assertEquals("somePlugin", props.getProperty("wrapperPlugins"));
+  }
+
+  @Test
+  void testParsingCaseInsensitiveParam3() {
+    Properties props = new Properties();
+
+    // lower case parameter
+    ConnectionUrlParser.parsePropertiesFromUrl(
+        "protocol//url/db?wrapperplugins=somePlugin&wrappercasesensitive=false", props);
+    assertEquals("somePlugin", props.getProperty("wrapperPlugins"));
+  }
+
   private static Stream<Arguments> testGetHostsFromConnectionUrlArguments() {
     return Stream.of(
         Arguments.of("protocol//", new ArrayList<HostSpec>()),
@@ -160,6 +219,15 @@ class ConnectionUrlParserTest {
         Arguments.of("protocol//host/db?param=foo", "foo"),
         Arguments.of("protocol//host:1234/db?param=?.foo", "?.foo"),
         Arguments.of("protocol//host?param=?", "?")
+    );
+  }
+
+  private static Stream<Arguments> urlWithNestedParams() {
+    return Stream.of(
+        Arguments.of("protocol//host/db?param=-c%20foo=1000", "-c foo=1000"),
+        Arguments.of("protocol//host/db?param=-c foo=1000", "-c foo=1000"),
+        Arguments.of("protocol//host/db?param=-c%20foo=a,b,c%20-c%20bar=10", "-c foo=a,b,c -c bar=10"),
+        Arguments.of("protocol//host/db?param=-c foo=a,b,c -c bar=10", "-c foo=a,b,c -c bar=10")
     );
   }
 }

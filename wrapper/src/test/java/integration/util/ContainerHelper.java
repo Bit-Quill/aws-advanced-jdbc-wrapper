@@ -53,8 +53,9 @@ public class ContainerHelper {
   private static final String MYSQL_CONTAINER_IMAGE_NAME = "mysql:8.0.36";
   private static final String POSTGRES_CONTAINER_IMAGE_NAME = "postgres:latest";
   private static final String MARIADB_CONTAINER_IMAGE_NAME = "mariadb:10";
+  // Note: this image version may need to be occasionally updated to keep it up-to-date and prevent toxiproxy issues.
   private static final DockerImageName TOXIPROXY_IMAGE =
-      DockerImageName.parse("shopify/toxiproxy:2.1.4");
+      DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.11.0");
 
   private static final int PROXY_CONTROL_PORT = 8474;
   private static final int PROXY_PORT = 8666;
@@ -223,6 +224,9 @@ public class ContainerHelper {
                         .from(testContainerImageName)
                         .run("mkdir", "app")
                         .workDir("/app")
+                        .run(testContainerImageName.contains("graalvm")
+                            ? "microdnf install findutils"
+                            : "echo Skipping findutils installation")
                         .entryPoint("/bin/sh -c \"while true; do sleep 30; done;\"")
                         .expose(5005) // Exposing ports for debugger to be attached
                 ).build()))
@@ -254,7 +258,10 @@ public class ContainerHelper {
             "app/test/resources/logging-test.properties")
         .withCopyFileToContainer(
             MountableFile.forHostPath("./src/test/resources/simplelogger.properties"),
-            "app/test/simplelogger.properties");
+            "app/test/resources/simplelogger.properties")
+        .withCopyFileToContainer(
+            MountableFile.forHostPath("./src/test/resources/junit-platform.properties"),
+            "app/test/resources/junit-platform.properties");
   }
 
   protected Long execInContainer(

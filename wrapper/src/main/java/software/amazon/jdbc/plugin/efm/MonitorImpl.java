@@ -55,7 +55,7 @@ public class MonitorImpl implements Monitor {
 
   private static final Logger LOGGER = Logger.getLogger(MonitorImpl.class.getName());
   private static final long THREAD_SLEEP_WHEN_INACTIVE_MILLIS = 100;
-  private static final long MIN_CONNECTION_CHECK_TIMEOUT_MILLIS = 3000;
+  private static final long MIN_CONNECTION_CHECK_TIMEOUT_MILLIS = 100;
   private static final String MONITORING_PROPERTY_PREFIX = "monitoring-";
 
   final Queue<MonitorConnectionContext> activeContexts = new ConcurrentLinkedQueue<>();
@@ -177,7 +177,9 @@ public class MonitorImpl implements Monitor {
             }
           }
 
-          if (!this.activeContexts.isEmpty()) {
+          if (!this.activeContexts.isEmpty()
+              || this.monitoringConn == null
+              || this.monitoringConn.isClosed()) {
 
             final long statusCheckStartTimeNano = this.getCurrentTimeNano();
             this.contextLastUsedTimestampNano = statusCheckStartTimeNano;
@@ -190,7 +192,8 @@ public class MonitorImpl implements Monitor {
 
             while ((monitorContext = this.activeContexts.poll()) != null) {
 
-              synchronized (monitorContext) {
+              monitorContext.getLock().lock();
+              try {
                 // If context is already invalid, just skip it
                 if (!monitorContext.isActiveContext()) {
                   continue;
@@ -221,6 +224,8 @@ public class MonitorImpl implements Monitor {
                     delayMillis = monitorContext.getFailureDetectionIntervalMillis();
                   }
                 }
+              } finally {
+                monitorContext.getLock().unlock();
               }
             }
 
@@ -228,9 +233,9 @@ public class MonitorImpl implements Monitor {
               // No active contexts
               delayMillis = THREAD_SLEEP_WHEN_INACTIVE_MILLIS;
             } else {
-              delayMillis -= status.elapsedTimeNano;
+              delayMillis -= TimeUnit.NANOSECONDS.toMillis(status.elapsedTimeNano);
               // Check for min delay between node health check
-              if (delayMillis <= 0) {
+              if (delayMillis <= MIN_CONNECTION_CHECK_TIMEOUT_MILLIS) {
                 delayMillis = MIN_CONNECTION_CHECK_TIMEOUT_MILLIS;
               }
               // Use this delay as node checkout timeout since it corresponds to min interval for all active contexts
@@ -333,8 +338,10 @@ public class MonitorImpl implements Monitor {
       }
 
       startNano = this.getCurrentTimeNano();
+      // Some drivers, like MySQL Connector/J, execute isValid() in a double of specified timeout time.
+      // TODO: fix me. Need to find a better solution to double timeout issue.
       final boolean isValid = this.monitoringConn.isValid(
-          (int) TimeUnit.MILLISECONDS.toSeconds(shortestFailureDetectionIntervalMillis));
+          (int) TimeUnit.MILLISECONDS.toSeconds(shortestFailureDetectionIntervalMillis) / 2);
       if (!isValid) {
         this.nodeInvalidCounter.inc();
       }
@@ -361,6 +368,8 @@ public class MonitorImpl implements Monitor {
 
   /**
    * Used to help with testing.
+   *
+   * @param duration Duration of sleep in millis.
    */
   protected void sleep(long duration) throws InterruptedException {
     TimeUnit.MILLISECONDS.sleep(duration);

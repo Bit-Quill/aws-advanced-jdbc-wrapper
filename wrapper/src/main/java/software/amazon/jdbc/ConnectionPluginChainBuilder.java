@@ -35,11 +35,14 @@ import software.amazon.jdbc.plugin.DefaultConnectionPlugin;
 import software.amazon.jdbc.plugin.DriverMetaDataConnectionPluginFactory;
 import software.amazon.jdbc.plugin.ExecutionTimeConnectionPluginFactory;
 import software.amazon.jdbc.plugin.LogQueryConnectionPluginFactory;
+import software.amazon.jdbc.plugin.customendpoint.CustomEndpointPluginFactory;
 import software.amazon.jdbc.plugin.dev.DeveloperConnectionPluginFactory;
 import software.amazon.jdbc.plugin.efm.HostMonitoringConnectionPluginFactory;
 import software.amazon.jdbc.plugin.failover.FailoverConnectionPluginFactory;
 import software.amazon.jdbc.plugin.federatedauth.FederatedAuthPluginFactory;
+import software.amazon.jdbc.plugin.federatedauth.OktaAuthPluginFactory;
 import software.amazon.jdbc.plugin.iam.IamAuthConnectionPluginFactory;
+import software.amazon.jdbc.plugin.limitless.LimitlessConnectionPluginFactory;
 import software.amazon.jdbc.plugin.readwritesplitting.ReadWriteSplittingPluginFactory;
 import software.amazon.jdbc.plugin.staledns.AuroraStaleDnsPluginFactory;
 import software.amazon.jdbc.plugin.strategy.fastestresponse.FastestResponseStrategyPluginFactory;
@@ -61,12 +64,15 @@ public class ConnectionPluginChainBuilder {
           put("executionTime", ExecutionTimeConnectionPluginFactory.class);
           put("logQuery", LogQueryConnectionPluginFactory.class);
           put("dataCache", DataCacheConnectionPluginFactory.class);
+          put("customEndpoint", CustomEndpointPluginFactory.class);
           put("efm", HostMonitoringConnectionPluginFactory.class);
           put("efm2", software.amazon.jdbc.plugin.efm2.HostMonitoringConnectionPluginFactory.class);
           put("failover", FailoverConnectionPluginFactory.class);
+          put("failover2", software.amazon.jdbc.plugin.failover2.FailoverConnectionPluginFactory.class);
           put("iam", IamAuthConnectionPluginFactory.class);
           put("awsSecretsManager", AwsSecretsManagerConnectionPluginFactory.class);
           put("federatedAuth", FederatedAuthPluginFactory.class);
+          put("okta", OktaAuthPluginFactory.class);
           put("auroraStaleDns", AuroraStaleDnsPluginFactory.class);
           put("readWriteSplitting", ReadWriteSplittingPluginFactory.class);
           put("auroraConnectionTracker", AuroraConnectionTrackerPluginFactory.class);
@@ -75,6 +81,7 @@ public class ConnectionPluginChainBuilder {
           put("dev", DeveloperConnectionPluginFactory.class);
           put("fastestResponseStrategy", FastestResponseStrategyPluginFactory.class);
           put("initialConnection", AuroraInitialConnectionStrategyPluginFactory.class);
+          put("limitless", LimitlessConnectionPluginFactory.class);
         }
       };
 
@@ -88,14 +95,17 @@ public class ConnectionPluginChainBuilder {
         {
           put(DriverMetaDataConnectionPluginFactory.class, 100);
           put(DataCacheConnectionPluginFactory.class, 200);
+          put(CustomEndpointPluginFactory.class, 380);
           put(AuroraInitialConnectionStrategyPluginFactory.class, 390);
           put(AuroraConnectionTrackerPluginFactory.class, 400);
           put(AuroraStaleDnsPluginFactory.class, 500);
           put(ReadWriteSplittingPluginFactory.class, 600);
           put(FailoverConnectionPluginFactory.class, 700);
+          put(software.amazon.jdbc.plugin.failover2.FailoverConnectionPluginFactory.class, 710);
           put(HostMonitoringConnectionPluginFactory.class, 800);
           put(software.amazon.jdbc.plugin.efm2.HostMonitoringConnectionPluginFactory.class, 810);
           put(FastestResponseStrategyPluginFactory.class, 900);
+          put(LimitlessConnectionPluginFactory.class, 950);
           put(IamAuthConnectionPluginFactory.class, 1000);
           put(AwsSecretsManagerConnectionPluginFactory.class, 1100);
           put(FederatedAuthPluginFactory.class, 1200);
@@ -138,13 +148,7 @@ public class ConnectionPluginChainBuilder {
       pluginFactories = configurationProfile.getPluginFactories();
     } else {
 
-      String pluginCodes = PropertyDefinition.PLUGINS.getString(props);
-
-      if (pluginCodes == null) {
-        pluginCodes = DEFAULT_PLUGINS;
-      }
-
-      final List<String> pluginCodeList = StringUtils.split(pluginCodes, ",", true);
+      final List<String> pluginCodeList = getPluginCodes(props);
       pluginFactories = new ArrayList<>(pluginCodeList.size());
 
       for (final String pluginCode : pluginCodeList) {
@@ -204,6 +208,14 @@ public class ConnectionPluginChainBuilder {
     plugins.add(defaultPlugin);
 
     return plugins;
+  }
+
+  public static List<String> getPluginCodes(final Properties props) {
+    String pluginCodes = PropertyDefinition.PLUGINS.getString(props);
+    if (pluginCodes == null) {
+      pluginCodes = DEFAULT_PLUGINS;
+    }
+    return StringUtils.split(pluginCodes, ",", true);
   }
 
   protected List<Class<? extends ConnectionPluginFactory>> sortPluginFactories(

@@ -3,10 +3,148 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/#semantic-versioning-200).
 
-## [2.3.6] - ?
+## [2.5.6] - 2025-04-09
+### :bug: Fixed
+- Issue with non-cluster database dialects and/or custom domains ([PR #1315](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1315)).
+- Use ExecutorService to manage node monitoring threads to prevent thread leaking ([PR #1325](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1325)).
+
+### :crab: Changed
+- Set default SSLInsecure parameter to false.
+
+### :magic_wand: Added
+- C3P0 example. See [here](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/examples/AWSDriverExample/src/main/java/software/amazon/C3P0Example.java).
+
+## [2.5.5] - 2025-03-06
+### :bug: Fixed
+- Various reader failover fixes ([PR #1227](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1227)) & ([PR #1246](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1246)).
+- Avoid encoding MariaDB connection properties ([PR #1237](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1237)).
+- Custom domains during failover ([PR #1265](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1265)).
+- Skip failover on interrupted thread ([Issue #1283](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1283)).
+- Log message parameters ([PR #1303](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1303)).
+
+### :crab: Changed
+- Revise default monitor poll rate from 15s to 7.5s for the Limitless Connection Plugin. For more information see the [docs](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheLimitlessConnectionPlugin.md).
+- Consolidate cache clean-up in a single place ([PR #1234](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1234)).
+- Relocate custom handlers ([PR #1235](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1235)).
+- Improve forceConnect pipeline ([PR #1238](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1238)).
+- Update deprecated ConnectionProviderManager function calls ([PR #1256](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1256)).
+- Remove mysql-connector-j library dependency for MariaDb ([PR #1287](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1287)).
+- Refactor AuroraTestUtility ([PR #1252](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1252)).
+
+### :magic_wand: Added
+- Documentation for Fastest Response Strategy Plugin. See [List of Available Plugins](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/UsingTheJdbcDriver.md#list-of-available-plugins).
+
+## [2.5.4] - 2024-12-23
+### :bug: Fixed
+- Avoid setting ignoreNewTopologyRequestsEndTimeNano on initial connection ([PR #1221](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1221)).
+- Limitless Connection Plugin set round-robin weights properly to original properties, not a copy ([PR #1223](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1223)).
+
+### :crab: Changed
+- Update dependencies to address [CVE-2024-47535](https://www.cve.org/CVERecord?id=CVE-2024-47535) ([Issue #1229](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1229)).
+
+## [2.5.3] - 2024-11-29
+### :magic_wand: Added
+- Add WRITER custom endpoint type ([PR #1202](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1202)).
+
+### :bug: Fixed
+- Custom endpoint monitor obeys refresh rate ([PR #1175](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1175)).
+- Abort interrupts running queries ([PR #1182](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1182)).
+- Use the AwsCredentialsProviderHandler from the ConfigurationProfile when it is defined ([PR #1183](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1183)).
+- Use iamHost property in federated auth and okta plugins ([PR #1191](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1191)).
+- Initialize failover2 topology monitors after dialect is updated ([PR #1198](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1198)).
+- Avoid updating topology before setReadOnly() ([PR #1190](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1190)).
+- Various minor limitless fixes ([PR #1180](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1180)).
+- Use correct value for SlidingExpirationCache#put cache item expiration ([PR #1203](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1203)).
+- Failover mode is set to reader-or-writer for reader cluster URLs ([PR #1204](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1204)).
+
+### :crab: Changed
+- Use singleton for null telemetry objects in NullTelemetryFactory ([PR #1188](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1188)).
+
+## [2.5.2] - 2024-11-4
+### :bug: Fixed
+- Limitless Connection Plugin to reduce extra connections made during new connection creation ([PR #1174](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1174)).
+
+## [2.5.1] - 2024-10-24
+### :bug: Fixed
+- `RdsHostListProvider#getClusterId` returning null `clusterId` causing NPE in Limitless Connection Plugin ([PR #1162](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1162)).
+
+## [2.5.0] - 2024-10-18
+
+### :magic_wand: Added
+- Custom Endpoint Plugin. See [UsingTheCustomEndpointPlugin.md](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheCustomEndpointPlugin.md).
+- Allow driver failover when network exceptions occur in the connect pipeline for the failover 2 plugin ([PR #1133](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/1133) and [PR #1143](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/1143)).
+
+### :bug: Fixed
+- Use the cluster URL as the default cluster ID ([PR #1131](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1131)).
+- Fix logic in SlidingExpirationCache and SlidingExpirationCacheWithCleanupThread ([PR #1142](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1142)).
+- Limitless Connection Plugin to check dialect and attempt recovery in case an unsupported dialect is encountered ([PR #1148](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1148)).
+- Don't get Statement from closed ResultSet ([PR #1130](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1130)).
+- Add null checks to the limitless plugin ([PR #1152](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1152)).
+- Verify plugin presence based on actual plugin list ([PR #1141](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1141))
+
+### :crab: Changed
+- Updated expected URL patterns for Limitless Databases ([PR #1147](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1147)).
+- Removed MaxPermSize JVM arg in gradle.properties ([PR #1132](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1132)).
+
+## [2.4.0] - 2024-09-25
+
+### :magic_wand: Added
+- Limitless Connection Plugin. See [UsingTheLimitlessConnectionPlugin.md](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheLimitlessConnectionPlugin.md).
+- A new reworked and re-architected failover plugin. See [UsingTheFailover2Plugin.md](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheFailover2Plugin.md).
+- Logic and a connection property to enable driver failover when network exceptions occur in the connect pipeline ([PR #1099](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1099)).
+- Virtual Threading support ([PR #1120](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1120)).
+
+### :bug: Fixed
+- Unwrap nested exceptions when checking for login exceptions ([Issue #1081](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1081)).
+
+## [2.3.9] - 2024-08-09
+
+### :bug: Fixed
+- Statement object cast error ([Issue #1045](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1045)).
+- Missing required dependency in the bundled jar for ADFS Authentication ([PR #1083](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1083)).
+
+### :crab: Changed
+- Documentation:
+    - Information on HikariCP's instantiation failure messages. See [Connecting with a DataSource](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/DataSource.md#hikaricp-pooling-example).
+    - Required dependencies for the Okta Authentication Plugin. See [Okta Authentication Plugin](https://github.com/aws/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheOktaAuthPlugin.md#prerequisites).
+
+## [2.3.8] - 2024-07-31
+
+### :bug: Fixed
+- Avoid setting a blank catalog when closing a connection ([PR #1047](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1047)).
+- Ensure the `enableGreenNodeReplacement` parameter setting is used during connection ([Issue #1059](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1059)).
+- Ensure GovCloud DNS patterns are supported ([PR #1054](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1054)).
+
+## [2.3.7] - 2024-06-05
+
+### :magic_wand: Added
+- Documentation:
+  - Warnings of transitive dependencies for IAM, Federated, and Okta Authentication plugins ([PR #1007](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1007)).
+  - Section in Known Limitations regarding Virtual Threading and possible pinning due to use of `synchronized` in the codebase ([Issue #1024](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1024)).
+
+### :bug: Fixed
+- Driver incorrectly truncating nested connection options when parsing connection urls resulting in unexpected errors ([PR #988](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/988)).
+- `ConfigurationProfilePresetCodes.isKnownPreset` incorrectly returning false ([Issue #1000](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1000)).
+- Documentation:
+  - Incorrect reference to Federated Authentication Plugin ([PR #1008](https://github.com/aws/aws-advanced-jdbc-wrapper/pull/1008)).
+  - Broken links in code example documentation ([Issue #1017](https://github.com/aws/aws-advanced-jdbc-wrapper/issues/1017)).
+
+## [2.3.6] - 2024-05-01
+
+### :magic_wand: Added
+- Okta Authentication Support. See [UsingTheOktaAuthPlugin](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheOktaAuthPlugin.md).
+- Documentation:
+  - Aurora Initial Connection Strategy Plugin. See [UsingTheAuroraInitialConnectionStrategyPlugin](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/using-plugins/UsingTheAuroraInitialConnectionStrategyPlugin.md)
+  - Additional instructions to enable logging for Spring and Spring Boot. See [Logging](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/UsingTheJdbcDriver.md#logging).
+
+### :bug: Fixed
+- Connection identification and tracking in the host list provider (PR #943)[https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/943].
+- Green node endpoint replacement, allowing the AWS JDBC Driver to detect and connect to green nodes after Blue/Green switchover (PR# 948)(https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/948). Addresses [issue #678](https://github.com/awslabs/aws-advanced-jdbc-wrapper/issues/678).
+- MariaDB Pool Datasource support. Addresses [issue #957](https://github.com/awslabs/aws-advanced-jdbc-wrapper/issues/957).
 
 ### :crab: Changed
 - Log level of `Failover.startWriterFailover` and `Failover.establishedConnection` from `fine` to `info` for better visibility of failover-related logs ([Issue #890](https://github.com/awslabs/aws-advanced-jdbc-wrapper/issues/890)).
+- Telemetry's connection property documentation. See [Telemetry](https://github.com/awslabs/aws-advanced-jdbc-wrapper/blob/main/docs/using-the-jdbc-driver/Telemetry.md).
 
 ## [2.3.5] - 2024-03-14
 
@@ -261,7 +399,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Lock initialization of `AuroraHostListProvider` ([PR #347](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/347)).
 - Optimized thread locks and expiring cache for the Enhanced Monitoring Plugin ([PR #365](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/365)).
 - Updated Hibernate sample code to reflect changes in the wrapper source code ([PR #368](https://github.com/awslabs/aws-advanced-jdbc-wrapper/pull/368)).
-- Updated KnownLimitations.md to reflect that Amazon RDS Blue/Green Deployments are not supported. See [Amazon RDS Blue/Green Deployments](./docs/KnownLimitations.md#amazon-rds-blue-green-deployments).
+- Updated KnownLimitations.md to reflect that Amazon RDS Blue/Green Deployments are not supported. See [Amazon RDS Blue/Green Deployments](./docs/README.md#amazon-rds-bluegreen-deployments).
 
 ## [1.0.1] - 2023-01-30
 ### :magic_wand: Added
@@ -297,6 +435,18 @@ The Amazon Web Services (AWS) Advanced JDBC Driver allows an application to take
 - The [AWS IAM Authentication Connection Plugin](./docs/using-the-jdbc-driver/using-plugins/UsingTheIamAuthenticationPlugin.md)
 - The [AWS Secrets Manager Connection Plugin](./docs/using-the-jdbc-driver/using-plugins/UsingTheAwsSecretsManagerPlugin.md)
 
+[2.5.6]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.5.5...2.5.6
+[2.5.5]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.5.4...2.5.5
+[2.5.4]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.5.3...2.5.4
+[2.5.3]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.5.2...2.5.3
+[2.5.2]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.5.1...2.5.2
+[2.5.1]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.5.0...2.5.1
+[2.5.0]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.4.0...2.5.0
+[2.4.0]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.9...2.4.0
+[2.3.9]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.8...2.3.9
+[2.3.8]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.7...2.3.8
+[2.3.7]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.6...2.3.7
+[2.3.6]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.5...2.3.6
 [2.3.5]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.4...2.3.5
 [2.3.4]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.3...2.3.4
 [2.3.3]: https://github.com/awslabs/aws-advanced-jdbc-wrapper/compare/2.3.2...2.3.3

@@ -22,12 +22,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Logger;
 import software.amazon.jdbc.hostlistprovider.AuroraHostListProvider;
+import software.amazon.jdbc.hostlistprovider.monitoring.MonitoringRdsHostListProvider;
+import software.amazon.jdbc.plugin.failover2.FailoverConnectionPlugin;
 
 /**
  * Suitable for the following AWS PG configurations.
  * - Regional Cluster
  */
-public class AuroraPgDialect extends PgDialect {
+public class AuroraPgDialect extends PgDialect implements AuroraLimitlessDialect {
   private static final Logger LOGGER = Logger.getLogger(AuroraPgDialect.class.getName());
 
   private static final String extensionsSql =
@@ -45,8 +47,14 @@ public class AuroraPgDialect extends PgDialect {
           + "WHERE EXTRACT(EPOCH FROM(NOW() - LAST_UPDATE_TIMESTAMP)) <= 300 OR SESSION_ID = 'MASTER_SESSION_ID' "
           + "OR LAST_UPDATE_TIMESTAMP IS NULL";
 
+  private static final String IS_WRITER_QUERY =
+      "SELECT SERVER_ID FROM aurora_replica_status() "
+          + "WHERE SESSION_ID = 'MASTER_SESSION_ID' AND SERVER_ID = aurora_db_instance_identifier()";
+
   private static final String NODE_ID_QUERY = "SELECT aurora_db_instance_identifier()";
   private static final String IS_READER_QUERY = "SELECT pg_is_in_recovery()";
+  protected static final String LIMITLESS_ROUTER_ENDPOINT_QUERY =
+      "select router_endpoint, load from aurora_limitless_router_endpoints()";
 
   @Override
   public boolean isDialect(final Connection connection) {
@@ -119,12 +127,33 @@ public class AuroraPgDialect extends PgDialect {
 
   @Override
   public HostListProviderSupplier getHostListProvider() {
-    return (properties, initialUrl, hostListProviderService) -> new AuroraHostListProvider(
-        properties,
-        initialUrl,
-        hostListProviderService,
-        TOPOLOGY_QUERY,
-        NODE_ID_QUERY,
-        IS_READER_QUERY);
+    return (properties, initialUrl, hostListProviderService, pluginService) -> {
+
+      final FailoverConnectionPlugin failover2Plugin = pluginService.getPlugin(FailoverConnectionPlugin.class);
+
+      if (failover2Plugin != null) {
+        return new MonitoringRdsHostListProvider(
+            properties,
+            initialUrl,
+            hostListProviderService,
+            TOPOLOGY_QUERY,
+            NODE_ID_QUERY,
+            IS_READER_QUERY,
+            IS_WRITER_QUERY,
+            pluginService);
+      }
+      return new AuroraHostListProvider(
+          properties,
+          initialUrl,
+          hostListProviderService,
+          TOPOLOGY_QUERY,
+          NODE_ID_QUERY,
+          IS_READER_QUERY);
+    };
+  }
+
+  @Override
+  public String getLimitlessRouterEndpointQuery() {
+    return LIMITLESS_ROUTER_ENDPOINT_QUERY;
   }
 }

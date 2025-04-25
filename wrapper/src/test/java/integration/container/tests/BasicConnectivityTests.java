@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,6 +60,7 @@ import software.amazon.jdbc.wrapper.ConnectionWrapper;
     TestEnvironmentFeatures.PERFORMANCE,
     TestEnvironmentFeatures.RUN_HIBERNATE_TESTS_ONLY,
     TestEnvironmentFeatures.RUN_AUTOSCALING_TESTS_ONLY})
+@Order(4)
 public class BasicConnectivityTests {
 
   private static final Logger LOGGER = Logger.getLogger(BasicConnectivityTests.class.getName());
@@ -108,8 +110,8 @@ public class BasicConnectivityTests {
     LOGGER.info(testDriver.toString());
 
     final Properties props = ConnectionStringHelper.getDefaultPropertiesWithNoPlugins();
-    DriverHelper.setConnectTimeout(testDriver, props, 10, TimeUnit.SECONDS);
-    DriverHelper.setSocketTimeout(testDriver, props, 10, TimeUnit.SECONDS);
+    props.setProperty(PropertyDefinition.CONNECT_TIMEOUT.name, "10000");
+    props.setProperty(PropertyDefinition.SOCKET_TIMEOUT.name, "10000");
 
     String url =
         ConnectionStringHelper.getWrapperUrl(
@@ -187,8 +189,8 @@ public class BasicConnectivityTests {
     LOGGER.info(TestEnvironment.getCurrent().getCurrentDriver().toString());
 
     final Properties props = ConnectionStringHelper.getDefaultPropertiesWithNoPlugins();
-    DriverHelper.setConnectTimeout(props, 10, TimeUnit.SECONDS);
-    DriverHelper.setSocketTimeout(props, 10, TimeUnit.SECONDS);
+    PropertyDefinition.CONNECT_TIMEOUT.set(props, "10000");
+    PropertyDefinition.SOCKET_TIMEOUT.set(props, "10000");
 
     TestInstanceInfo instanceInfo =
         TestEnvironment.getCurrent().getInfo().getProxyDatabaseInfo().getInstances().get(0);
@@ -286,6 +288,11 @@ public class BasicConnectivityTests {
     final Properties props = ConnectionStringHelper.getDefaultPropertiesWithNoPlugins();
     props.setProperty(PropertyDefinition.USER.name, username);
     props.setProperty(PropertyDefinition.PASSWORD.name, password);
+
+    if (testDriver == TestDriver.MARIADB) {
+      // If this property is true the driver will still be able to connect, causing the test to fail.
+      props.setProperty("allowPublicKeyRetrieval", "false");
+    }
 
     LOGGER.finest("Connecting to " + url);
 

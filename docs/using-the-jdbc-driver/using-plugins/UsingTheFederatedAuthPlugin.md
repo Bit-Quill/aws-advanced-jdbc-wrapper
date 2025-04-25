@@ -1,7 +1,7 @@
 # Federated Authentication Plugin
 
 The Federated Authentication Plugin adds support for authentication via Federated Identity and then database access via IAM. 
-Currently, only Microsoft Active Directory Federation Services (AD FS) is supported.
+Currently, Microsoft Active Directory Federation Services (AD FS) and Okta are supported. To see information on how to configure and use Okta authentication, see [Using the Okta Authentication Plugin](./UsingTheOktaAuthPlugin.md).
 
 ## What is Federated Identity
 Federated Identity allows users to use the same set of credentials to access multiple services or resources across different organizations. This works by having Identity Providers (IdP) that manage and authenticate user credentials, and Service Providers (SP) that are services or resources that can be internal, external, and/or belonging to various organizations. Multiple SPs can establish trust relationships with a single IdP.
@@ -10,8 +10,19 @@ When a user wants access to a resource, it authenticates with the IdP. From this
 In the case of AD FS, the user signs into the AD FS sign in page. This generates a SAML Assertion which acts as a security token. The user then passes the SAML Assertion to the SP when requesting access to resources. The SP verifies the SAML Assertion and grants access to the user. 
 
 ## Prerequisites
-> [!WARNING]
-> To preserve compatibility with customers using the community driver, this plugin requires the [AWS Java SDK RDS v2.7.x](https://central.sonatype.com/artifact/software.amazon.awssdk/rds) and the [AWS Java SDK STS v2.7.x](https://central.sonatype.com/artifact/software.amazon.awssdk/sts) to be included separately in the classpath. The AWS Java SDK RDS and AWS Java SDK STS are runtime dependencies and must be resolved.
+- To preserve compatibility with customers using the community driver, this plugin requires the following runtime dependencies to be registered in the classpath:
+  - [AWS Java SDK RDS v2.7.x](https://central.sonatype.com/artifact/software.amazon.awssdk/rds)
+  - [AWS Java SDK STS v2.7.x](https://central.sonatype.com/artifact/software.amazon.awssdk/sts)
+- Note: The above dependencies may have transitive dependencies that are also required (ex. AWS Java SDK RDS requires [AWS Java SDK Core](https://central.sonatype.com/artifact/software.amazon.awssdk/aws-core/)). If you are not using a package manager such as Maven or Gradle, please refer to Maven Central to determine these transitive dependencies.
+- This plugin does not create or modify any ADFS or IAM resources, therefore all permissions and policies must be correctly configured before using this plugin.
+
+> [!NOTE]\
+> Since [AWS Java SDK RDS v2.x](https://central.sonatype.com/artifact/software.amazon.awssdk/rds) size is around 5.4Mb (22Mb including all RDS SDK dependencies), some users may experience difficulties using the plugin due to limited available disk size.
+> In such cases, the [AWS Java SDK RDS v2.x](https://central.sonatype.com/artifact/software.amazon.awssdk/rds) dependency may be replaced with just two dependencies which have a smaller footprint (around 300Kb in total):
+> - [software.amazon.awssdk:http-client-spi](https://central.sonatype.com/artifact/software.amazon.awssdk/http-client-spi)
+> - [software.amazon.awssdk:auth](https://central.sonatype.com/artifact/software.amazon.awssdk/auth)
+>
+> It's recommended to use [AWS Java SDK RDS v2.x](https://central.sonatype.com/artifact/software.amazon.awssdk/rds) when it's possible.
 
 ### Bundled Uber JAR
 Included in AWS JDBC Driver release, is an Uber JAR that bundles the AWS JDBC Driver and all the package dependencies needed to use the Federated Authentication Plugin. 
@@ -21,11 +32,12 @@ This JAR is a drop-in ready solution and is **recommended for customers who do n
 As this plugin has a number of transitive dependencies, the goal of this JAR is to eliminate the need to manually source all the dependencies and avoid potential issues with managing them. 
 In that spirit, the dependencies in this JAR are shaded with the prefix `shaded` to avoid potential package conflicts with pre-existing packages in your environment.
 
-It is important to note that the bundled Uber JAR is larger (**15 MB**) than our `aws-advanced-jdbc-wrapper-2.2.3.jar`. So please take that into account when deciding if this solution is for you.
+It is important to note that the Uber JAR is bundled with the AWS Java RDS SDK and is larger (**15 MB**) than our `aws-advanced-jdbc-wrapper-2.5.6.jar`. So please take that into account when deciding if this solution is for you.
 
 If you would like to download and install the bundled Uber JAR, follow these [instructions](../../GettingStarted.md#direct-download-and-installation).
 
->**Note**: The bundled Uber JAR may trigger warnings of duplicate entries in the JAR Manifest File. This is because the bundle Uber JAR Manifest file also includes the JAR Manifest file of its dependencies, and as a result will trigger warnings.  
+> [!NOTE]\
+> The bundled Uber JAR may trigger warnings of duplicate entries in the JAR Manifest File. This is because the bundle Uber JAR Manifest file also includes the JAR Manifest file of its dependencies, and as a result will trigger warnings.  
 
 ## How to use the Federated Authentication Plugin with the AWS JDBC Driver 
 
@@ -49,7 +61,7 @@ Note: AWS IAM database authentication is needed to use the Federated Authenticat
 | `iamRoleArn`               | String  |   Yes    | The ARN of the IAM Role that is to be assumed to access AWS Aurora.                                                                                                                                                                                                                                                                                                | `null`                   | `arn:aws:iam::123456789012:role/adfs_example_iam_role` |
 | `iamIdpArn`                | String  |   Yes    | The ARN of the Identity Provider.                                                                                                                                                                                                                                                                                                                                  | `null`                   | `arn:aws:iam::123456789012:saml-provider/adfs_example` |
 | `iamRegion`                | String  |   Yes    | The IAM region where the IAM token is generated.                                                                                                                                                                                                                                                                                                                   | `null`                   | `us-east-2`                                            |
-| `idpName`                  | String  |    No    | The name of the Identity Provider implementation used.                                                                                                                                                                                                                                                                                                             | `adfs`                   | `adfs`                                                  |
+| `idpName`                  | String  |    No    | The name of the Identity Provider implementation used.                                                                                                                                                                                                                                                                                                             | `adfs`                   | `adfs`                                                 |
 | `idpPort`                  | String  |    No    | The port that the host for the authentication service listens at.                                                                                                                                                                                                                                                                                                  | `443`                    | `1234`                                                 |
 | `rpIdentifier`             | String  |    No    | The relaying party identifier.                                                                                                                                                                                                                                                                                                                                     | `urn:amazon:webservices` | `urn:amazon:webservices`                               |
 | `iamHost`                  | String  |    No    | Overrides the host that is used to generate the IAM token.                                                                                                                                                                                                                                                                                                         | `null`                   | `database.cluster-hash.us-east-1.rds.amazonaws.com`    |
@@ -57,7 +69,7 @@ Note: AWS IAM database authentication is needed to use the Federated Authenticat
 | `iamTokenExpiration`       | Integer |    No    | Overrides the default IAM token cache expiration in seconds                                                                                                                                                                                                                                                                                                        | `870`                    | `123`                                                  |
 | `httpClientSocketTimeout`  | Integer |    No    | The socket timeout value in milliseconds for the HttpClient used by the FederatedAuthenticationPlugin.                                                                                                                                                                                                                                                             | `60000`                  | `60000`                                                |
 | `httpClientConnectTimeout` | Integer |    No    | The connect timeout value in milliseconds for the HttpClient used by the FederatedAuthenticationPlugin.                                                                                                                                                                                                                                                            | `60000`                  | `60000`                                                |
-| `sslInsecure`              | Boolean |    No    | Indicates whether or not the SSL connection is secure or not. If not, it will allow SSL connections to be made without validating the server's certificates.                                                                                                                                                                                                       | `true`                   | `false`                                                |
+| `sslInsecure`              | Boolean |    No    | Indicates whether or not the SSL connection is secure or not. If not, it will allow SSL connections to be made without validating the server's certificates.                                                                                                                                                                                                       | `false`                  | `true`                                                 |
 
 ## Sample code
 [FederatedAuthPluginExample.java](../../../examples/AWSDriverExample/src/main/java/software/amazon/FederatedAuthPluginExample.java)

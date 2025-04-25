@@ -23,6 +23,15 @@ import software.amazon.awssdk.services.rds.RdsUtilities;
 
 public class RegularRdsUtility implements IamTokenUtility {
 
+  private RdsUtilities utilities = null;
+
+  public RegularRdsUtility() {}
+
+  // For testing only
+  public RegularRdsUtility(final RdsUtilities utilities) {
+    this.utilities = utilities;
+  }
+
   @Override
   public String generateAuthenticationToken(
       final @NonNull AwsCredentialsProvider credentialsProvider,
@@ -31,11 +40,13 @@ public class RegularRdsUtility implements IamTokenUtility {
       final int port,
       final @NonNull String username) {
 
-    final RdsUtilities utilities = RdsUtilities.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(region)
-        .build();
-    return utilities.generateAuthenticationToken((builder) ->
+    if (this.utilities == null) {
+      this.utilities = RdsUtilities.builder()
+          .credentialsProvider(credentialsProvider)
+          .region(region)
+          .build();
+    }
+    return this.utilities.generateAuthenticationToken((builder) ->
         builder
             .hostname(hostname)
             .port(port)

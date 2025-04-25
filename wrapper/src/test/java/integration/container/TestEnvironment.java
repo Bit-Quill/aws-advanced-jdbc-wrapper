@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import integration.DatabaseEngine;
-import integration.DatabaseEngineDeployment;
 import integration.TestEnvironmentFeatures;
 import integration.TestEnvironmentInfo;
 import integration.TestInstanceInfo;
@@ -43,7 +42,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import org.testcontainers.shaded.org.apache.commons.lang3.NotImplementedException;
+import software.amazon.jdbc.Driver;
 import software.amazon.jdbc.util.StringUtils;
 
 public class TestEnvironment {
@@ -87,6 +86,14 @@ public class TestEnvironment {
         .getFeatures()
         .contains(TestEnvironmentFeatures.NETWORK_OUTAGES_ENABLED)) {
       initProxies(environment);
+
+      // Helps to eliminate problem with proxied endpoints.
+      Driver.setPrepareHostFunc((host) -> {
+        if (host.endsWith(".proxied")) {
+          return host.substring(0, host.length() - ".proxied".length()); // removes prefix at the end of host
+        }
+        return host;
+      });
     }
 
     if (environment
@@ -174,6 +181,7 @@ public class TestEnvironment {
               client,
               environment.info.getDatabaseInfo().getClusterEndpoint(),
               environment.info.getDatabaseInfo().getClusterEndpointPort());
+
       environment.proxies.put(environment.info.getProxyDatabaseInfo().getClusterEndpoint(), proxy);
     }
 
@@ -260,7 +268,7 @@ public class TestEnvironment {
         disabledByFeature = features.contains(TestEnvironmentFeatures.SKIP_MARIADB_DRIVER_TESTS);
         break;
       default:
-        throw new NotImplementedException(testDriver.toString());
+        throw new UnsupportedOperationException(testDriver.toString());
     }
 
     if (disabledByFeature || !driverCompatibleToDatabaseEngine) {
@@ -268,12 +276,5 @@ public class TestEnvironment {
       return false;
     }
     return true;
-  }
-
-  public static boolean isAwsDatabase() {
-    DatabaseEngineDeployment deployment =
-        getCurrent().getInfo().getRequest().getDatabaseEngineDeployment();
-    return DatabaseEngineDeployment.AURORA.equals(deployment)
-        || DatabaseEngineDeployment.RDS.equals(deployment);
   }
 }

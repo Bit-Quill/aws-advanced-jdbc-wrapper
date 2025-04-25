@@ -57,6 +57,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import software.amazon.jdbc.AllowedAndBlockedHosts;
 import software.amazon.jdbc.ConnectionPlugin;
 import software.amazon.jdbc.ConnectionProvider;
 import software.amazon.jdbc.HostListProvider;
@@ -481,6 +482,11 @@ public class ConcurrencyTests {
     }
 
     @Override
+    public List<HostSpec> getAllHosts() {
+      return null;
+    }
+
+    @Override
     public List<HostSpec> getHosts() {
       return null;
     }
@@ -491,12 +497,21 @@ public class ConcurrencyTests {
     }
 
     @Override
+    public void setAllowedAndBlockedHosts(AllowedAndBlockedHosts allowedAndBlockedHosts) {
+    }
+
+    @Override
     public boolean acceptsStrategy(HostRole role, String strategy) {
       return false;
     }
 
     @Override
     public HostSpec getHostSpecByStrategy(HostRole role, String strategy) {
+      return null;
+    }
+
+    @Override
+    public HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy) {
       return null;
     }
 
@@ -536,12 +551,30 @@ public class ConcurrencyTests {
     }
 
     @Override
-    public Connection connect(HostSpec hostSpec, Properties props) throws SQLException {
+    public boolean forceRefreshHostList(final boolean shouldVerifyWriter, long timeoutMs)
+        throws SQLException {
+      return false;
+    }
+
+    @Override
+    public Connection connect(HostSpec hostSpec, Properties props, @Nullable ConnectionPlugin pluginToSkip)
+        throws SQLException {
       return new TestConnection();
     }
 
     @Override
+    public Connection connect(HostSpec hostSpec, Properties props) throws SQLException {
+      return this.connect(hostSpec, props, null);
+    }
+
+    @Override
     public Connection forceConnect(HostSpec hostSpec, Properties props) throws SQLException {
+      return this.forceConnect(hostSpec, props, null);
+    }
+
+    @Override
+    public Connection forceConnect(HostSpec hostSpec, Properties props, @Nullable ConnectionPlugin pluginToSkip)
+        throws SQLException {
       return new TestConnection();
     }
 
@@ -561,7 +594,17 @@ public class ConcurrencyTests {
     }
 
     @Override
+    public <T> T getPlugin(Class<T> pluginClazz) {
+      return null;
+    }
+
+    @Override
     public boolean isNetworkException(Throwable throwable) {
+      return false;
+    }
+
+    @Override
+    public boolean isNetworkException(Throwable throwable, @Nullable TargetDriverDialect targetDriverDialect) {
       return false;
     }
 
@@ -577,6 +620,11 @@ public class ConcurrencyTests {
 
     @Override
     public boolean isLoginException(Throwable throwable) {
+      return false;
+    }
+
+    @Override
+    public boolean isLoginException(Throwable throwable, @Nullable TargetDriverDialect targetDriverDialect) {
       return false;
     }
 
@@ -610,6 +658,11 @@ public class ConcurrencyTests {
     @Override
     public ConnectionProvider getConnectionProvider() {
       return null;
+    }
+
+    @Override
+    public boolean isPooledConnectionProvider(HostSpec host, Properties props) {
+      return false;
     }
 
     @Override

@@ -19,6 +19,7 @@ package integration;
 import com.mysql.cj.conf.PropertyKey;
 import integration.container.TestDriver;
 import integration.container.TestEnvironment;
+import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -201,10 +202,12 @@ public class DriverHelper {
     }
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setConnectTimeout(Properties props, long timeout, TimeUnit timeUnit) {
     setConnectTimeout(TestEnvironment.getCurrent().getCurrentDriver(), props, timeout, timeUnit);
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setConnectTimeout(
       TestDriver testDriver, Properties props, long timeout, TimeUnit timeUnit) {
     switch (testDriver) {
@@ -224,10 +227,12 @@ public class DriverHelper {
     }
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setSocketTimeout(Properties props, long timeout, TimeUnit timeUnit) {
     setSocketTimeout(TestEnvironment.getCurrent().getCurrentDriver(), props, timeout, timeUnit);
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setSocketTimeout(
       TestDriver testDriver, Properties props, long timeout, TimeUnit timeUnit) {
     switch (testDriver) {
@@ -247,10 +252,12 @@ public class DriverHelper {
     }
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setTcpKeepAlive(Properties props, boolean enabled) {
     setTcpKeepAlive(TestEnvironment.getCurrent().getCurrentDriver(), props, enabled);
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setTcpKeepAlive(TestDriver testDriver, Properties props, boolean enabled) {
     switch (testDriver) {
       case MYSQL:
@@ -267,12 +274,14 @@ public class DriverHelper {
     }
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setMonitoringConnectTimeout(
       Properties props, long timeout, TimeUnit timeUnit) {
     setMonitoringConnectTimeout(
         TestEnvironment.getCurrent().getCurrentDriver(), props, timeout, timeUnit);
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setMonitoringConnectTimeout(
       TestDriver testDriver, Properties props, long timeout, TimeUnit timeUnit) {
     switch (testDriver) {
@@ -294,11 +303,13 @@ public class DriverHelper {
     }
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setMonitoringSocketTimeout(Properties props, long timeout, TimeUnit timeUnit) {
     setMonitoringSocketTimeout(
         TestEnvironment.getCurrent().getCurrentDriver(), props, timeout, timeUnit);
   }
 
+  // This method should be used on connections with a target driver ONLY!
   public static void setMonitoringSocketTimeout(
       TestDriver testDriver, Properties props, long timeout, TimeUnit timeUnit) {
     switch (testDriver) {
@@ -336,6 +347,17 @@ public class DriverHelper {
     }
   }
 
+  public static void registerDriver(DatabaseEngine engine) {
+    try {
+      Class.forName(DriverHelper.getDriverClassname(engine));
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(
+          "Driver not found: "
+              + DriverHelper.getDriverClassname(engine),
+          e);
+    }
+  }
+
   public static void registerDriver(TestDriver testDriver) throws SQLException {
     try {
       Driver d = (Driver) Class.forName(getDriverClassname(testDriver)).newInstance();
@@ -362,5 +384,16 @@ public class DriverHelper {
           }
           return sb.toString();
         });
+  }
+
+  public static Connection getDriverConnection(TestEnvironmentInfo info) throws SQLException {
+    final String url =
+        String.format(
+            "%s%s:%d/%s",
+            DriverHelper.getDriverProtocol(info.getRequest().getDatabaseEngine()),
+            info.getDatabaseInfo().getClusterEndpoint(),
+            info.getDatabaseInfo().getClusterEndpointPort(),
+            info.getDatabaseInfo().getDefaultDbName());
+    return DriverManager.getConnection(url, info.getDatabaseInfo().getUsername(), info.getDatabaseInfo().getPassword());
   }
 }

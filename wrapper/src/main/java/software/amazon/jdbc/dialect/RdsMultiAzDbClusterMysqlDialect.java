@@ -20,11 +20,15 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.hostlistprovider.RdsMultiAzDbClusterListProvider;
+import software.amazon.jdbc.hostlistprovider.monitoring.MonitoringRdsMultiAzHostListProvider;
+import software.amazon.jdbc.plugin.failover.FailoverRestriction;
+import software.amazon.jdbc.plugin.failover2.FailoverConnectionPlugin;
 import software.amazon.jdbc.util.DriverInfo;
 
 public class RdsMultiAzDbClusterMysqlDialect extends MysqlDialect {
@@ -35,12 +39,16 @@ public class RdsMultiAzDbClusterMysqlDialect extends MysqlDialect {
       "SELECT 1 AS tmp FROM information_schema.tables WHERE"
       + " table_schema = 'mysql' AND table_name = 'rds_topology'";
 
+  // For reader nodes, the query returns a writer node ID. For a writer node, the query returns no data.
   private static final String FETCH_WRITER_NODE_QUERY = "SHOW REPLICA STATUS";
 
   private static final String FETCH_WRITER_NODE_QUERY_COLUMN_NAME = "Source_Server_Id";
 
   private static final String NODE_ID_QUERY = "SELECT @@server_id";
   private static final String IS_READER_QUERY = "SELECT @@read_only";
+
+  private static final EnumSet<FailoverRestriction> RDS_MULTI_AZ_RESTRICTIONS =
+      EnumSet.of(FailoverRestriction.DISABLE_TASK_A, FailoverRestriction.ENABLE_WRITER_IN_TASK_B);
 
   @Override
   public boolean isDialect(final Connection connection) {
@@ -88,15 +96,34 @@ public class RdsMultiAzDbClusterMysqlDialect extends MysqlDialect {
 
   @Override
   public HostListProviderSupplier getHostListProvider() {
-    return (properties, initialUrl, hostListProviderService) -> new RdsMultiAzDbClusterListProvider(
-        properties,
-        initialUrl,
-        hostListProviderService,
-        TOPOLOGY_QUERY,
-        NODE_ID_QUERY,
-        IS_READER_QUERY,
-        FETCH_WRITER_NODE_QUERY,
-        FETCH_WRITER_NODE_QUERY_COLUMN_NAME);
+    return (properties, initialUrl, hostListProviderService, pluginService) -> {
+
+      final FailoverConnectionPlugin failover2Plugin = pluginService.getPlugin(FailoverConnectionPlugin.class);
+
+      if (failover2Plugin != null) {
+        return new MonitoringRdsMultiAzHostListProvider(
+            properties,
+            initialUrl,
+            hostListProviderService,
+            TOPOLOGY_QUERY,
+            NODE_ID_QUERY,
+            IS_READER_QUERY,
+            pluginService,
+            FETCH_WRITER_NODE_QUERY,
+            FETCH_WRITER_NODE_QUERY_COLUMN_NAME);
+
+      } else {
+        return new RdsMultiAzDbClusterListProvider(
+            properties,
+            initialUrl,
+            hostListProviderService,
+            TOPOLOGY_QUERY,
+            NODE_ID_QUERY,
+            IS_READER_QUERY,
+            FETCH_WRITER_NODE_QUERY,
+            FETCH_WRITER_NODE_QUERY_COLUMN_NAME);
+      }
+    };
   }
 
   @Override
@@ -108,5 +135,10 @@ public class RdsMultiAzDbClusterMysqlDialect extends MysqlDialect {
         connectProperties.getProperty("connectionAttributes") == null
             ? connectionAttributes
             : connectProperties.getProperty("connectionAttributes") + "," + connectionAttributes);
+  }
+
+  @Override
+  public EnumSet<FailoverRestriction> getFailoverRestrictions() {
+    return RDS_MULTI_AZ_RESTRICTIONS;
   }
 }

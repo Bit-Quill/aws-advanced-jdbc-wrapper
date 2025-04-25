@@ -22,16 +22,13 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.rds.RdsUtilities;
 import software.amazon.jdbc.AwsWrapperProperty;
 import software.amazon.jdbc.HostSpec;
 import software.amazon.jdbc.JdbcCallable;
@@ -39,19 +36,18 @@ import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.plugin.AbstractConnectionPlugin;
 import software.amazon.jdbc.plugin.TokenInfo;
+import software.amazon.jdbc.plugin.iam.IamTokenUtility;
 import software.amazon.jdbc.util.IamAuthUtils;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.RdsUtils;
+import software.amazon.jdbc.util.RegionUtils;
 import software.amazon.jdbc.util.StringUtils;
-import software.amazon.jdbc.util.telemetry.TelemetryContext;
 import software.amazon.jdbc.util.telemetry.TelemetryCounter;
 import software.amazon.jdbc.util.telemetry.TelemetryFactory;
 import software.amazon.jdbc.util.telemetry.TelemetryGauge;
-import software.amazon.jdbc.util.telemetry.TelemetryTraceLevel;
 
 public class FederatedAuthPlugin extends AbstractConnectionPlugin {
 
-  static final ConcurrentHashMap<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
   private final CredentialsProviderFactory credentialsProviderFactory;
   private static final int DEFAULT_TOKEN_EXPIRATION_SEC = 15 * 60 - 30;
   private static final int DEFAULT_HTTP_TIMEOUT_MILLIS = 60000;
@@ -84,7 +80,7 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
   public static final AwsWrapperProperty HTTP_CLIENT_CONNECT_TIMEOUT = new AwsWrapperProperty(
       "httpClientConnectTimeout", String.valueOf(DEFAULT_HTTP_TIMEOUT_MILLIS),
       "The connect timeout value in milliseconds for the HttpClient used by the FederatedAuthPlugin");
-  public static final AwsWrapperProperty SSL_INSECURE = new AwsWrapperProperty("sslInsecure", "true",
+  public static final AwsWrapperProperty SSL_INSECURE = new AwsWrapperProperty("sslInsecure", "false",
       "Whether or not the SSL session is to be secure and the sever's certificates will be verified");
   public static AwsWrapperProperty
       IDP_NAME = new AwsWrapperProperty("idpName", "adfs", "The name of the Identity Provider implementation used");
@@ -92,15 +88,13 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
       new AwsWrapperProperty("dbUser", null, "The database user used to access the database");
   protected static final Pattern SAML_RESPONSE_PATTERN = Pattern.compile("SAMLResponse\\W+value=\"(?<saml>[^\"]+)\"");
   protected static final String SAML_RESPONSE_PATTERN_GROUP = "saml";
-  protected static final Pattern HTTPS_URL_PATTERN =
-      Pattern.compile("^(https)://[-a-zA-Z0-9+&@#/%?=~_!:,.']*[-a-zA-Z0-9+&@#/%=~_']");
-
-  private static final String TELEMETRY_FETCH_TOKEN = "fetch IAM token";
+  protected static final RegionUtils regionUtils = new RegionUtils();
   private static final Logger LOGGER = Logger.getLogger(FederatedAuthPlugin.class.getName());
 
   protected final PluginService pluginService;
 
-  protected final RdsUtils rdsUtils = new RdsUtils();
+  protected final RdsUtils rdsUtils;
+  protected final SamlUtils samlUtils;
 
   private static final Set<String> subscribedMethods =
       Collections.unmodifiableSet(new HashSet<String>() {
@@ -117,6 +111,8 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
   private final TelemetryFactory telemetryFactory;
   private final TelemetryGauge cacheSizeGauge;
   private final TelemetryCounter fetchTokenCounter;
+  private final IamTokenUtility iamTokenUtility;
+
 
   @Override
   public Set<String> getSubscribedMethods() {
@@ -124,23 +120,35 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
   }
 
   public FederatedAuthPlugin(final PluginService pluginService,
-                             final CredentialsProviderFactory credentialsProviderFactory) {
+      final CredentialsProviderFactory credentialsProviderFactory) {
+    this(pluginService, credentialsProviderFactory, new RdsUtils(), IamAuthUtils.getTokenUtility());
+  }
+
+  FederatedAuthPlugin(
+      final PluginService pluginService,
+      final CredentialsProviderFactory credentialsProviderFactory,
+      final RdsUtils rdsUtils,
+      final IamTokenUtility tokenUtils) {
     try {
       Class.forName("software.amazon.awssdk.services.sts.model.AssumeRoleWithSamlRequest");
     } catch (final ClassNotFoundException e) {
       try {
         Class.forName("shaded.software.amazon.awssdk.services.sts.model.AssumeRoleWithSamlRequest");
       } catch (final ClassNotFoundException e2) {
-        throw new RuntimeException(Messages.get("FederatedAuthPlugin.javaStsSdkNotInClasspath"));
+        throw new RuntimeException(Messages.get("SamlAuthPlugin.javaStsSdkNotInClasspath"));
       }
     }
+
     this.pluginService = pluginService;
     this.credentialsProviderFactory = credentialsProviderFactory;
     this.telemetryFactory = pluginService.getTelemetryFactory();
-    this.cacheSizeGauge = telemetryFactory.createGauge("federatedAuth.tokenCache.size", () -> (long) tokenCache.size());
+    this.cacheSizeGauge = telemetryFactory.createGauge("federatedAuth.tokenCache.size",
+        () -> (long) FederatedAuthCacheHolder.tokenCache.size());
     this.fetchTokenCounter = telemetryFactory.createCounter("federatedAuth.fetchToken.count");
+    this.rdsUtils = rdsUtils;
+    this.samlUtils = new SamlUtils(this.rdsUtils);
+    this.iamTokenUtility = tokenUtils;
   }
-
 
   @Override
   public Connection connect(
@@ -167,7 +175,7 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
   private Connection connectInternal(final HostSpec hostSpec, final Properties props,
       final JdbcCallable<Connection, SQLException> connectFunc) throws SQLException {
 
-    checkIdpCredentialsWithFallback(props);
+    this.samlUtils.checkIdpCredentialsWithFallback(IDP_USERNAME, IDP_PASSWORD, props);
 
     final String host = IamAuthUtils.getIamHost(IAM_HOST.getString(props), hostSpec);
 
@@ -176,26 +184,30 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
         hostSpec,
         this.pluginService.getDialect().getDefaultPort());
 
-    final Region region = getRegion(host, props);
+    final Region region = regionUtils.getRegion(host, props, IAM_REGION.name);
+    if (region == null) {
+      throw new SQLException(
+          Messages.get("FederatedAuthPlugin.unableToDetermineRegion", new Object[]{ IAM_REGION.name }));
+    }
 
-    final String cacheKey = getCacheKey(
+    final String cacheKey = IamAuthUtils.getCacheKey(
         DB_USER.getString(props),
         host,
         port,
         region);
 
-    final TokenInfo tokenInfo = tokenCache.get(cacheKey);
+    final TokenInfo tokenInfo = FederatedAuthCacheHolder.tokenCache.get(cacheKey);
 
     final boolean isCachedToken = tokenInfo != null && !tokenInfo.isExpired();
 
     if (isCachedToken) {
       LOGGER.finest(
           () -> Messages.get(
-              "FederatedAuthPlugin.useCachedIamToken",
+              "AuthenticationToken.useCachedToken",
               new Object[] {tokenInfo.getToken()}));
       PropertyDefinition.PASSWORD.set(props, tokenInfo.getToken());
     } else {
-      updateAuthenticationToken(hostSpec, props, region, cacheKey);
+      updateAuthenticationToken(hostSpec, props, region, cacheKey, host);
     }
 
     PropertyDefinition.USER.set(props, DB_USER.getString(props));
@@ -203,29 +215,23 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
     try {
       return connectFunc.call();
     } catch (final SQLException exception) {
-      updateAuthenticationToken(hostSpec, props, region, cacheKey);
+      updateAuthenticationToken(hostSpec, props, region, cacheKey, host);
       return connectFunc.call();
     } catch (final Exception exception) {
       LOGGER.warning(
           () -> Messages.get(
-              "FederatedAuthPlugin.unhandledException",
+              "SamlAuthPlugin.unhandledException",
               new Object[] {exception}));
       throw new SQLException(exception);
     }
   }
 
-  private void checkIdpCredentialsWithFallback(final Properties props) {
-    if (IDP_USERNAME.getString(props) == null) {
-      IDP_USERNAME.set(props, PropertyDefinition.USER.getString(props));
-    }
-
-    if (IDP_PASSWORD.getString(props) == null) {
-      IDP_PASSWORD.set(props, PropertyDefinition.PASSWORD.getString(props));
-    }
-  }
-
-  private void updateAuthenticationToken(final HostSpec hostSpec, final Properties props, final Region region,
-      final String cacheKey)
+  private void updateAuthenticationToken(
+      final HostSpec hostSpec,
+      final Properties props,
+      final Region region,
+      final String cacheKey,
+      final String host)
       throws SQLException {
     final int tokenExpirationSec = IAM_TOKEN_EXPIRATION.getInteger(props);
     final Instant tokenExpiry = Instant.now().plus(tokenExpirationSec, ChronoUnit.SECONDS);
@@ -235,89 +241,26 @@ public class FederatedAuthPlugin extends AbstractConnectionPlugin {
         this.pluginService.getDialect().getDefaultPort());
     final AwsCredentialsProvider credentialsProvider =
         this.credentialsProviderFactory.getAwsCredentialsProvider(hostSpec.getHost(), region, props);
-    final String token = generateAuthenticationToken(
-        props,
-        hostSpec.getHost(),
+    this.fetchTokenCounter.inc();
+    final String token = IamAuthUtils.generateAuthenticationToken(
+        this.iamTokenUtility,
+        this.pluginService,
+        DB_USER.getString(props),
+        host,
         port,
         region,
         credentialsProvider);
     LOGGER.finest(
         () -> Messages.get(
-            "FederatedAuthPlugin.generatedNewIamToken",
+            "AuthenticationToken.useCachedToken",
             new Object[] {token}));
     PropertyDefinition.PASSWORD.set(props, token);
-    tokenCache.put(
+    FederatedAuthCacheHolder.tokenCache.put(
         cacheKey,
         new TokenInfo(token, tokenExpiry));
   }
 
-  private Region getRegion(final String hostname, final Properties props) throws SQLException {
-    final String iamRegion = IAM_REGION.getString(props);
-    if (!StringUtils.isNullOrEmpty(iamRegion)) {
-      return Region.of(iamRegion);
-    }
-
-    // Fallback to using host
-    // Get Region
-    final String rdsRegion = rdsUtils.getRdsRegion(hostname);
-
-    if (StringUtils.isNullOrEmpty(rdsRegion)) {
-      // Does not match Amazon's Hostname, throw exception
-      final String exceptionMessage = Messages.get(
-          "FederatedAuthPlugin.unsupportedHostname",
-          new Object[] {hostname});
-
-      LOGGER.fine(exceptionMessage);
-      throw new SQLException(exceptionMessage);
-    }
-
-    // Check Region
-    final Optional<Region> regionOptional = Region.regions().stream()
-        .filter(r -> r.id().equalsIgnoreCase(rdsRegion))
-        .findFirst();
-
-    if (!regionOptional.isPresent()) {
-      final String exceptionMessage = Messages.get(
-          "AwsSdk.unsupportedRegion",
-          new Object[] {rdsRegion});
-
-      LOGGER.fine(exceptionMessage);
-      throw new SQLException(exceptionMessage);
-    }
-
-    return regionOptional.get();
-  }
-
-  String generateAuthenticationToken(final Properties props, final String hostname,
-      final int port, final Region region, final AwsCredentialsProvider awsCredentialsProvider) {
-    final TelemetryFactory telemetryFactory = this.pluginService.getTelemetryFactory();
-    final TelemetryContext telemetryContext = telemetryFactory.openTelemetryContext(
-        TELEMETRY_FETCH_TOKEN, TelemetryTraceLevel.NESTED);
-    this.fetchTokenCounter.inc();
-    try {
-      final String user = DB_USER.getString(props);
-      final RdsUtilities utilities =
-          RdsUtilities.builder().credentialsProvider(awsCredentialsProvider).region(region).build();
-      return utilities.generateAuthenticationToken((builder) -> builder.hostname(hostname).port(port).username(user));
-    } catch (final Exception e) {
-      telemetryContext.setSuccess(false);
-      telemetryContext.setException(e);
-      throw e;
-    } finally {
-      telemetryContext.closeContext();
-    }
-  }
-
-  private String getCacheKey(
-      final String user,
-      final String hostname,
-      final int port,
-      final Region region) {
-
-    return String.format("%s:%s:%d:%s", region, hostname, port, user);
-  }
-
   public static void clearCache() {
-    tokenCache.clear();
+    FederatedAuthCacheHolder.clearCache();
   }
 }

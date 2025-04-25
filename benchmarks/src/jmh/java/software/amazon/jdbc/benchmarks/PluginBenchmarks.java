@@ -51,6 +51,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import software.amazon.jdbc.ConnectionPluginManager;
 import software.amazon.jdbc.ConnectionProvider;
 import software.amazon.jdbc.ConnectionProviderManager;
+import software.amazon.jdbc.Driver;
 import software.amazon.jdbc.HikariPooledConnectionProvider;
 import software.amazon.jdbc.HostListProviderService;
 import software.amazon.jdbc.HostSpec;
@@ -60,12 +61,12 @@ import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.benchmarks.testplugin.TestConnectionWrapper;
 import software.amazon.jdbc.dialect.Dialect;
 import software.amazon.jdbc.hostavailability.SimpleHostAvailabilityStrategy;
+import software.amazon.jdbc.targetdriverdialect.TargetDriverDialect;
 import software.amazon.jdbc.util.telemetry.GaugeCallable;
 import software.amazon.jdbc.util.telemetry.TelemetryContext;
 import software.amazon.jdbc.util.telemetry.TelemetryCounter;
 import software.amazon.jdbc.util.telemetry.TelemetryFactory;
 import software.amazon.jdbc.util.telemetry.TelemetryGauge;
-import software.amazon.jdbc.targetdriverdialect.TargetDriverDialect;
 import software.amazon.jdbc.wrapper.ConnectionWrapper;
 
 @State(Scope.Benchmark)
@@ -115,7 +116,7 @@ public class PluginBenchmarks {
   @Setup(Level.Iteration)
   public void setUpIteration() throws Exception {
     closeable = MockitoAnnotations.openMocks(this);
-    when(mockConnectionPluginManager.connect(any(), any(), any(Properties.class), anyBoolean()))
+    when(mockConnectionPluginManager.connect(any(), any(), any(Properties.class), anyBoolean(), any()))
         .thenReturn(mockConnection);
     when(mockConnectionPluginManager.execute(
         any(), any(), any(), eq("Connection.createStatement"), any(), any()))
@@ -234,7 +235,7 @@ public class PluginBenchmarks {
   public ConnectionWrapper initAndReleaseWithReadWriteSplittingPlugin_internalConnectionPools() throws SQLException {
     HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider((hostSpec, props) -> new HikariConfig());
-    ConnectionProviderManager.setConnectionProvider(provider);
+    Driver.setCustomConnectionProvider(provider);
     try (ConnectionWrapper wrapper = new TestConnectionWrapper(
         useReadWriteSplittingPlugin(),
         CONNECTION_STRING,
@@ -245,7 +246,7 @@ public class PluginBenchmarks {
         mockPluginManagerService)) {
       wrapper.releaseResources();
       ConnectionProviderManager.releaseResources();
-      ConnectionProviderManager.resetProvider();
+      Driver.resetCustomConnectionProvider();
       return wrapper;
     }
   }
@@ -255,7 +256,7 @@ public class PluginBenchmarks {
       throws SQLException {
     HikariPooledConnectionProvider provider =
         new HikariPooledConnectionProvider((hostSpec, props) -> new HikariConfig());
-    ConnectionProviderManager.setConnectionProvider(provider);
+    Driver.setCustomConnectionProvider(provider);
     try (ConnectionWrapper wrapper = new TestConnectionWrapper(
         useAuroraHostListAndReadWriteSplittingPlugin(),
         PG_CONNECTION_STRING,
@@ -266,7 +267,7 @@ public class PluginBenchmarks {
         mockPluginManagerService)) {
       wrapper.releaseResources();
       ConnectionProviderManager.releaseResources();
-      ConnectionProviderManager.resetProvider();
+      Driver.resetCustomConnectionProvider();
       return wrapper;
     }
   }

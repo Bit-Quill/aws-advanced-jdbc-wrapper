@@ -20,18 +20,14 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import software.amazon.jdbc.cleanup.CanReleaseResources;
 
 public class ConnectionProviderManager {
 
-  private static final ReentrantReadWriteLock connProviderLock = new ReentrantReadWriteLock();
-  private static ConnectionProvider connProvider = null;
   private final ConnectionProvider defaultProvider;
-
-  private static ConnectionInitFunc connectionInitFunc = null;
+  private final @Nullable ConnectionProvider effectiveConnProvider;
 
   /**
    * {@link ConnectionProviderManager} constructor.
@@ -39,9 +35,14 @@ public class ConnectionProviderManager {
    * @param defaultProvider the default {@link ConnectionProvider} to use if a non-default
    *                        ConnectionProvider has not been set or the non-default
    *                        ConnectionProvider has been set but does not accept a requested URL
+   * @param effectiveConnProvider the non-default {@link ConnectionProvider} to use
+   *
    */
-  public ConnectionProviderManager(ConnectionProvider defaultProvider) {
+  public ConnectionProviderManager(
+      final ConnectionProvider defaultProvider,
+      final @Nullable ConnectionProvider effectiveConnProvider) {
     this.defaultProvider = defaultProvider;
+    this.effectiveConnProvider = effectiveConnProvider;
   }
 
   /**
@@ -51,14 +52,11 @@ public class ConnectionProviderManager {
    * {@link ConnectionProvider#acceptsUrl} for more info.
    *
    * @param connProvider the {@link ConnectionProvider} to use to establish new connections
+   * @deprecated Use {@link Driver#setCustomConnectionProvider(ConnectionProvider)} instead.
    */
+  @Deprecated
   public static void setConnectionProvider(ConnectionProvider connProvider) {
-    connProviderLock.writeLock().lock();
-    try {
-      ConnectionProviderManager.connProvider = connProvider;
-    } finally {
-      connProviderLock.writeLock().unlock();
-    }
+    Driver.setCustomConnectionProvider(connProvider);
   }
 
   /**
@@ -76,15 +74,14 @@ public class ConnectionProviderManager {
    */
   public ConnectionProvider getConnectionProvider(
       String driverProtocol, HostSpec host, Properties props) {
-    if (connProvider != null) {
-      connProviderLock.readLock().lock();
-      try {
-        if (connProvider != null && connProvider.acceptsUrl(driverProtocol, host, props)) {
-          return connProvider;
-        }
-      } finally {
-        connProviderLock.readLock().unlock();
-      }
+
+    final ConnectionProvider customConnectionProvider = Driver.getCustomConnectionProvider();
+    if (customConnectionProvider != null && customConnectionProvider.acceptsUrl(driverProtocol, host, props)) {
+      return customConnectionProvider;
+    }
+
+    if (this.effectiveConnProvider != null && this.effectiveConnProvider.acceptsUrl(driverProtocol, host, props)) {
+      return this.effectiveConnProvider;
     }
 
     return defaultProvider;
@@ -110,23 +107,16 @@ public class ConnectionProviderManager {
    *     return false
    */
   public boolean acceptsStrategy(HostRole role, String strategy) {
-    boolean acceptsStrategy = false;
-    if (connProvider != null) {
-      connProviderLock.readLock().lock();
-      try {
-        if (connProvider != null) {
-          acceptsStrategy = connProvider.acceptsStrategy(role, strategy);
-        }
-      } finally {
-        connProviderLock.readLock().unlock();
-      }
+    final ConnectionProvider customConnectionProvider = Driver.getCustomConnectionProvider();
+    if (customConnectionProvider != null && customConnectionProvider.acceptsStrategy(role, strategy)) {
+      return true;
     }
 
-    if (!acceptsStrategy) {
-      acceptsStrategy = defaultProvider.acceptsStrategy(role, strategy);
+    if (this.effectiveConnProvider != null && this.effectiveConnProvider.acceptsStrategy(role, strategy)) {
+      return true;
     }
 
-    return acceptsStrategy;
+    return this.defaultProvider.acceptsStrategy(role, strategy);
   }
 
   /**
@@ -150,61 +140,70 @@ public class ConnectionProviderManager {
   public HostSpec getHostSpecByStrategy(List<HostSpec> hosts, HostRole role, String strategy, Properties props)
       throws SQLException, UnsupportedOperationException {
     HostSpec host = null;
-    if (connProvider != null) {
-      connProviderLock.readLock().lock();
-      try {
-        if (connProvider != null && connProvider.acceptsStrategy(role, strategy)) {
-          host = connProvider.getHostSpecByStrategy(hosts, role, strategy, props);
-        }
-      } catch (UnsupportedOperationException e) {
-        // The custom provider does not support the provided strategy, ignore it and try with the default provider.
-      } finally {
-        connProviderLock.readLock().unlock();
+    final ConnectionProvider customConnectionProvider = Driver.getCustomConnectionProvider();
+    try {
+      if (customConnectionProvider != null && customConnectionProvider.acceptsStrategy(role, strategy)) {
+        host = customConnectionProvider.getHostSpecByStrategy(hosts, role, strategy, props);
+      }
+    } catch (UnsupportedOperationException e) {
+      // The custom provider does not support the provided strategy, ignore it and try with the other providers.
+    }
+
+    if (host != null) {
+      return host;
+    }
+
+    if (this.effectiveConnProvider != null && this.effectiveConnProvider.acceptsStrategy(role, strategy)) {
+      host = this.effectiveConnProvider.getHostSpecByStrategy(hosts, role, strategy, props);
+      if (host != null) {
+        return host;
       }
     }
 
-    if (host == null) {
-      host = defaultProvider.getHostSpecByStrategy(hosts, role, strategy, props);
-    }
-
-    return host;
+    return this.defaultProvider.getHostSpecByStrategy(hosts, role, strategy, props);
   }
 
   /**
    * Clears the non-default {@link ConnectionProvider} if it has been set. The default
    * ConnectionProvider will be used if the non-default ConnectionProvider has not been set or has
    * been cleared.
+   *
+   * @deprecated Use {@link Driver#resetCustomConnectionProvider()} instead
    */
+  @Deprecated
   public static void resetProvider() {
-    if (connProvider != null) {
-      connProviderLock.writeLock().lock();
-      connProvider = null;
-      connProviderLock.writeLock().unlock();
-    }
+    Driver.resetCustomConnectionProvider();
   }
 
   /**
    * Releases any resources held by the available {@link ConnectionProvider} instances.
    */
   public static void releaseResources() {
-    if (connProvider != null) {
-      connProviderLock.writeLock().lock();
-      try {
-        if (connProvider instanceof CanReleaseResources) {
-          ((CanReleaseResources) connProvider).releaseResources();
-        }
-      } finally {
-        connProviderLock.writeLock().unlock();
-      }
+    final ConnectionProvider customConnectionProvider = Driver.getCustomConnectionProvider();
+    if (customConnectionProvider instanceof CanReleaseResources) {
+      ((CanReleaseResources) customConnectionProvider).releaseResources();
     }
   }
 
+  /**
+   * Sets a custom connection initialization function. It'll be used
+   * for every brand-new database connection.
+   *
+   * @deprecated Use {@link Driver#setConnectionInitFunc(ConnectionInitFunc)} instead
+   */
+  @Deprecated
   public static void setConnectionInitFunc(final @NonNull ConnectionInitFunc func) {
-    connectionInitFunc = func;
+    Driver.setConnectionInitFunc(func);
   }
 
+  /**
+   * Resets a custom connection initialization function.
+   *
+   * @deprecated Use {@link Driver#resetConnectionInitFunc()} instead
+   */
+  @Deprecated
   public static void resetConnectionInitFunc() {
-    connectionInitFunc = null;
+    Driver.resetConnectionInitFunc();
   }
 
   public void initConnection(
@@ -213,12 +212,12 @@ public class ConnectionProviderManager {
       final @NonNull HostSpec hostSpec,
       final @NonNull Properties props) throws SQLException {
 
-    final ConnectionInitFunc copy = connectionInitFunc;
-    if (copy == null) {
+    final ConnectionInitFunc connectionInitFunc = Driver.getConnectionInitFunc();
+    if (connectionInitFunc == null) {
       return;
     }
 
-    copy.initConnection(connection, protocol, hostSpec, props);
+    connectionInitFunc.initConnection(connection, protocol, hostSpec, props);
   }
 
   public interface ConnectionInitFunc {

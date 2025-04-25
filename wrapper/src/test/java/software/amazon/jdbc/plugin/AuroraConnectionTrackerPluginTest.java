@@ -131,7 +131,7 @@ public class AuroraConnectionTrackerPluginTest {
         .build();
 
     // Host list changes during simulated failover
-    when(mockPluginService.getHosts()).thenReturn(Collections.singletonList(originalHost));
+    when(mockPluginService.getAllHosts()).thenReturn(Collections.singletonList(originalHost));
     doThrow(expectedException).when(mockSqlFunction).call();
 
     final AuroraConnectionTrackerPlugin plugin = new AuroraConnectionTrackerPlugin(
@@ -150,7 +150,7 @@ public class AuroraConnectionTrackerPluginTest {
     ));
 
     assertEquals(expectedException, exception);
-    verify(mockTracker, never()).invalidateCurrentConnection(eq(originalHost), eq(mockConnection));
+    verify(mockTracker, never()).removeConnectionTracking(eq(originalHost), eq(mockConnection));
     verify(mockTracker, never()).invalidateAllConnections(originalHost);
   }
 
@@ -161,7 +161,7 @@ public class AuroraConnectionTrackerPluginTest {
         .build();
     final HostSpec failoverTargetHost = new HostSpecBuilder(new SimpleHostAvailabilityStrategy()).host("host2")
         .build();
-    when(mockPluginService.getHosts())
+    when(mockPluginService.getAllHosts())
         .thenReturn(Collections.singletonList(originalHost))
         .thenReturn(Collections.singletonList(failoverTargetHost));
     when(mockSqlFunction.call())
@@ -192,7 +192,7 @@ public class AuroraConnectionTrackerPluginTest {
         SQL_ARGS
     ));
     assertEquals(expectedException, exception);
-    verify(mockTracker, never()).invalidateCurrentConnection(eq(originalHost), eq(mockConnection));
+    verify(mockTracker, never()).removeConnectionTracking(eq(originalHost), eq(mockConnection));
     verify(mockTracker).invalidateAllConnections(originalHost);
   }
 
@@ -218,7 +218,7 @@ public class AuroraConnectionTrackerPluginTest {
         SQL_ARGS
     );
 
-    verify(mockTracker).invalidateCurrentConnection(eq(originalHost), eq(mockConnection));
+    verify(mockTracker).removeConnectionTracking(eq(originalHost), eq(mockConnection));
   }
 
   private static Stream<Arguments> trackNewConnectionsParameters() {

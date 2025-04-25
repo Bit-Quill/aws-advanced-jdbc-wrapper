@@ -97,7 +97,7 @@ dependencies {
     // Since both the DB2 driver and HANA have a package "net.jpountz" we have to add dependencies conditionally
     // This is due to the "no split-packages" requirement of Java 9+
 
-    testRuntimeOnly files('/app/libs/aws-advanced-jdbc-wrapper-2.3.5.jar')
+    testRuntimeOnly files('/app/libs/aws-advanced-jdbc-wrapper-2.5.6.jar')
     testRuntimeOnly dbLibs.mysql
 
     if ( db.startsWith( 'db2' ) ) {
@@ -333,12 +333,12 @@ processTestResources {
         }
         copy {
             from file( 'src/test/resources' )
-            into file( "${buildDir}/resources/test" )
+            into file( "${layout.buildDirectory.get()}/resources/test" )
             exclude 'src/test/resources/hibernate.properties'
         }
         copy {
             from file( 'src/test/resources/hibernate.properties' )
-            into file( "${buildDir}/resources/test" )
+            into file( "${layout.buildDirectory.get()}/resources/test" )
             filter( ReplaceTokens, tokens: dbBundle[db] )
         }
     }
@@ -473,7 +473,7 @@ apply from: rootProject.file( 'gradle/javadoc.gradle' )
 task copyResourcesToIntelliJOutFolder(type: Task, dependsOn: project.tasks.processTestResources) {
     doLast {
         copy {
-            from "$buildDir/resources/test"
+            from "${layout.buildDirectory.get()}/resources/test"
             into 'out/test/resources'
         }
     }

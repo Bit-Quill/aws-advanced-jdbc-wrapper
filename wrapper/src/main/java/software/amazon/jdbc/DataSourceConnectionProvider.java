@@ -16,6 +16,8 @@
 
 package software.amazon.jdbc;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -30,11 +32,14 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import software.amazon.jdbc.dialect.Dialect;
 import software.amazon.jdbc.exceptions.SQLLoginException;
+import software.amazon.jdbc.targetdriverdialect.ConnectInfo;
 import software.amazon.jdbc.targetdriverdialect.TargetDriverDialect;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.PropertyUtils;
+import software.amazon.jdbc.util.RdsUtils;
 import software.amazon.jdbc.util.SqlState;
 import software.amazon.jdbc.util.WrapperUtils;
+import software.amazon.jdbc.wrapper.HighestWeightHostSelector;
 
 /**
  * This class is a basic implementation of {@link ConnectionProvider} interface. It creates and
@@ -47,6 +52,7 @@ public class DataSourceConnectionProvider implements ConnectionProvider {
   private static final Map<String, HostSelector> acceptedStrategies =
       Collections.unmodifiableMap(new HashMap<String, HostSelector>() {
         {
+          put(HighestWeightHostSelector.STRATEGY_HIGHEST_WEIGHT, new HighestWeightHostSelector());
           put(RandomHostSelector.STRATEGY_RANDOM, new RandomHostSelector());
           put(RoundRobinHostSelector.STRATEGY_ROUND_ROBIN, new RoundRobinHostSelector());
         }
@@ -55,6 +61,8 @@ public class DataSourceConnectionProvider implements ConnectionProvider {
   private final @NonNull String dataSourceClassName;
 
   private final ReentrantLock lock = new ReentrantLock();
+
+  private final RdsUtils rdsUtils = new RdsUtils();
 
   public DataSourceConnectionProvider(final @NonNull DataSource dataSource) {
     this.dataSource = dataSource;
@@ -125,12 +133,7 @@ public class DataSourceConnectionProvider implements ConnectionProvider {
       LOGGER.finest(() -> "Use a separate DataSource object to create a connection.");
       // use a new data source instance to instantiate a connection
       final DataSource ds = createDataSource();
-      targetDriverDialect.prepareDataSource(
-          ds,
-          protocol,
-          hostSpec,
-          copy);
-      conn = ds.getConnection();
+      conn = this.openConnection(ds, protocol, targetDriverDialect, hostSpec, copy);
 
     } else {
 
@@ -139,12 +142,7 @@ public class DataSourceConnectionProvider implements ConnectionProvider {
       this.lock.lock();
       LOGGER.finest(() -> "Use main DataSource object to create a connection.");
       try {
-        targetDriverDialect.prepareDataSource(
-            this.dataSource,
-            protocol,
-            hostSpec,
-            copy);
-        conn = this.dataSource.getConnection();
+        conn = this.openConnection(this.dataSource, protocol, targetDriverDialect, hostSpec, copy);
       } finally {
         this.lock.unlock();
       }
@@ -155,6 +153,76 @@ public class DataSourceConnectionProvider implements ConnectionProvider {
     }
 
     return conn;
+  }
+
+  protected Connection openConnection(
+      final @NonNull DataSource ds,
+      final @NonNull String protocol,
+      final @NonNull TargetDriverDialect targetDriverDialect,
+      final @NonNull HostSpec hostSpec,
+      final @NonNull Properties props)
+      throws SQLException {
+    final boolean enableGreenNodeReplacement = PropertyDefinition.ENABLE_GREEN_NODE_REPLACEMENT.getBoolean(props);
+    try {
+      targetDriverDialect.prepareDataSource(
+          ds,
+          protocol,
+          hostSpec,
+          props);
+      return ds.getConnection();
+    } catch (Throwable throwable) {
+      if (!enableGreenNodeReplacement) {
+        throw throwable;
+      }
+
+      UnknownHostException unknownHostException = null;
+      int maxDepth = 100;
+      Throwable loopThrowable = throwable;
+      while (--maxDepth > 0 && loopThrowable != null) {
+        if (loopThrowable instanceof UnknownHostException) {
+          unknownHostException = (UnknownHostException) loopThrowable;
+          break;
+        }
+        loopThrowable = loopThrowable.getCause();
+      }
+
+      if (unknownHostException == null) {
+        throw throwable;
+      }
+
+      if (!this.rdsUtils.isRdsDns(hostSpec.getHost()) || !this.rdsUtils.isGreenInstance(hostSpec.getHost())) {
+        throw throwable;
+      }
+
+      // check DNS for such green host name
+      InetAddress resolvedAddress = null;
+      try {
+        resolvedAddress = InetAddress.getByName(hostSpec.getHost());
+      } catch (UnknownHostException tmp) {
+        // do nothing
+      }
+
+      if (resolvedAddress != null) {
+        // Green host DNS exists
+        throw throwable;
+      }
+
+      // Green host DNS doesn't exist. Try to replace it with the corresponding hostname and connect again.
+
+      final String fixedHost = this.rdsUtils.removeGreenInstancePrefix(hostSpec.getHost());
+      final HostSpec connectionHostSpec = new HostSpecBuilder(hostSpec.getHostAvailabilityStrategy())
+          .copyFrom(hostSpec)
+          .host(fixedHost)
+          .build();
+
+      targetDriverDialect.prepareDataSource(
+          this.dataSource,
+          protocol,
+          connectionHostSpec,
+          props);
+
+      return ds.getConnection();
+    }
   }
 
   private DataSource createDataSource() throws SQLException {

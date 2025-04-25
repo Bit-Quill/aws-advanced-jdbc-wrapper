@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -95,7 +96,7 @@ public class AuroraStaleDnsHelper {
       this.pluginService.refreshHostList(conn);
     }
 
-    LOGGER.finest(() -> Utils.logTopology(this.pluginService.getHosts()));
+    LOGGER.finest(() -> Utils.logTopology(this.pluginService.getAllHosts()));
 
     if (this.writerHostSpec == null) {
       final HostSpec writerCandidate = this.getWriter();
@@ -135,6 +136,16 @@ public class AuroraStaleDnsHelper {
           new Object[]{this.writerHostSpec}));
       staleDNSDetectedCounter.inc();
 
+      final List<HostSpec> allowedHosts = this.pluginService.getHosts();
+      if (!Utils.containsUrl(allowedHosts, this.writerHostSpec.getUrl())) {
+        throw new SQLException(
+            Messages.get("AuroraStaleDnsHelper.currentWriterNotAllowed",
+                new Object[] {
+                    this.writerHostSpec == null ? "<null>" : this.writerHostSpec.getUrl(),
+                    Utils.logTopology(allowedHosts, "")})
+        );
+      }
+
       final Connection writerConn = this.pluginService.connect(this.writerHostSpec, props);
       if (isInitialConnection) {
         hostListProviderService.setInitialConnectionHostSpec(this.writerHostSpec);
@@ -170,7 +181,7 @@ public class AuroraStaleDnsHelper {
   }
 
   private HostSpec getWriter() {
-    for (final HostSpec host : this.pluginService.getHosts()) {
+    for (final HostSpec host : this.pluginService.getAllHosts()) {
       if (host.getRole() == HostRole.WRITER) {
         return host;
       }

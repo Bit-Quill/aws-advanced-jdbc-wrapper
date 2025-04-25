@@ -145,6 +145,10 @@ public class HostSpec {
     return this.weight;
   }
 
+  public void setWeight(long weight) {
+    this.weight = weight;
+  }
+
   public void addAlias(final String... alias) {
     if (alias == null || alias.length < 1) {
       return;
@@ -177,11 +181,11 @@ public class HostSpec {
   }
 
   public String getUrl() {
-    String url = isPortSpecified() ? host + ":" + port : host;
-    if (!url.endsWith("/")) {
-      url += "/";
-    }
-    return url;
+    return getHostAndPort() + "/";
+  }
+
+  public String getHostAndPort() {
+    return isPortSpecified() ? host + ":" + port : host;
   }
 
   public String getHostId() {
@@ -193,7 +197,7 @@ public class HostSpec {
   }
 
   public String asAlias() {
-    return isPortSpecified() ? host + ":" + port : host;
+    return getHostAndPort();
   }
 
   public Set<String> asAliases() {

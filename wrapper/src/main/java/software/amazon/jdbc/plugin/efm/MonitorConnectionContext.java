@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 import software.amazon.jdbc.util.Messages;
 import software.amazon.jdbc.util.telemetry.TelemetryCounter;
@@ -49,6 +50,8 @@ public class MonitorConnectionContext {
   private long invalidNodeStartTimeNano; // Only accessed by monitor thread
   private long failureCount; // Only accessed by monitor thread
 
+  private final ReentrantLock lock = new ReentrantLock();
+
   /**
    * Constructor.
    *
@@ -59,6 +62,7 @@ public class MonitorConnectionContext {
    * @param failureDetectionIntervalMillis Interval between each failed connection check.
    * @param failureDetectionCount          Number of failed connection checks before considering database
    *                                       node as unhealthy.
+   * @param abortedConnectionsCounter Aborted connection telemetry counter.
    */
   public MonitorConnectionContext(
       final Monitor monitor,
@@ -237,5 +241,9 @@ public class MonitorConnectionContext {
     LOGGER.finest(
         () -> Messages.get("MonitorConnectionContext.hostAlive",
             new Object[] {hostName}));
+  }
+
+  public ReentrantLock getLock() {
+    return this.lock;
   }
 }

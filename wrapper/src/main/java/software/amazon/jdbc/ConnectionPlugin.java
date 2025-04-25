@@ -19,6 +19,7 @@ package software.amazon.jdbc;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -43,7 +44,7 @@ public interface ConnectionPlugin {
   /**
    * Establishes a connection to the given host using the given driver protocol and properties. If a
    * non-default {@link ConnectionProvider} has been set with
-   * {@link ConnectionProviderManager#setConnectionProvider} and
+   * {@link Driver#setCustomConnectionProvider(ConnectionProvider)} and
    * {@link ConnectionProvider#acceptsUrl(String, HostSpec, Properties)} returns true for the given
    * protocol, host, and properties, the connection will be created by the non-default
    * ConnectionProvider. Otherwise, the connection will be created by the default
@@ -76,7 +77,7 @@ public interface ConnectionPlugin {
    * Establishes a connection to the given host using the given driver protocol and properties. This
    * call differs from {@link ConnectionPlugin#connect} in that the default
    * {@link ConnectionProvider} will be used to establish the connection even if a non-default
-   * ConnectionProvider has been set via {@link ConnectionProviderManager#setConnectionProvider}.
+   * ConnectionProvider has been set via {@link Driver#setCustomConnectionProvider(ConnectionProvider)}.
    * The default ConnectionProvider will be {@link DriverConnectionProvider} for connections
    * requested via the {@link java.sql.DriverManager} and {@link DataSourceConnectionProvider} for
    * connections requested via an {@link software.amazon.jdbc.ds.AwsWrapperDataSource}.
@@ -129,6 +130,9 @@ public interface ConnectionPlugin {
    *                                       requested strategy
    */
   HostSpec getHostSpecByStrategy(final HostRole role, final String strategy)
+      throws SQLException, UnsupportedOperationException;
+
+  HostSpec getHostSpecByStrategy(final List<HostSpec> hosts, final HostRole role, final String strategy)
       throws SQLException, UnsupportedOperationException;
 
   void initHostProvider(

@@ -62,7 +62,6 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
   private static final SqlMethodAnalyzer sqlMethodAnalyzer = new SqlMethodAnalyzer();
 
   private final @NonNull ConnectionProvider defaultConnProvider;
-  private final @Nullable ConnectionProvider effectiveConnProvider;
 
   private final ConnectionProviderManager connProviderManager;
   private final PluginService pluginService;
@@ -77,7 +76,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
         defaultConnProvider,
         effectiveConnProvider,
         pluginManagerService,
-        new ConnectionProviderManager(defaultConnProvider));
+        new ConnectionProviderManager(defaultConnProvider, effectiveConnProvider));
   }
 
   public DefaultConnectionPlugin(
@@ -99,7 +98,6 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
     this.pluginService = pluginService;
     this.pluginManagerService = pluginManagerService;
     this.defaultConnProvider = defaultConnProvider;
-    this.effectiveConnProvider = effectiveConnProvider;
     this.connProviderManager = connProviderManager;
   }
 
@@ -173,27 +171,21 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
       final JdbcCallable<Connection, SQLException> connectFunc)
       throws SQLException {
 
-    ConnectionProvider connProvider = null;
-
-    if (this.effectiveConnProvider != null) {
-      if (this.effectiveConnProvider.acceptsUrl(driverProtocol, hostSpec, props)) {
-        connProvider = this.effectiveConnProvider;
-      }
-    }
-
-    if (connProvider == null) {
-      connProvider =
-          this.connProviderManager.getConnectionProvider(driverProtocol, hostSpec, props);
-    }
+    ConnectionProvider connProvider = this.connProviderManager.getConnectionProvider(driverProtocol, hostSpec, props);
 
     // It's guaranteed that this plugin is always the last in plugin chain so connectFunc can be
     // ignored.
-    return connectInternal(driverProtocol, hostSpec, props, connProvider);
+    return connectInternal(driverProtocol, hostSpec, props, connProvider, isInitialConnection);
   }
 
   private Connection connectInternal(
-      String driverProtocol, HostSpec hostSpec, Properties props, ConnectionProvider connProvider)
+      String driverProtocol,
+      HostSpec hostSpec,
+      Properties props,
+      ConnectionProvider connProvider,
+      final boolean isInitialConnection)
       throws SQLException {
+
     TelemetryFactory telemetryFactory = this.pluginService.getTelemetryFactory();
     TelemetryContext telemetryContext = telemetryFactory.openTelemetryContext(
         connProvider.getTargetName(), TelemetryTraceLevel.NESTED);
@@ -213,7 +205,9 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
     this.connProviderManager.initConnection(conn, driverProtocol, hostSpec, props);
 
     this.pluginService.setAvailability(hostSpec.asAliases(), HostAvailability.AVAILABLE);
-    this.pluginService.updateDialect(conn);
+    if (isInitialConnection) {
+      this.pluginService.updateDialect(conn);
+    }
 
     return conn;
   }
@@ -229,7 +223,7 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
 
     // It's guaranteed that this plugin is always the last in plugin chain so forceConnectFunc can be
     // ignored.
-    return connectInternal(driverProtocol, hostSpec, props, this.defaultConnProvider);
+    return connectInternal(driverProtocol, hostSpec, props, this.defaultConnProvider, isInitialConnection);
   }
 
   @Override
@@ -239,29 +233,29 @@ public final class DefaultConnectionPlugin implements ConnectionPlugin {
       return false;
     }
 
-    if (this.effectiveConnProvider != null) {
-      return this.effectiveConnProvider.acceptsStrategy(role, strategy);
-    }
     return this.connProviderManager.acceptsStrategy(role, strategy);
   }
 
   @Override
   public HostSpec getHostSpecByStrategy(HostRole role, String strategy)
       throws SQLException {
+    List<HostSpec> hosts = this.pluginService.getHosts();
+
+    return this.getHostSpecByStrategy(hosts, role, strategy);
+  }
+
+  @Override
+  public HostSpec getHostSpecByStrategy(final List<HostSpec> hosts, final HostRole role, final String strategy)
+      throws SQLException {
     if (HostRole.UNKNOWN.equals(role)) {
       // Users must request either a writer or a reader role.
       throw new SQLException("DefaultConnectionPlugin.unknownRoleRequested");
     }
 
-    List<HostSpec> hosts = this.pluginService.getHosts();
-    if (hosts.size() < 1) {
+    if (hosts.isEmpty()) {
       throw new SQLException(Messages.get("DefaultConnectionPlugin.noHostsAvailable"));
     }
 
-    if (this.effectiveConnProvider != null) {
-      return this.effectiveConnProvider.getHostSpecByStrategy(hosts,
-          role, strategy, this.pluginService.getProperties());
-    }
     return this.connProviderManager.getHostSpecByStrategy(hosts, role, strategy, this.pluginService.getProperties());
   }
 
